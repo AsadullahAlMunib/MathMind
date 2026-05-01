@@ -120,14 +120,14 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
                 </Tooltip>
                 <Tooltip content="Send Email">
                   <a 
-                    href="mailto:asadullahalmunib9@gmail.com" 
+                    href="mailto:asadullahweb1@gmail.com" 
                     className="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
                   >
                     <Mail size={18} />
                   </a>
                 </Tooltip>
                 <a 
-                  href="https://github.com/AsadullahAlMunib" 
+                  href="https://munib.rf.gd" 
                   target="_blank" 
                   rel="noreferrer"
                   className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary px-4 py-2.5 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all"
