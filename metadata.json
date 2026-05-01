@@ -1,0 +1,10 @@
+{
+  "name": "Math Mind",
+  "description": "A gamified math quiz application with AI-powered question generation, unlockable themes, and performance tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "AI-powered content generation",
+    "Local data persistence",
+    "Data visualization"
+  ]
+}

@@ -1,0 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  --primary: #6366f1;
+  --secondary: #4f46e5;
+  --bg: #f9fafb;
+  --text: #111827;
+  --border: rgba(0,0,0,0.1);
+  --surface: rgba(255,255,255,0.8);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.theme-transition {
+  transition: all 0.3s ease;
+}
+
+.glass {
+  background: var(--surface);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+}
+
+.math-card {
+  background: var(--surface);
+  @apply rounded-3xl p-6 shadow-xl;
+  border: 1px solid var(--border);
+}
+
+.contribution-cell {
+  @apply w-3 h-3 rounded-sm;
+}
+
