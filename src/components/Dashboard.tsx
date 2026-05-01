@@ -36,14 +36,16 @@ interface DashboardProps {
   user: UserProfile;
   language: 'en' | 'bn';
   onStartQuiz: (d: Difficulty) => void;
+  onStartReview: () => void;
 }
 
-export default function Dashboard({ stats, user, language, onStartQuiz }: DashboardProps) {
+export default function Dashboard({ stats, user, language, onStartQuiz, onStartReview }: DashboardProps) {
   const t = translations[language];
 
   // Level progress calculation (based on 1000 points per level)
   const levelProgress = (stats.totalPoints % 1000) / 10; // Result is percentage (0-100)
   const pointsToNextLevel = 1000 - (stats.totalPoints % 1000);
+  const hasMissed = stats.missedQuestions && stats.missedQuestions.length > 0;
 
   // Prepare activity data (last 50 days)
   const activityData = Array.from({ length: 50 }, (_, i) => {
@@ -67,7 +69,7 @@ export default function Dashboard({ stats, user, language, onStartQuiz }: Dashbo
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
       {/* Welcome Banner */}
-      <section className="math-card bg-primary text-white overflow-hidden relative">
+      <section className="math-card bg-primary text-white overflow-hidden relative border-none shadow-2xl">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-4">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -92,7 +94,7 @@ export default function Dashboard({ stats, user, language, onStartQuiz }: Dashbo
                 ? "Ready to exercise your brain today? Keep your streak going and climb the leaderboard!"
                 : "আজ আপনার মস্তিষ্ককে ব্যায়াম করতে প্রস্তুত? আপনার ধারাবাহিকতা বজায় রাখুন এবং লিডারবোর্ডে এগিয়ে যান!"}
             </p>
-            <div className="flex gap-4 pt-2">
+            <div className="flex flex-wrap gap-4 pt-2">
               <button 
                 onClick={() => onStartQuiz('basic')}
                 className="bg-white text-primary px-6 py-3 rounded-2xl font-bold hover:shadow-lg transition-all flex items-center gap-2 group"
@@ -100,6 +102,19 @@ export default function Dashboard({ stats, user, language, onStartQuiz }: Dashbo
                 <BrainCircuit size={20} className="group-hover:rotate-12 transition-transform" />
                 {t.startQuiz}
               </button>
+              
+              {hasMissed && (
+                <button 
+                  onClick={onStartReview}
+                  className="bg-primary-dark/40 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-2xl font-bold hover:bg-white/10 transition-all flex items-center gap-2 group"
+                >
+                  <BookOpen size={20} className="group-hover:scale-110 transition-transform" />
+                  {language === 'en' ? 'Review Mode' : 'রিভিউ মোড'}
+                  <span className="bg-rose-500 text-[10px] px-1.5 py-0.5 rounded-full ml-1">
+                    {stats.missedQuestions?.length}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
           <div className="hidden md:block">
@@ -129,6 +144,36 @@ export default function Dashboard({ stats, user, language, onStartQuiz }: Dashbo
         <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-64 h-64 bg-secondary/30 rounded-full blur-3xl"></div>
       </section>
 
+      {/* Review Banner for specific attention if missed many */}
+      {hasMissed && stats.missedQuestions!.length >= 5 && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="math-card glass border-rose-500/20 p-6 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden"
+        >
+          <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center">
+            <Zap size={32} />
+          </div>
+          <div className="flex-1 text-center md:text-left">
+             <h4 className="text-xl font-bold">
+               {language === 'en' ? 'Challenge Yourself!' : 'নিজেকে চ্যালেঞ্জ দিন!'}
+             </h4>
+             <p className="text-muted text-sm">
+               {language === 'en' 
+                 ? `You have ${stats.missedQuestions?.length} questions to review. Practice them to master these concepts!`
+                 : `আপনার কাছে ${stats.missedQuestions?.length}টি প্রশ্ন রিভিউ করার জন্য আছে। এগুলো প্র্যাকটিস করুন আপনার দক্ষতা বাড়াতে!`}
+             </p>
+          </div>
+          <button 
+            onClick={onStartReview}
+            className="w-full md:w-auto bg-rose-500 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center gap-2 group"
+          >
+            {language === 'en' ? 'Master These Questions' : 'এই প্রশ্নগুলো আয়ত্ত করুন'}
+            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+          </button>
+        </motion.div>
+      )}
+
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatItem icon={<TrendingUp />} label={t.points} value={stats.totalPoints} color="text-amber-500" />
@@ -145,30 +190,30 @@ export default function Dashboard({ stats, user, language, onStartQuiz }: Dashbo
 
       {/* Performance Section Highlights */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="math-card bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20 p-6 flex items-center gap-4 group">
+        <div className="math-card glass border-emerald-500/20 p-6 flex items-center gap-4 group">
           <div className="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
             <Trophy size={24} />
           </div>
           <div>
-            <p className="text-xs font-bold opacity-50 uppercase">{language === 'en' ? 'Basic Best' : 'বেসিক সেরা'}</p>
+            <p className="text-[10px] font-black text-muted uppercase">{language === 'en' ? 'Basic Best' : 'বেসিক সেরা'}</p>
             <p className="text-2xl font-black">{stats.highScores.basic} pts</p>
           </div>
         </div>
-        <div className="math-card bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/20 p-6 flex items-center gap-4 group">
+        <div className="math-card glass border-amber-500/20 p-6 flex items-center gap-4 group">
           <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
             <Medal size={24} />
           </div>
           <div>
-            <p className="text-xs font-bold opacity-50 uppercase">{language === 'en' ? 'Normal Best' : 'সাধারণ সেরা'}</p>
+            <p className="text-[10px] font-black text-muted uppercase">{language === 'en' ? 'Normal Best' : 'সাধারণ সেরা'}</p>
             <p className="text-2xl font-black">{stats.highScores.normal} pts</p>
           </div>
         </div>
-        <div className="math-card bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/20 p-6 flex items-center gap-4 group">
+        <div className="math-card glass border-rose-500/20 p-6 flex items-center gap-4 group">
           <div className="w-12 h-12 bg-rose-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
             <Award size={24} />
           </div>
           <div>
-            <p className="text-xs font-bold opacity-50 uppercase">{language === 'en' ? 'Hard Best' : 'হার্ড সেরা'}</p>
+            <p className="text-[10px] font-black text-muted uppercase">{language === 'en' ? 'Hard Best' : 'হার্ড সেরা'}</p>
             <p className="text-2xl font-black">{stats.highScores.hard} pts</p>
           </div>
         </div>
@@ -254,9 +299,9 @@ export default function Dashboard({ stats, user, language, onStartQuiz }: Dashbo
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-sm">
-            <span className="opacity-60">{t.correctAnswers}</span>
-            <span className="font-bold">{stats.correctAnswers}</span>
+          <div className="mt-4 pt-4 border-t border-theme flex items-center justify-between text-sm">
+            <span className="text-muted font-bold">{t.correctAnswers}</span>
+            <span className="font-black text-lg">{stats.correctAnswers}</span>
           </div>
         </div>
       </div>
@@ -297,7 +342,7 @@ function StatItem({
           )}
         </div>
       </div>
-      <p className="text-xs opacity-50 font-bold uppercase tracking-widest mb-1 relative z-10">{label}</p>
+      <p className="text-[10px] text-muted font-bold uppercase tracking-widest mb-1 relative z-10">{label}</p>
       <p className="text-2xl font-black tracking-tight relative z-10">{value}</p>
       
       {progress !== undefined && (

@@ -4,6 +4,14 @@
 @theme {
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-bg: var(--bg);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-border-theme: var(--border);
+  --color-surface: var(--surface);
 }
 
 :root {
@@ -11,6 +19,7 @@
   --secondary: #4f46e5;
   --bg: #f9fafb;
   --text: #111827;
+  --text-muted: #6b7280;
   --border: rgba(0,0,0,0.1);
   --surface: rgba(255,255,255,0.8);
 }
@@ -19,24 +28,37 @@ body {
   background-color: var(--bg);
   color: var(--text);
   overflow-x: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  @apply transition-colors duration-300;
 }
 
 .theme-transition {
-  transition: all 0.3s ease;
+  @apply transition-all duration-300;
 }
 
 .glass {
   background: var(--surface);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
+  @apply shadow-sm;
 }
 
 .math-card {
   background: var(--surface);
-  @apply rounded-3xl p-6 shadow-xl;
+  @apply rounded-3xl p-6 shadow-md transition-all duration-300;
   border: 1px solid var(--border);
+}
+
+.math-card:hover {
+  @apply shadow-2xl;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.border-theme {
+  border-color: var(--border);
 }
 
 .contribution-cell {

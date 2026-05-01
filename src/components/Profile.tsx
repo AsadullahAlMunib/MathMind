@@ -22,10 +22,11 @@ interface ProfileProps {
   user: UserProfile;
   stats: UserStats;
   onUpdateUser: (user: UserProfile) => void;
+  onClearReview: () => void;
   language: 'en' | 'bn';
 }
 
-export default function Profile({ user, stats, onUpdateUser, language }: ProfileProps) {
+export default function Profile({ user, stats, onUpdateUser, onClearReview, language }: ProfileProps) {
   const t = translations[language];
 
   return (
@@ -49,10 +50,17 @@ export default function Profile({ user, stats, onUpdateUser, language }: Profile
                onChange={(e) => onUpdateUser({ ...user, name: e.target.value })}
                className="text-3xl font-bold bg-transparent border-none focus:ring-2 ring-primary/20 rounded-lg outline-none w-full"
              />
-             <p className="text-sm opacity-50 flex items-center justify-center md:justify-start gap-2">
-               <Calendar size={14} />
-               Joined {new Date(user.joinedAt).toLocaleDateString()}
-             </p>
+             <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 opacity-50 text-sm">
+                <p className="flex items-center justify-center md:justify-start gap-2">
+                  <Calendar size={14} />
+                  Joined {new Date(user.joinedAt).toLocaleDateString()}
+                </p>
+                <div className="hidden md:block w-1 h-1 bg-current rounded-full"></div>
+                <p className="flex items-center justify-center gap-2">
+                  <BookOpen size={14} />
+                  {stats.missedQuestions?.length || 0} Review Questions
+                </p>
+             </div>
           </div>
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
              <span className="px-4 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider">
@@ -61,6 +69,14 @@ export default function Profile({ user, stats, onUpdateUser, language }: Profile
              <span className="px-4 py-1 bg-emerald-500/10 text-emerald-500 rounded-full text-xs font-bold uppercase tracking-wider">
                {stats.totalPoints} Points
              </span>
+             {stats.missedQuestions && stats.missedQuestions.length > 0 && (
+               <button 
+                 onClick={onClearReview}
+                 className="px-4 py-1 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-full text-xs font-bold uppercase tracking-wider transition-colors"
+               >
+                 Clear Review History
+               </button>
+             )}
           </div>
         </div>
       </section>

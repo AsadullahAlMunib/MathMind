@@ -14,6 +14,7 @@ const INITIAL_STATS: UserStats = {
   unlockedThemes: ['default', 'dark'],
   activity: [],
   highScores: { basic: 0, normal: 0, hard: 0 },
+  missedQuestions: [],
 };
 
 const INITIAL_USER: UserProfile = {

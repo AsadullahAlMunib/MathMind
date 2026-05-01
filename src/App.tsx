@@ -38,6 +38,8 @@ export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [quizDifficulty, setQuizDifficulty] = useState<Difficulty | null>(null);
 
+  const [quizQuestions, setQuizQuestions] = useState<Question[] | null>(null);
+
   const t = translations[state.user.language];
   const currentTheme = useMemo(() => {
     const theme = THEMES.find(t => t.id === state.user.currentTheme) || THEMES[0];
@@ -58,12 +60,10 @@ export default function App() {
     root.style.setProperty('--secondary', currentTheme.colors.secondary);
     root.style.setProperty('--bg', currentTheme.colors.bg);
     root.style.setProperty('--text', currentTheme.colors.text);
-    
-    // Add a helper for border colors based on theme
-    const isDarkTheme = isDark || currentTheme.id === 'dark' || currentTheme.id === 'cyber';
-    root.style.setProperty('--border', isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)');
-    root.style.setProperty('--surface', isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.8)');
-  }, [currentTheme, isDark]);
+    root.style.setProperty('--text-muted', (currentTheme.colors as any).textMuted || currentTheme.colors.text);
+    root.style.setProperty('--border', (currentTheme.colors as any).border || 'rgba(0,0,0,0.1)');
+    root.style.setProperty('--surface', (currentTheme.colors as any).surface || 'rgba(255,255,255,0.8)');
+  }, [currentTheme]);
 
   const handleUpdateState = (newState: Partial<AppState>) => {
     const updated = { ...state, ...newState };
@@ -78,7 +78,7 @@ export default function App() {
     });
   };
 
-  const handleQuizComplete = (points: number, correct: number, diff: Difficulty) => {
+  const handleQuizComplete = (points: number, correct: number, diff: Difficulty, missed: Question[]) => {
     storage.updateStats(stats => {
       const newTotalPoints = stats.totalPoints + points;
       const newHighScores = { ...stats.highScores };
@@ -86,57 +86,83 @@ export default function App() {
       
       const newLevel = Math.floor(newTotalPoints / 1000) + 1;
       
+      // Merge missed questions, avoiding duplicates
+      const currentMissed = stats.missedQuestions || [];
+      const newMissed = [...currentMissed];
+      missed.forEach(q => {
+        if (!newMissed.find(existing => existing.id === q.id)) {
+          newMissed.push(q);
+        }
+      });
+
       return {
         ...stats,
         totalPoints: newTotalPoints,
         totalQuizzes: stats.totalQuizzes + 1,
         correctAnswers: stats.correctAnswers + correct,
         highScores: newHighScores,
-        level: newLevel
+        level: newLevel,
+        missedQuestions: newMissed.slice(-50) // Keep last 50 only
       };
     });
     storage.logActivity();
     setQuizDifficulty(null);
+    setQuizQuestions(null);
     setState(storage.load());
+  };
+
+  const startReviewMode = () => {
+    if (state.stats.missedQuestions && state.stats.missedQuestions.length > 0) {
+      setQuizQuestions(state.stats.missedQuestions);
+      setQuizDifficulty('normal'); // Default difficulty for review
+    }
   };
 
   return (
     <div className="min-h-screen theme-transition pb-24 md:pb-0 md:pl-20 font-sans">
       {/* Header Info */}
-      <header className="sticky top-0 z-40 p-6 flex justify-between items-center max-w-7xl mx-auto bg-[var(--bg)]/80 backdrop-blur-xl border-b border-black/5 dark:border-white/10 transition-colors">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary rounded-xl text-white shadow-lg shadow-primary/30">
+      <header className="sticky top-0 z-40 p-4 md:p-6 flex justify-between items-center max-w-7xl mx-auto glass border-b border-theme transition-all duration-300 shadow-sm">
+        <div className="flex items-center gap-4">
+          <motion.div 
+            whileHover={{ rotate: 15 }}
+            className="p-3 bg-primary rounded-2xl text-white shadow-xl shadow-primary/30 flex items-center justify-center"
+          >
             <Gamepad2 size={24} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">{t.title}</h1>
-            <div className="flex items-center gap-2 text-xs font-medium opacity-60">
-              <Award size={12} />
-              <span>{t.level} {state.stats.level}</span>
-              <span className="ml-2 px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+          </motion.div>
+          
+          <div className="flex flex-col">
+            <h1 className="text-xl font-black tracking-tight leading-none mb-1">{t.title}</h1>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                < Award size={10} className="text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-primary">{t.level} {state.stats.level}</span>
+              </div>
+              <span className="text-[10px] font-bold text-muted uppercase tracking-tighter">
                 {state.stats.totalPoints} {t.points}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button 
+        <div className="flex items-center gap-3">
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={toggleLanguage}
-            className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors overflow-hidden flex items-center gap-2 text-sm font-medium"
+            className="h-11 px-4 glass border-theme rounded-xl hover:bg-primary/5 transition-colors flex items-center gap-2 text-xs font-black uppercase tracking-widest"
           >
-            <Languages size={18} />
-            <span className="hidden sm:inline">{state.user.language.toUpperCase()}</span>
-          </button>
-          <button 
+            <Languages size={18} className="text-muted" />
+            <span className="hidden sm:inline">{state.user.language}</span>
+          </motion.button>
+
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setIsDark(!isDark)}
-            className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+            className="w-11 h-11 glass border-theme rounded-xl hover:bg-primary/5 transition-colors flex items-center justify-center"
           >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          <button className="sm:hidden p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg">
-             <BookOpen size={18} onClick={() => handleUpdateState({ isFirstTime: true })} />
-          </button>
+            {isDark ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} className="text-indigo-600" />}
+          </motion.button>
         </div>
       </header>
 
@@ -147,8 +173,12 @@ export default function App() {
             <Quiz 
               difficulty={quizDifficulty} 
               onComplete={handleQuizComplete}
-              onCancel={() => setQuizDifficulty(null)}
+              onCancel={() => {
+                setQuizDifficulty(null);
+                setQuizQuestions(null);
+              }}
               language={state.user.language}
+              initialQuestions={quizQuestions || undefined}
             />
           ) : (
             <motion.div
@@ -164,6 +194,7 @@ export default function App() {
                   user={state.user} 
                   language={state.user.language}
                   onStartQuiz={(d) => setQuizDifficulty(d)}
+                  onStartReview={startReviewMode}
                 />
               )}
               {activeTab === 'quiz' && (
@@ -193,8 +224,8 @@ export default function App() {
                            'Advanced math and logic puzzles.'}
                         </p>
                       </div>
-                      <div className="mt-auto text-xs font-bold opacity-40 uppercase tracking-widest">
-                        {t.highScore}: {state.stats.highScores[d]}
+                      <div className="mt-auto text-[10px] font-black uppercase tracking-tighter text-muted">
+                        {t.highScore}: {state.stats.highScores[d]} pts
                       </div>
                     </motion.button>
                   ))}
@@ -228,6 +259,11 @@ export default function App() {
                   user={state.user} 
                   stats={state.stats}
                   onUpdateUser={(u) => handleUpdateState({ user: u })}
+                  onClearReview={() => {
+                    handleUpdateState({
+                      stats: { ...state.stats, missedQuestions: [] }
+                    });
+                  }}
                   language={state.user.language}
                 />
               )}
@@ -237,7 +273,7 @@ export default function App() {
       </main>
 
       {/* Navigation Sidebar (Desktop) / Bottom Bar (Mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 md:top-0 md:right-auto md:w-20 md:flex-col glass border-t md:border-t-0 md:border-r border-black/10 dark:border-white/10 flex items-center justify-around md:justify-center gap-2 p-3 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 md:top-0 md:right-auto md:w-20 md:flex-col glass border-t md:border-t-0 md:border-r border-theme flex items-center justify-around md:justify-center gap-2 p-3 z-50">
         <NavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label={t.dashboard} />
         <NavButton active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<Gamepad2 />} label={t.startQuiz} />
         <NavButton active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} icon={<Trophy />} label={t.leaderboard} />
@@ -274,8 +310,8 @@ function NavButton({ active, onClick, icon, label }: { active: boolean, onClick:
       onClick={onClick}
       className={`relative flex flex-col items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl transition-all ${
         active 
-          ? 'bg-primary text-white shadow-lg shadow-primary/30' 
-          : 'text-gray-500 hover:bg-black/5 dark:hover:bg-white/5'
+          ? 'bg-primary text-white shadow-lg shadow-primary/30 font-bold' 
+          : 'text-muted hover:bg-primary/10'
       }`}
     >
       {React.cloneElement(icon as React.ReactElement, { size: 24 })}

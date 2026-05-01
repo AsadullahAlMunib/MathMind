@@ -23,25 +23,28 @@ import { translations } from '../lib/translations';
 
 interface QuizProps {
   difficulty: Difficulty;
-  onComplete: (points: number, correct: number, diff: Difficulty) => void;
+  onComplete: (points: number, correct: number, diff: Difficulty, missed: Question[]) => void;
   onCancel: () => void;
   language: 'en' | 'bn';
+  initialQuestions?: Question[];
 }
 
-export default function Quiz({ difficulty, onComplete, onCancel, language }: QuizProps) {
-  const [questions, setQuestions] = useState<Question[]>([]);
+export default function Quiz({ difficulty, onComplete, onCancel, language, initialQuestions }: QuizProps) {
+  const [questions, setQuestions] = useState<Question[]>(initialQuestions || []);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialQuestions);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState<'correct' | 'incorrect' | null>(null);
   const [results, setResults] = useState<{ id: string; correct: boolean }[]>([]);
   const [timeLeft, setTimeLeft] = useState(30);
   const [points, setPoints] = useState(0);
+  const [missedQuestions, setMissedQuestions] = useState<Question[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const t = translations[language];
 
   useEffect(() => {
+    if (initialQuestions) return;
     async function fetchQuestions() {
       setLoading(true);
       const q = await quizEngine.generateQuestions(difficulty, language, 10);
@@ -51,7 +54,14 @@ export default function Quiz({ difficulty, onComplete, onCancel, language }: Qui
     }
     fetchQuestions();
     return () => stopTimer();
-  }, [difficulty, language]);
+  }, [difficulty, language, initialQuestions]);
+
+  useEffect(() => {
+    if (initialQuestions && questions.length > 0 && loading) {
+       setLoading(false);
+       startTimer();
+    }
+  }, [initialQuestions, questions, loading]);
 
   useEffect(() => {
     if (timeLeft === 0 && !showResult) {
@@ -81,6 +91,10 @@ export default function Quiz({ difficulty, onComplete, onCancel, language }: Qui
     setShowResult(isCorrect ? 'correct' : 'incorrect');
     setResults(prev => [...prev, { id: currentQ.id, correct: isCorrect }]);
     
+    if (!isCorrect) {
+      setMissedQuestions(prev => [...prev, currentQ]);
+    }
+
     if (isCorrect) {
       const basePoints = difficulty === 'basic' ? 10 : difficulty === 'normal' ? 25 : 50;
       const speedBonus = Math.floor(timeLeft * (difficulty === 'hard' ? 2.5 : 1.5));
@@ -88,13 +102,15 @@ export default function Quiz({ difficulty, onComplete, onCancel, language }: Qui
     }
 
     // Auto-advance after showing explanation/result
-    const delay = currentQ.explanation ? 3000 : 1500;
+    const delay = currentQ.explanation ? 4000 : 2000;
     setTimeout(() => {
       if (currentIndex < questions.length - 1) {
         setCurrentIndex(prev => prev + 1);
         setSelectedAnswer(null);
         setShowResult(null);
-        startTimer();
+        if (questions[currentIndex + 1]) {
+           startTimer();
+        }
       } else {
         finishQuiz();
       }
@@ -103,7 +119,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, language }: Qui
 
   const finishQuiz = () => {
     const correctCount = results.filter(r => r.correct).length;
-    onComplete(points, correctCount, difficulty);
+    onComplete(points, correctCount, difficulty, missedQuestions);
   };
 
   if (loading) {
@@ -158,7 +174,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, language }: Qui
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -50 }}
-          className="math-card p-10 flex flex-col items-center text-center gap-8 relative overflow-hidden"
+          className="math-card p-10 flex flex-col items-center text-center gap-8 relative overflow-hidden border-2 border-theme"
         >
           {showResult && (
             <motion.div 
@@ -271,14 +287,14 @@ function AnswerButton({ label, onClick, active, correct, wrong, disabled }: {
 }) {
   return (
     <motion.button
-      whileHover={!disabled ? { scale: 1.02, backgroundColor: 'rgba(99, 102, 241, 0.1)' } : {}}
+      whileHover={!disabled ? { scale: 1.02, backgroundColor: 'var(--primary)', color: 'white' } : {}}
       whileTap={!disabled ? { scale: 0.98 } : {}}
       onClick={onClick}
       disabled={disabled}
       className={`p-6 rounded-2xl border-2 font-bold text-lg transition-all text-center ${
         correct ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg' :
         wrong ? 'bg-rose-500 border-rose-500 text-white shadow-lg' :
-        active ? 'border-primary bg-primary text-white' : 'border-black/5 dark:border-white/5 hover:border-primary/40'
+        active ? 'border-primary bg-primary text-white' : 'border-theme glass hover:border-primary/40'
       }`}
     >
       {label}

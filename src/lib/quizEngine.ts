@@ -13,38 +13,52 @@ export const quizEngine = {
     const isOnline = navigator.onLine && !!process.env.GEMINI_API_KEY;
 
     if (isOnline) {
-      try {
-        const prompt = `Generate ${count} math questions for ${difficulty} difficulty in ${language === 'en' ? 'English' : 'Bengali'}. 
-        Format as JSON array: [{ "id": "uuid", "question": "...", "options": ["...", "..."], "answer": "...", "type": "mcq" | "true-false" | "fill-blank", "difficulty": "${difficulty}", "explanation": "..." }]
-        
-        Difficulty Guidelines:
-        - Basic: Simple arithmetic (+, -, *, / up to 100).
-        - Normal: Middle school math, algebra (e.g., Solve for x), word problems, squares, percentages, and fractions.
-        - Hard: High school level, complex multi-step word problems, geometry (area/volume), logic puzzles, and simple calculus/trigonometry concepts.
-        
-        Question Types:
-        - mcq: 4 options.
-        - true-false: answer is "True" or "False".
-        - fill-blank: a direct number or simple string.
-        
-        Ensure word problems are included. The "explanation" field should explain HOW to solve it in ${language === 'en' ? 'English' : 'Bengali'}.
-        If language is Bengali, write all text in Bengali except logical/math symbols.`;
+      const maxRetries = 2;
+      let attempt = 0;
 
-        const result = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json'
+      while (attempt <= maxRetries) {
+        try {
+          const prompt = `Generate ${count} math questions for ${difficulty} difficulty in ${language === 'en' ? 'English' : 'Bengali'}. 
+          Format as JSON array: [{ "id": "uuid", "question": "...", "options": ["...", "..."], "answer": "...", "type": "mcq" | "true-false" | "fill-blank", "difficulty": "${difficulty}", "explanation": "..." }]
+          
+          Difficulty Guidelines:
+          - Basic: Simple arithmetic (+, -, *, / up to 100).
+          - Normal: Middle school math, algebra (e.g., Solve for x), word problems, squares, percentages, and fractions.
+          - Hard: High school level, complex multi-step word problems, geometry (area/volume), logic puzzles, and simple calculus/trigonometry concepts.
+          
+          Question Types:
+          - mcq: 4 options.
+          - true-false: answer is "True" or "False".
+          - fill-blank: a direct number or simple string.
+          
+          Ensure word problems are included. The "explanation" field should explain HOW to solve it in ${language === 'en' ? 'English' : 'Bengali'}.
+          If language is Bengali, write all text in Bengali except logical/math symbols.`;
+
+          const result = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-lite-preview',
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json'
+            }
+          });
+
+          const text = result.text;
+          if (!text) throw new Error('Empty AI response');
+          const cleanedText = text.replace(/```json|```/g, '').trim();
+          return JSON.parse(cleanedText);
+        } catch (error: any) {
+          attempt++;
+          const is429 = error?.message?.includes('429') || error?.status === 429 || error?.code === 429;
+          
+          if (is429 && attempt <= maxRetries) {
+            console.warn(`Gemini 429 detected. Retrying attempt ${attempt}...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential-ish backoff
+            continue;
           }
-        });
-
-        const text = result.text;
-        if (!text) throw new Error('Empty AI response');
-        const cleanedText = text.replace(/```json|```/g, '').trim();
-        return JSON.parse(cleanedText);
-      } catch (error) {
-        console.error('Gemini error, falling back to offline:', error);
-        return this.generateOffline(difficulty, count);
+          
+          console.error('Gemini error, falling back to offline:', error);
+          return this.generateOffline(difficulty, count);
+        }
       }
     }
 
@@ -65,60 +79,95 @@ export const quizEngine = {
     const type = types[Math.floor(Math.random() * types.length)];
     
     if (difficulty === 'basic') {
-      const a = Math.floor(Math.random() * 20) + 1;
-      const b = Math.floor(Math.random() * 20) + 1;
-      const ops = ['+', '-', '*'];
-      const op = ops[Math.floor(Math.random() * ops.length)];
-      let answer: number;
-      
-      switch(op) {
-        case '+': answer = a + b; break;
-        case '-': answer = a - b; break;
-        case '*': answer = Math.floor(a/2) * (b % 10); break;
-        default: answer = a + b;
-      }
+      const category = Math.floor(Math.random() * 4);
+      let a, b, answer, op, questionText;
 
-      const questionText = `${a} ${op} ${b} = ?`;
+      if (category === 0) { // Addition
+        a = Math.floor(Math.random() * 50) + 10;
+        b = Math.floor(Math.random() * 50) + 10;
+        answer = a + b;
+        questionText = `${a} + ${b} = ?`;
+      } else if (category === 1) { // Subtraction
+        a = Math.floor(Math.random() * 100) + 50;
+        b = Math.floor(Math.random() * 50) + 1;
+        answer = a - b;
+        questionText = `${a} - ${b} = ?`;
+      } else if (category === 2) { // Multiplication
+        a = Math.floor(Math.random() * 12) + 2;
+        b = Math.floor(Math.random() * 12) + 2;
+        answer = a * b;
+        questionText = `${a} × ${b} = ?`;
+      } else { // Division
+        b = Math.floor(Math.random() * 10) + 2;
+        answer = Math.floor(Math.random() * 10) + 1;
+        a = b * answer;
+        questionText = `${a} ÷ ${b} = ?`;
+      }
       return this.formatOfflineQuestion(id, questionText, answer.toString(), type, difficulty);
     }
 
     if (difficulty === 'normal') {
-      const category = Math.floor(Math.random() * 3);
+      const category = Math.floor(Math.random() * 5);
       if (category === 0) { // Algebra
-        const x = Math.floor(Math.random() * 10) + 1;
-        const coef = Math.floor(Math.random() * 5) + 2;
-        const constVal = Math.floor(Math.random() * 20);
+        const x = Math.floor(Math.random() * 12) + 1;
+        const coef = Math.floor(Math.random() * 8) + 2;
+        const constVal = Math.floor(Math.random() * 30) - 15;
         const result = coef * x + constVal;
-        return this.formatOfflineQuestion(id, `Solve for x: ${coef}x + ${constVal} = ${result}`, x.toString(), type, difficulty);
+        const sign = constVal >= 0 ? '+' : '-';
+        return this.formatOfflineQuestion(id, `Solve for x: ${coef}x ${sign} ${Math.abs(constVal)} = ${result}`, x.toString(), type, difficulty);
       } else if (category === 1) { // Squares/Roots
-        const n = Math.floor(Math.random() * 15) + 2;
+        const n = Math.floor(Math.random() * 20) + 2;
         const isSquare = Math.random() > 0.5;
         if (isSquare) return this.formatOfflineQuestion(id, `What is ${n} squared?`, (n * n).toString(), type, difficulty);
         return this.formatOfflineQuestion(id, `Square root of ${n * n} is?`, n.toString(), type, difficulty);
-      } else { // Percentages
-        const total = [100, 200, 50, 500][Math.floor(Math.random() * 4)];
-        const percent = (Math.floor(Math.random() * 10) + 1) * 10;
+      } else if (category === 2) { // Percentages
+        const total = [80, 120, 150, 200, 250, 400][Math.floor(Math.random() * 6)];
+        const percent = (Math.floor(Math.random() * 15) + 1) * 5;
         const answer = (total * percent) / 100;
-        return this.formatOfflineQuestion(id, `What is ${percent}% of ${total}?`, answer.toString(), type, difficulty);
+        return this.formatOfflineQuestion(id, `Calculate ${percent}% of ${total}`, answer.toString(), type, difficulty);
+      } else if (category === 3) { // Fractions
+        const den = [4, 5, 8, 10][Math.floor(Math.random() * 4)];
+        const num = Math.floor(Math.random() * (den - 1)) + 1;
+        const total = den * (Math.floor(Math.random() * 10) + 2);
+        const answer = (total / den) * num;
+        return this.formatOfflineQuestion(id, `What is ${num}/${den} of ${total}?`, answer.toString(), type, difficulty);
+      } else { // Basic Geometry
+        const side = Math.floor(Math.random() * 15) + 2;
+        const isArea = Math.random() > 0.5;
+        if (isArea) return this.formatOfflineQuestion(id, `Area of a square with side ${side}?`, (side * side).toString(), type, difficulty);
+        return this.formatOfflineQuestion(id, `Perimeter of a square with side ${side}?`, (side * 4).toString(), type, difficulty);
       }
     }
 
     // Hard Mode
-    const hardCategory = Math.floor(Math.random() * 3);
-    if (hardCategory === 0) { // Geometry
-      const r = Math.floor(Math.random() * 5) + 2;
-      return this.formatOfflineQuestion(id, `Area of a circle with radius ${r} (Use π ≈ 3.14)`, (3.14 * r * r).toFixed(2), type, difficulty);
-    } else if (hardCategory === 1) { // Word Problems
-      const p = Math.floor(Math.random() * 100) + 50;
-      const d = Math.floor(Math.random() * 20) + 5;
-      const final = p - (p * d / 100);
-      return this.formatOfflineQuestion(id, `An item costs $${p}. If it is on ${d}% discount, what is the new price?`, final.toFixed(2), type, difficulty);
-    } else { // Complex Algebra
-      const a = Math.floor(Math.random() * 5) + 1;
-      const b = Math.floor(Math.random() * 10) + 1;
-      const x = 2;
-      const result = a * x * x + b * x;
-      return this.formatOfflineQuestion(id, `If f(x) = ${a}x² + ${b}x, what is f(2)?`, result.toString(), type, difficulty);
+    const hardCategory = Math.floor(Math.random() * 5);
+    if (hardCategory === 0) { // Circle Geometry
+      const r = Math.floor(Math.random() * 10) + 2;
+      const isCircum = Math.random() > 0.5;
+      if (isCircum) return this.formatOfflineQuestion(id, `Circumference of a circle with radius ${r}? (Use π ≈ 3.14)`, (2 * 3.14 * r).toFixed(2), type, difficulty);
+      return this.formatOfflineQuestion(id, `Area of a circle with radius ${r}? (Use π ≈ 3.14)`, (3.14 * r * r).toFixed(2), type, difficulty);
+    } else if (hardCategory === 1) { // Compound Word Problems
+      const p = Math.floor(Math.random() * 500) + 100;
+      const d1 = 20;
+      const d2 = 10;
+      const final = p * (1 - d1/100) * (1 - d2/100);
+      return this.formatOfflineQuestion(id, `A $${p} coat is on sale for ${d1}% off. An extra ${d2}% is taken off at the register. What is the final price?`, final.toFixed(2), type, difficulty);
+    } else if (hardCategory === 2) { // Simultaneous Equations (Simple)
+      const x = Math.floor(Math.random() * 5) + 1;
+      const y = Math.floor(Math.random() * 5) + 1;
+      const res1 = x + y;
+      const res2 = x - y;
+      return this.formatOfflineQuestion(id, `If x + y = ${res1} and x - y = ${res2}, what is the value of x?`, x.toString(), type, difficulty);
+    } else if (hardCategory === 3) { // Exponents
+      const base = 2;
+      const exp = Math.floor(Math.random() * 4) + 3;
+      return this.formatOfflineQuestion(id, `Calculate ${base} to the power of ${exp}?`, Math.pow(base, exp).toString(), type, difficulty);
+    } else { // Averages
+      const n1 = Math.floor(Math.random() * 20);
+      const n2 = Math.floor(Math.random() * 20);
+      const n3 = Math.floor(Math.random() * 20);
+      const avg = (n1 + n2 + n3) / 3;
+      return this.formatOfflineQuestion(id, `What is the average of ${n1}, ${n2}, and ${n3}? (Round to 2 decimal places)`, avg.toFixed(2), type, difficulty);
     }
   },
 
