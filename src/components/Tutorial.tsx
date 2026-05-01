@@ -16,6 +16,7 @@ import {
   X
 } from 'lucide-react';
 import { translations } from '../lib/translations';
+import Tooltip from './Tooltip';
 
 interface TutorialProps {
   onComplete: () => void;
@@ -69,9 +70,11 @@ export default function Tutorial({ onComplete, language }: TutorialProps) {
         animate={{ scale: 1, y: 0 }}
         className="math-card bg-white dark:bg-black p-10 max-w-lg w-full relative overflow-hidden"
       >
-        <button onClick={onComplete} className="absolute top-4 right-4 p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full">
-           <X size={20} />
-        </button>
+        <Tooltip content={language === 'en' ? 'Close tutorial' : 'টিউটোরিয়াল বন্ধ করুন'} position="bottom">
+          <button onClick={onComplete} className="absolute top-4 right-4 p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full">
+             <X size={20} />
+          </button>
+        </Tooltip>
 
         <AnimatePresence mode="wait">
           <motion.div

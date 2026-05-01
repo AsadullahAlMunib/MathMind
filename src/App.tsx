@@ -22,7 +22,7 @@ import {
 
 import { storage } from './lib/storage';
 import { translations } from './lib/translations';
-import { THEMES, AppState, Difficulty } from './lib/types';
+import { THEMES, AppState, Difficulty, Question } from './lib/types';
 
 // Components
 import Quiz from './components/Quiz';
@@ -31,6 +31,7 @@ import Leaderboard from './components/Leaderboard';
 import Store from './components/Store';
 import Profile from './components/Profile';
 import Tutorial from './components/Tutorial';
+import Tooltip from './components/Tooltip';
 
 export default function App() {
   const [state, setState] = useState<AppState>(storage.load());
@@ -145,24 +146,28 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-3">
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={toggleLanguage}
-            className="h-11 px-4 glass border-theme rounded-xl hover:bg-primary/5 transition-colors flex items-center gap-2 text-xs font-black uppercase tracking-widest"
-          >
-            <Languages size={18} className="text-muted" />
-            <span className="hidden sm:inline">{state.user.language}</span>
-          </motion.button>
+          <Tooltip content={t.switchLanguage} position="bottom">
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleLanguage}
+              className="h-11 px-4 glass border-theme rounded-xl hover:bg-primary/5 transition-colors flex items-center gap-2 text-xs font-black uppercase tracking-widest"
+            >
+              <Languages size={18} className="text-muted" />
+              <span className="hidden sm:inline">{state.user.language}</span>
+            </motion.button>
+          </Tooltip>
 
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsDark(!isDark)}
-            className="w-11 h-11 glass border-theme rounded-xl hover:bg-primary/5 transition-colors flex items-center justify-center"
-          >
-            {isDark ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} className="text-indigo-600" />}
-          </motion.button>
+          <Tooltip content={t.switchTheme} position="bottom">
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsDark(!isDark)}
+              className="w-11 h-11 glass border-theme rounded-xl hover:bg-primary/5 transition-colors flex items-center justify-center"
+            >
+              {isDark ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} className="text-indigo-600" />}
+            </motion.button>
+          </Tooltip>
         </div>
       </header>
 
@@ -200,34 +205,37 @@ export default function App() {
               {activeTab === 'quiz' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
                   {(['basic', 'normal', 'hard'] as Difficulty[]).map((d) => (
-                    <motion.button
-                      key={d}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setQuizDifficulty(d)}
-                      className={`math-card text-left flex flex-col gap-4 border-2 transition-colors ${
-                        d === 'basic' ? 'border-emerald-500/20' : 
-                        d === 'normal' ? 'border-amber-500/20' : 'border-rose-500/20'
-                      }`}
-                    >
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                        d === 'basic' ? 'bg-emerald-500 text-white' : 
-                        d === 'normal' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'
-                      }`}>
-                        <Gamepad2 size={24} />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold capitalize">{t[d]}</h3>
-                        <p className="text-sm opacity-60">
-                          {d === 'basic' ? 'Addition, subtraction, multiplication.' : 
-                           d === 'normal' ? 'Algebra, squares, and percentages.' : 
-                           'Advanced math and logic puzzles.'}
-                        </p>
-                      </div>
-                      <div className="mt-auto text-[10px] font-black uppercase tracking-tighter text-muted">
-                        {t.highScore}: {state.stats.highScores[d]} pts
-                      </div>
-                    </motion.button>
+                    <div key={d}>
+                      <Tooltip content={`${t.startQuiz} (${t[d]})`}>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setQuizDifficulty(d)}
+                          className={`math-card text-left flex flex-col gap-4 border-2 transition-colors h-full ${
+                            d === 'basic' ? 'border-emerald-500/20' : 
+                            d === 'normal' ? 'border-amber-500/20' : 'border-rose-500/20'
+                          }`}
+                        >
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                          d === 'basic' ? 'bg-emerald-500 text-white' : 
+                          d === 'normal' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'
+                        }`}>
+                          <Gamepad2 size={24} />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold capitalize">{t[d]}</h3>
+                          <p className="text-sm opacity-60">
+                            {d === 'basic' ? 'Addition, subtraction, multiplication.' : 
+                             d === 'normal' ? 'Algebra, squares, and percentages.' : 
+                             'Advanced math and logic puzzles.'}
+                          </p>
+                        </div>
+                        <div className="mt-auto text-[10px] font-black uppercase tracking-tighter text-muted">
+                          {t.highScore}: {state.stats.highScores[d]} pts
+                        </div>
+                        </motion.button>
+                      </Tooltip>
+                    </div>
                   ))}
                 </div>
               )}
@@ -274,11 +282,11 @@ export default function App() {
 
       {/* Navigation Sidebar (Desktop) / Bottom Bar (Mobile) */}
       <nav className="fixed bottom-0 left-0 right-0 md:top-0 md:right-auto md:w-20 md:flex-col glass border-t md:border-t-0 md:border-r border-theme flex items-center justify-around md:justify-center gap-2 p-3 z-50">
-        <NavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label={t.dashboard} />
-        <NavButton active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<Gamepad2 />} label={t.startQuiz} />
-        <NavButton active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} icon={<Trophy />} label={t.leaderboard} />
-        <NavButton active={activeTab === 'store'} onClick={() => setActiveTab('store')} icon={<ShoppingBag />} label={t.store} />
-        <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<UserIcon />} label={t.profile} />
+        <NavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label={t.dashboard} tooltip={t.viewDashboard} />
+        <NavButton active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<Gamepad2 />} label={t.startQuiz} tooltip={t.startQuiz} />
+        <NavButton active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} icon={<Trophy />} label={t.leaderboard} tooltip={t.viewLeaderboard} />
+        <NavButton active={activeTab === 'store'} onClick={() => setActiveTab('store')} icon={<ShoppingBag />} label={t.store} tooltip={t.viewStore} />
+        <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<UserIcon />} label={t.profile} tooltip={t.viewProfile} />
       </nav>
 
       <AnimatePresence>
@@ -304,20 +312,19 @@ export default function App() {
   );
 }
 
-function NavButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
+function NavButton({ active, onClick, icon, label, tooltip }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, tooltip: string }) {
   return (
-    <button 
-      onClick={onClick}
-      className={`relative flex flex-col items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl transition-all ${
-        active 
-          ? 'bg-primary text-white shadow-lg shadow-primary/30 font-bold' 
-          : 'text-muted hover:bg-primary/10'
-      }`}
-    >
-      {React.cloneElement(icon as React.ReactElement, { size: 24 })}
-      <span className="text-[10px] absolute -bottom-6 w-max opacity-0 md:group-hover:opacity-100 transition-opacity">
-        {label}
-      </span>
-    </button>
+    <Tooltip content={tooltip} position="right">
+      <button 
+        onClick={onClick}
+        className={`relative flex flex-col items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl transition-all ${
+          active 
+            ? 'bg-primary text-white shadow-lg shadow-primary/30 font-bold' 
+            : 'text-muted hover:bg-primary/10'
+        }`}
+      >
+        {React.cloneElement(icon as React.ReactElement, { size: 24 })}
+      </button>
+    </Tooltip>
   );
 }

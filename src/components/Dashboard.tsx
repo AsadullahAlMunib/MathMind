@@ -26,6 +26,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
+import AppTooltip from './Tooltip';
 import { format, subDays, isSameDay } from 'date-fns';
 
 import { UserStats, UserProfile, Difficulty } from '../lib/types';
@@ -69,79 +70,110 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
       {/* Welcome Banner */}
-      <section className="math-card bg-primary text-white overflow-hidden relative border-none shadow-2xl">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-4">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-              {language === 'en' ? `Hello, ${user.name}!` : `হ্যালো, ${user.name}!`}
-            </h2>
+      <section className="math-card bg-gradient-to-br from-indigo-700 via-violet-700 to-fuchsia-600 text-white overflow-hidden relative border-none shadow-2xl shadow-indigo-500/30 p-8 md:p-10">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="space-y-6 flex-1">
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-white/60">
-                <span>{t.level} {stats.level}</span>
-                <span>{pointsToNextLevel} {language === 'en' ? 'PTS TO NEXT LEVEL' : 'পয়েন্ট লেভেল আপ'}</span>
+              <motion.h2 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl md:text-5xl font-black tracking-tight drop-shadow-md"
+              >
+                {language === 'en' ? `Hello, ${user.name}!` : `হ্যালো, ${user.name}!`}
+              </motion.h2>
+              <p className="text-white/80 max-w-md font-medium leading-relaxed text-lg">
+                {language === 'en' 
+                  ? "Ready to exercise your brain today?"
+                  : "আজ আপনার মস্তিষ্ককে ব্যায়াম করতে প্রস্তুত?"}
+              </p>
+            </div>
+
+            <div className="space-y-3 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 inline-block w-full max-w-sm">
+              <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-white">
+                <span className="flex items-center gap-1.5">
+                  <Award size={14} className="text-amber-400" /> {t.level} {stats.level}
+                </span>
+                <span className="text-white/70">{pointsToNextLevel} {language === 'en' ? 'PTS TO NEXT' : 'পয়েন্ট লেভেল আপ'}</span>
               </div>
-              <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden">
+              <div className="h-3 w-full bg-black/20 rounded-full overflow-hidden p-0.5 border border-white/5">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${levelProgress}%` }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                  className="h-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                  transition={{ duration: 1.5, ease: "circOut" }}
+                  className="h-full bg-gradient-to-r from-amber-400 to-amber-200 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.5)]"
                 />
               </div>
             </div>
-            <p className="text-white/80 max-w-md pt-2">
-              {language === 'en' 
-                ? "Ready to exercise your brain today? Keep your streak going and climb the leaderboard!"
-                : "আজ আপনার মস্তিষ্ককে ব্যায়াম করতে প্রস্তুত? আপনার ধারাবাহিকতা বজায় রাখুন এবং লিডারবোর্ডে এগিয়ে যান!"}
-            </p>
+
             <div className="flex flex-wrap gap-4 pt-2">
-              <button 
-                onClick={() => onStartQuiz('basic')}
-                className="bg-white text-primary px-6 py-3 rounded-2xl font-bold hover:shadow-lg transition-all flex items-center gap-2 group"
-              >
-                <BrainCircuit size={20} className="group-hover:rotate-12 transition-transform" />
-                {t.startQuiz}
-              </button>
+              <AppTooltip content={t.startQuiz}>
+                <motion.button 
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onStartQuiz('basic')}
+                  className="bg-white text-indigo-700 px-8 py-4 rounded-2xl font-black hover:shadow-2xl transition-all flex items-center gap-3 group shadow-lg shadow-indigo-900/20"
+                >
+                  <BrainCircuit size={22} className="group-hover:rotate-12 transition-transform" />
+                  <span className="text-lg">{t.startQuiz}</span>
+                </motion.button>
+              </AppTooltip>
               
               {hasMissed && (
-                <button 
-                  onClick={onStartReview}
-                  className="bg-primary-dark/40 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-2xl font-bold hover:bg-white/10 transition-all flex items-center gap-2 group"
-                >
-                  <BookOpen size={20} className="group-hover:scale-110 transition-transform" />
-                  {language === 'en' ? 'Review Mode' : 'রিভিউ মোড'}
-                  <span className="bg-rose-500 text-[10px] px-1.5 py-0.5 rounded-full ml-1">
-                    {stats.missedQuestions?.length}
-                  </span>
-                </button>
+                <AppTooltip content={language === 'en' ? 'Review questions you missed' : 'ভুল করা প্রশ্নগুলো আবার দেখুন'}>
+                  <motion.button 
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onStartReview}
+                    className="bg-white/15 backdrop-blur-xl border border-white/30 text-white px-8 py-4 rounded-2xl font-black hover:bg-white/20 transition-all flex items-center gap-3 group shadow-xl"
+                  >
+                    <BookOpen size={22} className="group-hover:scale-110 transition-transform" />
+                    <span className="text-lg">{language === 'en' ? 'Review Mode' : 'রিভিউ মোড'}</span>
+                    <span className="bg-rose-500 text-xs px-2.5 py-1 rounded-full ring-4 ring-rose-500/20 font-black">
+                      {stats.missedQuestions?.length}
+                    </span>
+                  </motion.button>
+                </AppTooltip>
               )}
             </div>
           </div>
-          <div className="hidden md:block">
+
+          <div className="hidden lg:block">
              <motion.div 
                animate={{ 
-                 rotate: [0, 10, -10, 0],
-                 scale: [1, 1.1, 1]
+                 rotate: [0, 5, -5, 0],
+                 y: [0, -10, 0]
                }}
-               transition={{ duration: 4, repeat: Infinity }}
-               className="w-48 h-48 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-2xl ring-1 ring-white/20"
+               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+               className="w-56 h-56 bg-white/10 rounded-[3rem] flex items-center justify-center backdrop-blur-3xl ring-1 ring-white/30 relative"
              >
+               <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent rounded-[3rem]"></div>
                <div className="relative">
-                 <Flame size={80} className="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
+                 <Flame size={100} className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.6)]" />
                  {stats.bestStreak > 0 && (
                    <motion.div 
-                     animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                     transition={{ duration: 2, repeat: Infinity }}
-                     className="absolute inset-0 bg-white rounded-full blur-xl"
+                     animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+                     transition={{ duration: 3, repeat: Infinity }}
+                     className="absolute inset-0 bg-amber-400 rounded-full blur-3xl -z-10"
                    />
                  )}
                </div>
              </motion.div>
           </div>
         </div>
-        {/* Background shapes */}
-        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-64 h-64 bg-secondary/30 rounded-full blur-3xl"></div>
+        
+        {/* Abstract background decorations */}
+        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-white/10 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-400/20 rounded-full blur-[100px]"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-10 pointer-events-none">
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.1"/>
+              </pattern>
+            </defs>
+            <rect width="100" height="100" fill="url(#grid)" />
+          </svg>
+        </div>
       </section>
 
       {/* Review Banner for specific attention if missed many */}
@@ -164,13 +196,15 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
                  : `আপনার কাছে ${stats.missedQuestions?.length}টি প্রশ্ন রিভিউ করার জন্য আছে। এগুলো প্র্যাকটিস করুন আপনার দক্ষতা বাড়াতে!`}
              </p>
           </div>
-          <button 
-            onClick={onStartReview}
-            className="w-full md:w-auto bg-rose-500 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center gap-2 group"
-          >
-            {language === 'en' ? 'Master These Questions' : 'এই প্রশ্নগুলো আয়ত্ত করুন'}
-            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-          </button>
+          <AppTooltip content={language === 'en' ? 'Review missed questions now' : 'এখনই ভুল করা প্রশ্নগুলো রিভিউ করুন'}>
+            <button 
+              onClick={onStartReview}
+              className="w-full md:w-auto bg-rose-500 text-white px-8 py-3 rounded-2xl font-bold hover:shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center gap-2 group"
+            >
+              {language === 'en' ? 'Master These Questions' : 'এই প্রশ্নগুলো আয়ত্ত করুন'}
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+            </button>
+          </AppTooltip>
         </motion.div>
       )}
 
@@ -325,11 +359,12 @@ function StatItem({
   isStreak?: boolean
 }) {
   return (
-    <motion.div 
-      whileHover={{ y: -4, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className="math-card p-4 shadow-sm hover:shadow-xl transition-all text-center flex flex-col items-center justify-center relative overflow-hidden"
-    >
+    <AppTooltip content={label}>
+      <motion.div 
+        whileHover={{ y: -4, scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        className="math-card p-4 shadow-sm hover:shadow-xl transition-all text-center flex flex-col items-center justify-center relative overflow-hidden"
+      >
       <div className={`w-12 h-12 mx-auto mb-3 rounded-2xl bg-opacity-10 flex items-center justify-center relative z-10 ${color.replace('text', 'bg')}`}>
         <div className="relative">
           {React.cloneElement(icon as React.ReactElement, { size: 24, className: color })}
@@ -357,7 +392,8 @@ function StatItem({
 
       {/* Decorative background circle */}
       <div className={`absolute -bottom-4 -right-4 w-16 h-16 rounded-full opacity-5 ${color.replace('text', 'bg')}`}></div>
-    </motion.div>
+      </motion.div>
+    </AppTooltip>
   );
 }
 

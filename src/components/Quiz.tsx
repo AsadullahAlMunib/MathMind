@@ -20,6 +20,7 @@ import {
 import { Difficulty, Question, QuestionType } from '../lib/types';
 import { quizEngine } from '../lib/quizEngine';
 import { translations } from '../lib/translations';
+import Tooltip from './Tooltip';
 
 interface QuizProps {
   difficulty: Difficulty;
@@ -144,17 +145,23 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
     <div className="max-w-2xl mx-auto space-y-8">
       {/* Quiz Header */}
       <div className="flex items-center justify-between">
-        <button onClick={onCancel} className="text-sm font-medium opacity-60 hover:opacity-100 flex items-center gap-1">
-          <X size={16} /> Quit Game
-        </button>
+        <Tooltip content={t.quitQuiz} position="right">
+          <button onClick={onCancel} className="text-sm font-medium opacity-60 hover:opacity-100 flex items-center gap-1">
+            <X size={16} /> {language === 'en' ? 'Quit Game' : 'খেলা বন্ধ করুন'}
+          </button>
+        </Tooltip>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-full text-sm font-bold">
-            <Timer size={16} />
-            <span className={timeLeft < 5 ? 'animate-ping' : ''}>{timeLeft}s</span>
-          </div>
-          <div className="font-mono text-lg font-bold text-primary">
-            {points} pts
-          </div>
+          <Tooltip content={language === 'en' ? 'Time remaining' : 'বাকি সময়'}>
+            <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-full text-sm font-bold">
+              <Timer size={16} />
+              <span className={timeLeft < 5 ? 'animate-ping' : ''}>{timeLeft}s</span>
+            </div>
+          </Tooltip>
+          <Tooltip content={language === 'en' ? 'Current points' : 'বর্তমান পয়েন্ট'}>
+            <div className="font-mono text-lg font-bold text-primary">
+              {points} pts
+            </div>
+          </Tooltip>
         </div>
       </div>
 
@@ -200,26 +207,28 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
             {currentQ.type === 'mcq' && currentQ.options?.map((opt, i) => (
-              <AnswerButton 
-                key={i}
-                label={opt}
-                onClick={() => handleAnswer(opt)}
-                active={selectedAnswer === opt}
-                correct={showResult && opt === currentQ.answer}
-                wrong={showResult === 'incorrect' && opt === selectedAnswer}
-                disabled={!!showResult}
-              />
+              <div key={i}>
+                <AnswerButton 
+                  label={opt}
+                  onClick={() => handleAnswer(opt)}
+                  active={selectedAnswer === opt}
+                  correct={showResult && opt === currentQ.answer}
+                  wrong={showResult === 'incorrect' && opt === selectedAnswer}
+                  disabled={!!showResult}
+                />
+              </div>
             ))}
             {currentQ.type === 'true-false' && ['True', 'False'].map((opt) => (
-              <AnswerButton 
-                key={opt}
-                label={opt}
-                onClick={() => handleAnswer(opt)}
-                active={selectedAnswer === opt}
-                correct={showResult && opt === currentQ.answer}
-                wrong={showResult === 'incorrect' && opt === selectedAnswer}
-                disabled={!!showResult}
-              />
+              <div key={opt}>
+                <AnswerButton 
+                  label={opt}
+                  onClick={() => handleAnswer(opt)}
+                  active={selectedAnswer === opt}
+                  correct={showResult && opt === currentQ.answer}
+                  wrong={showResult === 'incorrect' && opt === selectedAnswer}
+                  disabled={!!showResult}
+                />
+              </div>
             ))}
             {currentQ.type === 'fill-blank' && (
               <div className="col-span-full space-y-4">

@@ -12,11 +12,13 @@ import {
   Calendar,
   Code2,
   Mail,
-  Camera
+  Camera,
+  BookOpen
 } from 'lucide-react';
 
 import { UserStats, UserProfile } from '../lib/types';
 import { translations } from '../lib/translations';
+import Tooltip from './Tooltip';
 
 interface ProfileProps {
   user: UserProfile;
@@ -70,12 +72,14 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
                {stats.totalPoints} Points
              </span>
              {stats.missedQuestions && stats.missedQuestions.length > 0 && (
-               <button 
-                 onClick={onClearReview}
-                 className="px-4 py-1 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-full text-xs font-bold uppercase tracking-wider transition-colors"
-               >
-                 Clear Review History
-               </button>
+               <Tooltip content={t.clearHistory} position="bottom">
+                 <button 
+                   onClick={onClearReview}
+                   className="px-4 py-1 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-full text-xs font-bold uppercase tracking-wider transition-colors"
+                 >
+                   Clear Review History
+                 </button>
+               </Tooltip>
              )}
           </div>
         </div>
@@ -98,26 +102,32 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
                 <p className="text-sm opacity-60">Lead Developer & Designer</p>
              </div>
              <div className="flex items-center gap-2">
-               <a 
-                 href="https://github.com/AsadullahAlMunib" 
-                 target="_blank" 
-                 className="p-2 bg-black text-white rounded-xl hover:scale-110 transition-transform"
-               >
-                 <Github size={20} />
-               </a>
-               <a 
-                 href="mailto:asadullahalmunib9@gmail.com" 
-                 className="p-2 bg-primary text-white rounded-xl hover:scale-110 transition-transform"
-               >
-                 <Mail size={20} />
-               </a>
-               <a 
-                 href="https://github.com/AsadullahAlMunib" 
-                 target="_blank" 
-                 className="flex items-center gap-2 text-sm font-bold text-primary px-4 py-2 hover:bg-primary/5 rounded-xl transition-colors"
-               >
-                 View Portfolio <ExternalLink size={14} />
-               </a>
+               <Tooltip content="GitHub Profile">
+                 <a 
+                   href="https://github.com/AsadullahAlMunib" 
+                   target="_blank" 
+                   className="p-2 bg-black text-white rounded-xl hover:scale-110 transition-transform"
+                 >
+                   <Github size={20} />
+                 </a>
+               </Tooltip>
+               <Tooltip content="Send Email">
+                 <a 
+                   href="mailto:asadullahalmunib9@gmail.com" 
+                   className="p-2 bg-primary text-white rounded-xl hover:scale-110 transition-transform"
+                 >
+                   <Mail size={20} />
+                 </a>
+               </Tooltip>
+               <Tooltip content="Visit Portfolio website">
+                 <a 
+                   href="https://github.com/AsadullahAlMunib" 
+                   target="_blank" 
+                   className="flex items-center gap-2 text-sm font-bold text-primary px-4 py-2 hover:bg-primary/5 rounded-xl transition-colors"
+                 >
+                   View Portfolio <ExternalLink size={14} />
+                 </a>
+               </Tooltip>
              </div>
           </div>
           

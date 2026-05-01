@@ -15,6 +15,7 @@ import {
 
 import { THEMES } from '../lib/types';
 import { translations } from '../lib/translations';
+import Tooltip from './Tooltip';
 
 interface StoreProps {
   unlockedThemes: string[];
@@ -35,10 +36,12 @@ export default function Store({ unlockedThemes, totalPoints, currentTheme, onUnl
           <h2 className="text-3xl font-bold tracking-tight">{t.store}</h2>
           <p className="text-muted font-medium">{language === 'en' ? 'Unlock new visual styles with your points!' : 'আপনার পয়েন্ট দিয়ে নতুন ভিজ্যুয়াল স্টাইল আনলক করুন!'}</p>
         </div>
-        <div className="bg-amber-500/10 text-amber-500 px-6 py-3 rounded-2xl flex items-center gap-3 font-bold text-xl border border-amber-500/20 glass shadow-sm">
-          <Coins size={24} />
-          {totalPoints}
-        </div>
+        <Tooltip content={language === 'en' ? 'Your total earned points' : 'আপনার অর্জিত মোট পয়েন্ট'}>
+          <div className="bg-amber-500/10 text-amber-500 px-6 py-3 rounded-2xl flex items-center gap-3 font-bold text-xl border border-amber-500/20 glass shadow-sm">
+            <Coins size={24} />
+            {totalPoints}
+          </div>
+        </Tooltip>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -87,26 +90,30 @@ export default function Store({ unlockedThemes, totalPoints, currentTheme, onUnl
               </div>
 
               {isUnlocked ? (
-                <button 
-                  onClick={() => onSelect(theme.id)}
-                  disabled={isSelected}
-                  className={`w-full py-3 rounded-xl font-bold transition-all ${
-                    isSelected ? 'bg-primary/10 text-primary cursor-default' : 'bg-primary text-white hover:shadow-lg'
-                  }`}
-                >
-                  {isSelected ? (language === 'en' ? 'Active' : 'সক্রিয়') : (language === 'en' ? 'Use Theme' : 'ব্যবহার করুন')}
-                </button>
+                <Tooltip content={t.selectTheme} position="bottom">
+                  <button 
+                    onClick={() => onSelect(theme.id)}
+                    disabled={isSelected}
+                    className={`w-full py-3 rounded-xl font-bold transition-all ${
+                      isSelected ? 'bg-primary/10 text-primary cursor-default' : 'bg-primary text-white hover:shadow-lg'
+                    }`}
+                  >
+                    {isSelected ? (language === 'en' ? 'Active' : 'সক্রিয়') : (language === 'en' ? 'Use Theme' : 'ব্যবহার করুন')}
+                  </button>
+                </Tooltip>
               ) : (
-                <button 
-                  onClick={() => onUnlock(theme.id, theme.cost)}
-                  disabled={!canAfford}
-                  className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-                    canAfford ? 'bg-amber-500 text-white hover:shadow-lg' : 'bg-gray-200 text-gray-500 dark:bg-white/5 cursor-not-allowed'
-                  }`}
-                >
-                  <Sparkles size={18} />
-                  {t.unlock}
-                </button>
+                <Tooltip content={canAfford ? (language === 'en' ? 'Unlock this theme' : 'এই থিমটি আনলক করুন') : (language === 'en' ? 'Not enough points' : 'পর্যাপ্ত পয়েন্ট নেই')} position="bottom">
+                  <button 
+                    onClick={() => onUnlock(theme.id, theme.cost)}
+                    disabled={!canAfford}
+                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                      canAfford ? 'bg-amber-500 text-white hover:shadow-lg' : 'bg-gray-200 text-gray-500 dark:bg-white/5 cursor-not-allowed'
+                    }`}
+                  >
+                    <Sparkles size={18} />
+                    {t.unlock}
+                  </button>
+                </Tooltip>
               )}
             </motion.div>
           );
