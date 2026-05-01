@@ -43,9 +43,8 @@ export default function App() {
 
   const t = translations[state.user.language];
   const currentTheme = useMemo(() => {
-    const theme = THEMES.find(t => t.id === state.user.currentTheme) || THEMES[0];
-    return isDark ? THEMES.find(t => t.id === 'dark')! : theme;
-  }, [state.user.currentTheme, isDark]);
+    return THEMES.find(t => t.id === state.user.currentTheme) || THEMES[0];
+  }, [state.user.currentTheme]);
 
   useEffect(() => {
     if (isDark) {
@@ -57,14 +56,18 @@ export default function App() {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty('--primary', currentTheme.colors.primary);
-    root.style.setProperty('--secondary', currentTheme.colors.secondary);
-    root.style.setProperty('--bg', currentTheme.colors.bg);
-    root.style.setProperty('--text', currentTheme.colors.text);
-    root.style.setProperty('--text-muted', (currentTheme.colors as any).textMuted || currentTheme.colors.text);
-    root.style.setProperty('--border', (currentTheme.colors as any).border || 'rgba(0,0,0,0.1)');
-    root.style.setProperty('--surface', (currentTheme.colors as any).surface || 'rgba(255,255,255,0.8)');
-  }, [currentTheme]);
+    const themeColors = isDark && (currentTheme as any).darkColors 
+      ? (currentTheme as any).darkColors 
+      : currentTheme.colors;
+
+    root.style.setProperty('--primary', themeColors.primary);
+    root.style.setProperty('--secondary', themeColors.secondary);
+    root.style.setProperty('--bg', themeColors.bg);
+    root.style.setProperty('--text', themeColors.text);
+    root.style.setProperty('--text-muted', (themeColors as any).textMuted || themeColors.text);
+    root.style.setProperty('--border', (themeColors as any).border || 'rgba(0,0,0,0.1)');
+    root.style.setProperty('--surface', (themeColors as any).surface || 'rgba(255,255,255,0.8)');
+  }, [currentTheme, isDark]);
 
   const handleUpdateState = (newState: Partial<AppState>) => {
     const updated = { ...state, ...newState };

@@ -47,7 +47,25 @@ export interface AppState {
   isFirstTime: boolean;
 }
 
-export const THEMES = [
+export interface ThemeColors {
+  primary: string;
+  secondary: string;
+  bg: string;
+  text: string;
+  textMuted?: string;
+  surface: string;
+  border: string;
+}
+
+export interface Theme {
+  id: string;
+  name: string;
+  colors: ThemeColors;
+  darkColors?: ThemeColors;
+  cost: number;
+}
+
+export const THEMES: Theme[] = [
   { 
     id: 'default', 
     name: 'Default', 
@@ -60,12 +78,7 @@ export const THEMES = [
       surface: '#ffffff',
       border: '#cbd5e1'
     }, 
-    cost: 0 
-  },
-  { 
-    id: 'dark', 
-    name: 'Dark Night', 
-    colors: { 
+    darkColors: {
       primary: '#818cf8', 
       secondary: '#6366f1', 
       bg: '#020617', 
@@ -73,7 +86,7 @@ export const THEMES = [
       textMuted: '#94a3b8',
       surface: '#0f172a',
       border: '#1e293b'
-    }, 
+    },
     cost: 0 
   },
   { 
@@ -88,6 +101,15 @@ export const THEMES = [
       surface: '#ffffff',
       border: '#bbf7d0'
     }, 
+    darkColors: {
+      primary: '#34d399', 
+      secondary: '#10b981', 
+      bg: '#022c22', 
+      text: '#ecfdf5',
+      textMuted: '#6ee7b7',
+      surface: '#064e3b',
+      border: '#065f46'
+    },
     cost: 500 
   },
   { 
@@ -102,6 +124,15 @@ export const THEMES = [
       surface: '#ffffff',
       border: '#fde68a'
     }, 
+    darkColors: {
+      primary: '#fbbf24', 
+      secondary: '#f59e0b', 
+      bg: '#451a03', 
+      text: '#fffbeb',
+      textMuted: '#fde68a',
+      surface: '#78350f',
+      border: '#92400e'
+    },
     cost: 1000 
   },
   { 
@@ -116,6 +147,15 @@ export const THEMES = [
       surface: '#1a0b2e',
       border: '#2d0e4e'
     }, 
+    darkColors: {
+      primary: '#ff00ff', 
+      secondary: '#00ffff', 
+      bg: '#0d0221', 
+      text: '#00ff00',
+      textMuted: '#00cc00',
+      surface: '#1a0b2e',
+      border: '#2d0e4e'
+    },
     cost: 2500 
   },
   { 
@@ -130,6 +170,15 @@ export const THEMES = [
       surface: '#ffffff',
       border: '#fed7aa'
     }, 
+    darkColors: {
+      primary: '#fbbf24', 
+      secondary: '#f59e0b', 
+      bg: '#1c1917', 
+      text: '#fafaf9',
+      textMuted: '#fed7aa',
+      surface: '#292524',
+      border: '#44403c'
+    },
     cost: 5000 
   },
 ];

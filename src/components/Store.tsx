@@ -45,7 +45,7 @@ export default function Store({ unlockedThemes, totalPoints, currentTheme, onUnl
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {THEMES.filter(t => t.id !== 'dark').map((theme) => {
+        {THEMES.map((theme) => {
           const isUnlocked = unlockedThemes.includes(theme.id);
           const isSelected = currentTheme === theme.id;
           const canAfford = totalPoints >= theme.cost;

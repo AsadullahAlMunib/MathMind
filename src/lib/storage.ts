@@ -11,7 +11,7 @@ const INITIAL_STATS: UserStats = {
   correctAnswers: 0,
   bestStreak: 0,
   level: 1,
-  unlockedThemes: ['default', 'dark'],
+  unlockedThemes: ['default'],
   activity: [],
   highScores: { basic: 0, normal: 0, hard: 0 },
   missedQuestions: [],
@@ -41,7 +41,20 @@ export const storage = {
         isFirstTime: true,
       };
     }
-    return JSON.parse(data);
+    const parsed: AppState = JSON.parse(data);
+    
+    // Migration: If user was using the old standalone 'dark' theme, 
+    // move them to 'default' which now has dark mode support.
+    if (parsed.user.currentTheme === 'dark') {
+      parsed.user.currentTheme = 'default';
+    }
+    
+    // Ensure 'dark' is removed from unlocked themes to keep it clean
+    if (parsed.stats.unlockedThemes.includes('dark')) {
+      parsed.stats.unlockedThemes = parsed.stats.unlockedThemes.filter(id => id !== 'dark');
+    }
+
+    return parsed;
   },
 
   updateStats: (updater: (stats: UserStats) => UserStats) => {

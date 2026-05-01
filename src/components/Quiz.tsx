@@ -16,7 +16,12 @@ import {
   Check,
   X,
   Pause,
-  Play
+  Play,
+  BrainCircuit,
+  Plus,
+  Minus,
+  Divide,
+  Percent
 } from 'lucide-react';
 
 import { Difficulty, Question, QuestionType } from '../lib/types';
@@ -153,15 +158,77 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
-        <motion.div 
-          animate={{ rotate: 360, scale: [1, 1.2, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="p-4 bg-primary rounded-full text-white"
-        >
-          <Dna size={48} />
-        </motion.div>
-        <p className="text-xl font-bold animate-pulse">Generating your math challenges...</p>
+      <div className="flex flex-col items-center justify-center min-h-[500px] gap-8 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          {[Plus, Minus, Divide, Percent].map((Icon, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ 
+                opacity: 0, 
+                x: Math.random() * 400 - 200, 
+                y: Math.random() * 400 - 200,
+                rotate: 0 
+              }}
+              animate={{ 
+                opacity: [0, 1, 0],
+                y: [null, Math.random() * -100 - 50],
+                rotate: 360,
+                scale: [0.5, 1.2, 0.5]
+              }}
+              transition={{ 
+                duration: 3 + Math.random() * 2, 
+                repeat: Infinity,
+                delay: idx * 0.5
+              }}
+              className="absolute text-primary/20"
+              style={{ 
+                left: `${20 + Math.random() * 60}%`, 
+                top: `${40 + Math.random() * 40}%` 
+              }}
+            >
+              <Icon size={32} />
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="relative">
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.1, 1],
+              rotateZ: [0, 5, -5, 0]
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            className="p-8 bg-gradient-to-br from-primary to-indigo-600 rounded-[2.5rem] text-white shadow-2xl relative z-10"
+          >
+            <BrainCircuit size={64} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
+          </motion.div>
+          
+          <motion.div 
+            animate={{ 
+              scale: [1, 1.5, 1],
+              opacity: [0.3, 0.6, 0.3]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="absolute inset-x-0 -bottom-4 h-8 bg-primary/20 blur-3xl -z-10 rounded-full"
+          />
+        </div>
+
+        <div className="text-center space-y-4 relative z-10">
+          <h3 className="text-2xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-600">
+            {language === 'en' ? 'Formulating Challenges' : 'চ্যালেঞ্জগুলো তৈরি করা হচ্ছে'}
+          </h3>
+          <div className="w-64 h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden mx-auto">
+            <motion.div 
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+              className="w-full h-full bg-gradient-to-r from-transparent via-primary to-transparent"
+            />
+          </div>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted">
+            {language === 'en' ? 'Synthesizing math puzzles...' : 'গণিত কৌতুকগুলো সমন্বয় করা হচ্ছে...'}
+          </p>
+        </div>
       </div>
     );
   }
