@@ -14,7 +14,9 @@ import {
   ShieldAlert,
   Dna,
   Check,
-  X
+  X,
+  Pause,
+  Play
 } from 'lucide-react';
 
 import { Difficulty, Question, QuestionType } from '../lib/types';
@@ -38,6 +40,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
   const [showResult, setShowResult] = useState<'correct' | 'incorrect' | null>(null);
   const [results, setResults] = useState<{ id: string; correct: boolean }[]>([]);
   const [timeLeft, setTimeLeft] = useState(30);
+  const [isPaused, setIsPaused] = useState(false);
   const [points, setPoints] = useState(0);
   const [missedQuestions, setMissedQuestions] = useState<Question[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -65,26 +68,47 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
   }, [initialQuestions, questions, loading]);
 
   useEffect(() => {
-    if (timeLeft === 0 && !showResult) {
+    if (timeLeft === 0 && !showResult && !isPaused) {
       handleAnswer('');
     }
-  }, [timeLeft]);
+  }, [timeLeft, isPaused]);
 
   const startTimer = () => {
-    setTimeLeft(difficulty === 'hard' ? 20 : 30);
+    if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      setTimeLeft(prev => Math.max(0, prev - 1));
+      setTimeLeft(prev => {
+        if (prev <= 0) {
+          clearInterval(timerRef.current!);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
   };
 
   const stopTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const handleTogglePause = () => {
+    if (showResult) return;
+    if (isPaused) {
+      startTimer();
+      setIsPaused(false);
+    } else {
+      stopTimer();
+      setIsPaused(true);
+    }
   };
 
   const handleAnswer = (answer: string) => {
     if (showResult) return;
     
     stopTimer();
+    setIsPaused(false);
     setSelectedAnswer(answer);
     const currentQ = questions[currentIndex];
     const isCorrect = answer.toLowerCase().trim() === currentQ.answer.toLowerCase().trim();
@@ -102,20 +126,24 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
       setPoints(prev => prev + basePoints + speedBonus);
     }
 
-    // Auto-advance after showing explanation/result
-    const delay = currentQ.explanation ? 4000 : 2000;
-    setTimeout(() => {
-      if (currentIndex < questions.length - 1) {
-        setCurrentIndex(prev => prev + 1);
-        setSelectedAnswer(null);
-        setShowResult(null);
-        if (questions[currentIndex + 1]) {
-           startTimer();
-        }
-      } else {
-        finishQuiz();
+    // Manual completion/next logic
+    if (currentIndex >= questions.length - 1 && !isCorrect) {
+       // if it was the last question and incorrect, we still give it a moment
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setSelectedAnswer(null);
+      setShowResult(null);
+      if (questions[currentIndex + 1]) {
+        setTimeLeft(difficulty === 'hard' ? 20 : 30);
+        startTimer();
       }
-    }, delay);
+    } else {
+      finishQuiz();
+    }
   };
 
   const finishQuiz = () => {
@@ -150,16 +178,39 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
             <X size={16} /> {language === 'en' ? 'Quit Game' : 'খেলা বন্ধ করুন'}
           </button>
         </Tooltip>
-        <div className="flex items-center gap-4">
-          <Tooltip content={language === 'en' ? 'Time remaining' : 'বাকি সময়'}>
-            <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-full text-sm font-bold">
-              <Timer size={16} />
-              <span className={timeLeft < 5 ? 'animate-ping' : ''}>{timeLeft}s</span>
-            </div>
-          </Tooltip>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <Tooltip content={isPaused ? (language === 'en' ? 'Resume Timer' : 'সময় আবার শুরু করুন') : (language === 'en' ? 'Pause Timer' : 'সময় থামান')}>
+              <button 
+                onClick={handleTogglePause}
+                disabled={!!showResult}
+                className={`p-2 rounded-full transition-all ${
+                  isPaused 
+                    ? 'bg-emerald-500 text-white animate-pulse' 
+                    : 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20'
+                } disabled:opacity-30`}
+              >
+                {isPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
+              </button>
+            </Tooltip>
+
+            <Tooltip content={language === 'en' ? 'Time remaining' : 'বাকি সময়'}>
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-black transition-all duration-300 shadow-sm ${
+                timeLeft <= 5 
+                  ? 'bg-rose-500 text-white shadow-rose-500/30' 
+                  : isPaused 
+                    ? 'bg-slate-200 dark:bg-slate-800 text-slate-500' 
+                    : 'bg-amber-500/10 text-amber-500'
+              }`}>
+                <Timer size={18} className={timeLeft <= 5 ? 'animate-pulse' : ''} />
+                <span className={timeLeft <= 3 && !isPaused ? 'animate-ping' : ''}>{timeLeft}s</span>
+              </div>
+            </Tooltip>
+          </div>
+          
           <Tooltip content={language === 'en' ? 'Current points' : 'বর্তমান পয়েন্ট'}>
-            <div className="font-mono text-lg font-bold text-primary">
-              {points} pts
+            <div className="font-mono text-xl font-black text-primary px-3 py-1 bg-primary/5 rounded-xl border border-primary/10">
+              {points}
             </div>
           </Tooltip>
         </div>
@@ -179,20 +230,53 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
         <motion.div
           key={currentIndex}
           initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
+          animate={{ opacity: isPaused ? 0.2 : 1, x: 0, scale: isPaused ? 0.98 : 1 }}
           exit={{ opacity: 0, x: -50 }}
-          className="math-card p-10 flex flex-col items-center text-center gap-8 relative overflow-hidden border-2 border-theme"
+          className={`math-card p-10 flex flex-col items-center text-center gap-8 relative overflow-hidden border-2 border-theme transition-all duration-500 ${
+            isPaused ? 'grayscale pointer-events-none' : ''
+          }`}
         >
+          {isPaused && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-xl">
+               <motion.div 
+                 initial={{ scale: 0 }}
+                 animate={{ scale: 1 }}
+                 className="p-6 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl flex flex-col items-center gap-4"
+               >
+                 <Pause size={48} className="text-primary" />
+                 <p className="text-xl font-black">{language === 'en' ? 'Game Paused' : 'খেলা থামানো হয়েছে'}</p>
+                 <button 
+                  onClick={handleTogglePause}
+                  className="bg-primary text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-transform"
+                 >
+                   {language === 'en' ? 'Resume' : 'চালু করুন'}
+                 </button>
+               </motion.div>
+            </div>
+          )}
+
           {showResult && (
             <motion.div 
-              initial={{ scale: 0, opacity: 0 }}
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className={`absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm ${
-                showResult === 'correct' ? 'bg-emerald-500/5' : 'bg-rose-500/5'
+              className={`absolute top-4 right-4 z-20 flex items-center justify-center p-3 rounded-2xl shadow-xl border-2 pointer-events-none ${
+                showResult === 'correct' 
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' 
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-500'
               }`}
             >
-              <div className={`p-4 rounded-full ${showResult === 'correct' ? 'bg-emerald-500' : 'bg-rose-500'} text-white shadow-2xl`}>
-                {showResult === 'correct' ? <Check size={48} strokeWidth={4} /> : <X size={48} strokeWidth={4} />}
+              <div className="flex items-center gap-2">
+                {showResult === 'correct' ? (
+                  <>
+                    <CheckCircle2 size={24} />
+                    <span className="font-black text-sm">{language === 'en' ? 'Excellent!' : 'চমৎকার!'}</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle size={24} />
+                    <span className="font-black text-sm">{language === 'en' ? 'Try Again!' : 'আবার চেষ্টা করুন!'}</span>
+                  </>
+                )}
               </div>
             </motion.div>
           )}
@@ -207,7 +291,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
             {currentQ.type === 'mcq' && currentQ.options?.map((opt, i) => (
-              <div key={i}>
+              <div key={i} className="relative">
                 <AnswerButton 
                   label={opt}
                   onClick={() => handleAnswer(opt)}
@@ -216,10 +300,19 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
                   wrong={showResult === 'incorrect' && opt === selectedAnswer}
                   disabled={!!showResult}
                 />
+                {showResult && opt === currentQ.answer && (
+                  <motion.div 
+                    initial={{ scale: 0, x: -10 }} 
+                    animate={{ scale: 1, x: 0 }}
+                    className="absolute -left-2 top-1/2 -translate-y-1/2 bg-white dark:bg-slate-800 text-emerald-500 p-1.5 rounded-full shadow-lg z-10 border-2 border-emerald-500"
+                  >
+                    <Check size={16} strokeWidth={4} />
+                  </motion.div>
+                )}
               </div>
             ))}
             {currentQ.type === 'true-false' && ['True', 'False'].map((opt) => (
-              <div key={opt}>
+              <div key={opt} className="relative">
                 <AnswerButton 
                   label={opt}
                   onClick={() => handleAnswer(opt)}
@@ -228,6 +321,15 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
                   wrong={showResult === 'incorrect' && opt === selectedAnswer}
                   disabled={!!showResult}
                 />
+                {showResult && opt === currentQ.answer && (
+                  <motion.div 
+                    initial={{ scale: 0, x: -10 }} 
+                    animate={{ scale: 1, x: 0 }}
+                    className="absolute -left-2 top-1/2 -translate-y-1/2 bg-white dark:bg-slate-800 text-emerald-500 p-1.5 rounded-full shadow-lg z-10 border-2 border-emerald-500"
+                  >
+                    <Check size={16} strokeWidth={4} />
+                  </motion.div>
+                )}
               </div>
             ))}
             {currentQ.type === 'fill-blank' && (
@@ -260,18 +362,53 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
           <AnimatePresence>
             {showResult && currentQ.explanation && (
               <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className={`mt-4 p-4 rounded-2xl text-sm italic text-left w-full border border-current bg-opacity-5 ${
-                  showResult === 'correct' ? 'text-emerald-600 bg-emerald-500' : 'text-rose-600 bg-rose-500'
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mt-4 p-4 rounded-2xl text-sm text-left w-full border-l-4 shadow-sm ${
+                  showResult === 'correct' 
+                    ? 'bg-emerald-500/5 border-emerald-500 text-emerald-800 dark:text-emerald-200' 
+                    : 'bg-rose-500/5 border-rose-500 text-rose-800 dark:text-rose-200'
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1 font-bold">
+                <div className="flex items-center gap-1.5 mb-1.5 text-xs font-black uppercase tracking-widest opacity-80">
                   <HelpCircle size={14} /> 
-                  {language === 'en' ? 'Explanation' : 'ব্যাখ্যা'}
+                  {language === 'en' ? 'Logic Breakdown' : 'যুক্তি বিশ্লেষণ'}
                 </div>
-                {currentQ.explanation}
+                <p className="leading-snug font-medium opacity-90">
+                  {currentQ.explanation}
+                </p>
+                {showResult === 'incorrect' && (
+                  <div className="mt-2 pt-2 border-t border-rose-500/20 flex items-baseline gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60 shrink-0">
+                      {language === 'en' ? 'Correct Answer:' : 'সঠিক উত্তর:'}
+                    </span>
+                    <span className="text-lg font-black text-rose-600 dark:text-rose-400">
+                      {currentQ.answer}
+                    </span>
+                  </div>
+                )}
               </motion.div>
+            )}
+          </AnimatePresence>
+          
+          <AnimatePresence>
+            {showResult && (
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={handleNext}
+                className={`mt-6 w-full py-5 rounded-3xl font-black text-xl shadow-2xl flex items-center justify-center gap-3 group transition-all ${
+                  showResult === 'correct' 
+                    ? 'bg-emerald-500 text-white shadow-emerald-500/40 hover:bg-emerald-600' 
+                    : 'bg-rose-500 text-white shadow-rose-500/40 hover:bg-rose-600'
+                }`}
+              >
+                {currentIndex < questions.length - 1 
+                  ? (language === 'en' ? 'Next Question' : 'পরবর্তী প্রশ্ন')
+                  : (language === 'en' ? 'See Results' : 'ফলাফল দেখুন')
+                }
+                <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
+              </motion.button>
             )}
           </AnimatePresence>
         </motion.div>
@@ -296,17 +433,19 @@ function AnswerButton({ label, onClick, active, correct, wrong, disabled }: {
 }) {
   return (
     <motion.button
-      whileHover={!disabled ? { scale: 1.02, backgroundColor: 'var(--primary)', color: 'white' } : {}}
+      whileHover={!disabled ? { scale: 1.02, backgroundColor: 'rgba(0,0,0,0.05)', color: 'inherit' } : {}}
       whileTap={!disabled ? { scale: 0.98 } : {}}
       onClick={onClick}
       disabled={disabled}
-      className={`p-6 rounded-2xl border-2 font-bold text-lg transition-all text-center ${
-        correct ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg' :
-        wrong ? 'bg-rose-500 border-rose-500 text-white shadow-lg' :
-        active ? 'border-primary bg-primary text-white' : 'border-theme glass hover:border-primary/40'
+      className={`relative w-full p-6 rounded-2xl border-2 font-black text-lg transition-all text-center flex items-center justify-center gap-3 ${
+        correct ? 'bg-emerald-500 border-emerald-500 text-white shadow-xl shadow-emerald-500/20' :
+        wrong ? 'bg-rose-500 border-rose-500 text-white shadow-xl shadow-rose-500/20' :
+        active ? 'border-primary bg-primary text-white' : 'border-theme glass hover:border-primary/40 text-current'
       }`}
     >
       {label}
+      {correct && <CheckCircle2 size={24} className="shrink-0" />}
+      {wrong && <XCircle size={24} className="shrink-0" />}
     </motion.button>
   );
 }

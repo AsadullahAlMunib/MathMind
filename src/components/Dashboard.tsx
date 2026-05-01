@@ -24,7 +24,15 @@ import {
   YAxis, 
   Tooltip, 
   ResponsiveContainer,
-  Cell
+  Cell,
+  PieChart,
+  Pie,
+  Legend,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
 } from 'recharts';
 import AppTooltip from './Tooltip';
 import { format, subDays, isSameDay } from 'date-fns';
@@ -70,37 +78,38 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
       {/* Welcome Banner */}
-      <section className="math-card bg-gradient-to-br from-indigo-700 via-violet-700 to-fuchsia-600 text-white overflow-hidden relative border-none shadow-2xl shadow-indigo-500/30 p-8 md:p-10">
+      <section className="math-card bg-slate-900 text-white overflow-hidden relative border-none shadow-2xl shadow-indigo-500/20 p-8 md:p-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-fuchsia-800 opacity-95"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="space-y-6 flex-1">
             <div className="space-y-2">
               <motion.h2 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-4xl md:text-5xl font-black tracking-tight drop-shadow-md"
+                className="text-4xl md:text-5xl font-black tracking-tight drop-shadow-lg text-white"
               >
                 {language === 'en' ? `Hello, ${user.name}!` : `হ্যালো, ${user.name}!`}
               </motion.h2>
-              <p className="text-white/80 max-w-md font-medium leading-relaxed text-lg">
+              <p className="text-indigo-100 max-w-md font-medium leading-relaxed text-lg">
                 {language === 'en' 
                   ? "Ready to exercise your brain today?"
                   : "আজ আপনার মস্তিষ্ককে ব্যায়াম করতে প্রস্তুত?"}
               </p>
             </div>
 
-            <div className="space-y-3 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 inline-block w-full max-w-sm">
+            <div className="space-y-3 bg-black/30 backdrop-blur-md p-5 rounded-3xl border border-white/10 inline-block w-full max-w-sm shadow-inner">
               <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-white">
                 <span className="flex items-center gap-1.5">
                   <Award size={14} className="text-amber-400" /> {t.level} {stats.level}
                 </span>
-                <span className="text-white/70">{pointsToNextLevel} {language === 'en' ? 'PTS TO NEXT' : 'পয়েন্ট লেভেল আপ'}</span>
+                <span className="text-amber-200/90">{pointsToNextLevel} {language === 'en' ? 'PTS TO NEXT' : 'পয়েন্ট লেভেল আপ'}</span>
               </div>
-              <div className="h-3 w-full bg-black/20 rounded-full overflow-hidden p-0.5 border border-white/5">
+              <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden p-0.5 border border-white/5">
                 <motion.div 
                   initial={{ width: 0 }}
                   animate={{ width: `${levelProgress}%` }}
                   transition={{ duration: 1.5, ease: "circOut" }}
-                  className="h-full bg-gradient-to-r from-amber-400 to-amber-200 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.5)]"
+                  className="h-full bg-gradient-to-r from-amber-500 to-amber-200 rounded-full shadow-[0_0_20px_rgba(251,191,36,0.5)]"
                 />
               </div>
             </div>
@@ -108,10 +117,10 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
             <div className="flex flex-wrap gap-4 pt-2">
               <AppTooltip content={t.startQuiz}>
                 <motion.button 
-                  whileHover={{ scale: 1.02, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.05, y: -4 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => onStartQuiz('basic')}
-                  className="bg-white text-indigo-700 px-8 py-4 rounded-2xl font-black hover:shadow-2xl transition-all flex items-center gap-3 group shadow-lg shadow-indigo-900/20"
+                  className="bg-white text-indigo-900 px-8 py-4 rounded-2xl font-black hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] transition-all flex items-center gap-3 group"
                 >
                   <BrainCircuit size={22} className="group-hover:rotate-12 transition-transform" />
                   <span className="text-lg">{t.startQuiz}</span>
@@ -121,14 +130,14 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
               {hasMissed && (
                 <AppTooltip content={language === 'en' ? 'Review questions you missed' : 'ভুল করা প্রশ্নগুলো আবার দেখুন'}>
                   <motion.button 
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ scale: 1.05, y: -4 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={onStartReview}
-                    className="bg-white/15 backdrop-blur-xl border border-white/30 text-white px-8 py-4 rounded-2xl font-black hover:bg-white/20 transition-all flex items-center gap-3 group shadow-xl"
+                    className="bg-white/10 backdrop-blur-xl border-2 border-white/20 text-white px-8 py-4 rounded-2xl font-black hover:bg-white/20 transition-all flex items-center gap-3 group"
                   >
                     <BookOpen size={22} className="group-hover:scale-110 transition-transform" />
                     <span className="text-lg">{language === 'en' ? 'Review Mode' : 'রিভিউ মোড'}</span>
-                    <span className="bg-rose-500 text-xs px-2.5 py-1 rounded-full ring-4 ring-rose-500/20 font-black">
+                    <span className="bg-rose-500 text-xs px-2.5 py-1 rounded-full ring-4 ring-rose-500/30 font-black">
                       {stats.missedQuestions?.length}
                     </span>
                   </motion.button>
@@ -252,6 +261,106 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
           </div>
         </div>
       </section>
+      
+      {/* Quiz Analytics Section */}
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-black flex items-center gap-2">
+            <TrendingUp size={24} className="text-primary" />
+            {language === 'en' ? 'Quiz Analytics' : 'কুইজ বিশ্লেষণ'}
+          </h3>
+          <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+            {language === 'en' ? 'Live Progress' : 'লাইভ প্রগ্রেস'}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Accuracy (Win Rate) Chart */}
+          <div className="math-card glass p-6 min-h-[350px] flex flex-col group hover:shadow-2xl transition-all">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="font-black text-lg">{language === 'en' ? 'Accuracy Overview' : 'নির্ভুলতার চিত্র'}</h4>
+                <p className="text-xs text-muted font-bold">{language === 'en' ? `${stats.totalQuizzes} Quizzes Completed` : `${stats.totalQuizzes}টি কুইজ সম্পন্ন`}</p>
+              </div>
+              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform">
+                <Target size={24} />
+              </div>
+            </div>
+            
+            <div className="flex-1 relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: language === 'en' ? 'Correct' : 'সঠিক', value: stats.correctAnswers },
+                      { name: language === 'en' ? 'Incorrect' : 'ভুল', value: Math.max(0, (stats.totalQuizzes * 10) - stats.correctAnswers) }
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={65}
+                    outerRadius={85}
+                    paddingAngle={8}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    <Cell fill="#10b981" />
+                    <Cell fill="#ef4444" opacity={0.3} />
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36}/>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <div className="flex flex-col items-center bg-white dark:bg-slate-800 rounded-full w-28 h-28 justify-center shadow-inner border border-theme">
+                  <span className="text-3xl font-black text-emerald-500">
+                    {stats.totalQuizzes > 0 ? Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100) : 0}%
+                  </span>
+                  <span className="text-[10px] uppercase font-black opacity-40">{language === 'en' ? 'Accuracy' : 'সঠিকতা'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Difficulty Mastery Radar Chart */}
+          <div className="math-card glass p-6 min-h-[350px] flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="font-black text-lg">{language === 'en' ? 'Mastery Profile' : 'দক্ষতার প্রোফাইল'}</h4>
+                <p className="text-xs text-muted font-bold">{language === 'en' ? 'High scores by difficulty' : 'কঠিন্য অনুযায়ী সর্বোচ্চ স্কোর'}</p>
+              </div>
+              <div className="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-xl flex items-center justify-center">
+                <BrainCircuit size={24} />
+              </div>
+            </div>
+
+            <div className="flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
+                  { subject: t.basic, A: stats.highScores.basic, fullMark: 1000 },
+                  { subject: t.normal, A: stats.highScores.normal, fullMark: 2500 },
+                  { subject: t.hard, A: stats.highScores.hard, fullMark: 5000 },
+                ]}>
+                  <PolarGrid stroke="currentColor" strokeOpacity={0.1} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fontWeights: 'bold', fill: 'currentColor', opacity: 0.6 }} />
+                  <PolarRadiusAxis angle={30} domain={[0, 'auto']} hide />
+                  <Radar
+                    name={user.name}
+                    dataKey="A"
+                    stroke="var(--primary)"
+                    fill="var(--primary)"
+                    fillOpacity={0.3}
+                  />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Activity Graph and Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -309,8 +418,8 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
         {/* Accuracy Chart */}
         <div className="math-card flex flex-col">
           <h3 className="text-lg font-bold flex items-center gap-2 mb-6">
-            <TrendingUp size={20} className="text-primary" />
-            Performance
+            <Trophy size={20} className="text-amber-500" />
+            {language === 'en' ? 'Personal Bests' : 'ব্যক্তিগত সেরা'}
           </h3>
           <div className="flex-1 min-h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
