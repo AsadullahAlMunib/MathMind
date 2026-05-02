@@ -20,7 +20,8 @@ import {
   Award,
   Coins,
   CheckCircle2,
-  X
+  X,
+  Brain
 } from 'lucide-react';
 
 import { storage } from './lib/storage';
@@ -36,6 +37,7 @@ import Store from './components/Store';
 import Profile from './components/Profile';
 import Tutorial from './components/Tutorial';
 import Tooltip from './components/Tooltip';
+import Logo from './components/Logo';
 
 export default function App() {
   const [state, setState] = useState<AppState>(storage.load());
@@ -44,6 +46,7 @@ export default function App() {
   const [quizDifficulty, setQuizDifficulty] = useState<Difficulty | null>(null);
   const [quizQuestions, setQuizQuestions] = useState<Question[] | null>(null);
   const [toasts, setToasts] = useState<{ id: string; title: string; subtitle: string; icon?: React.ReactNode }[]>([]);
+  const [showLogo, setShowLogo] = useState(true);
 
   const t = translations[state.user.language];
   const currentTheme = useMemo(() => {
@@ -60,9 +63,22 @@ export default function App() {
 
   useEffect(() => {
     const root = document.documentElement;
-    const themeColors = isDark && (currentTheme as any).darkColors 
-      ? (currentTheme as any).darkColors 
-      : currentTheme.colors;
+    let themeColors;
+    
+    if (state.user.currentTheme === 'custom' && state.user.customTheme) {
+      themeColors = {
+        primary: state.user.customTheme.primary,
+        secondary: state.user.customTheme.secondary,
+        bg: isDark ? '#0f172a' : '#f8fafc',
+        text: isDark ? '#f1f5f9' : '#0f172a',
+        surface: isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
+        border: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+      };
+    } else {
+      themeColors = isDark && (currentTheme as any).darkColors 
+        ? (currentTheme as any).darkColors 
+        : currentTheme.colors;
+    }
 
     root.style.setProperty('--primary', themeColors.primary);
     root.style.setProperty('--secondary', themeColors.secondary);
@@ -71,7 +87,7 @@ export default function App() {
     root.style.setProperty('--text-muted', (themeColors as any).textMuted || themeColors.text);
     root.style.setProperty('--border', (themeColors as any).border || 'rgba(0,0,0,0.1)');
     root.style.setProperty('--surface', (themeColors as any).surface || 'rgba(255,255,255,0.8)');
-  }, [currentTheme, isDark]);
+  }, [currentTheme, isDark, state.user.currentTheme, state.user.customTheme]);
 
   const addToast = (title: string, subtitle: string, icon?: React.ReactNode) => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -80,6 +96,13 @@ export default function App() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 5000);
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowLogo(prev => !prev);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleUpdateState = (newState: Partial<AppState>) => {
     let updated = { ...state, ...newState };
@@ -203,20 +226,31 @@ export default function App() {
       {/* Header Info */}
       <header className="sticky top-0 z-40 p-3 md:p-4 px-4 md:px-8 flex justify-between items-center max-w-full mx-auto bg-surface/70 backdrop-blur-xl border-b border-white/10 transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-4">
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setActiveTab('profile')}
-            className="group relative"
+          <motion.div 
+            className="relative w-11 h-11 md:w-12 md:h-12 [perspective:1000px] cursor-pointer"
+            onClick={() => {
+              setActiveTab('profile');
+              setShowLogo(false);
+            }}
+            animate={{ rotateY: showLogo ? 0 : 180 }}
+            transition={{ duration: 0.8, type: "spring", stiffness: 260, damping: 20 }}
           >
-            <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl overflow-hidden ring-2 ring-primary/20 ring-offset-2 ring-offset-transparent shadow-xl transition-all group-hover:ring-primary group-hover:shadow-primary/20">
-              <img src={state.user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            {/* Front: Logo */}
+            <div className="absolute inset-0 [backface-visibility:hidden]">
+              <Logo className="w-full h-full" size={24} />
             </div>
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-surface rounded-full"></div>
-          </motion.button>
+            
+            {/* Back: Avatar */}
+            <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)]">
+              <div className="w-full h-full rounded-2xl overflow-hidden ring-2 ring-primary/20 ring-offset-2 ring-offset-transparent shadow-xl transition-all hover:ring-primary">
+                <img src={state.user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-surface rounded-full"></div>
+              </div>
+            </div>
+          </motion.div>
           
           <div className="flex flex-col">
-            <h1 className="text-lg md:text-xl font-black tracking-tight leading-none bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            <h1 className="text-xl md:text-2xl font-black tracking-tight leading-none bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent flex items-center gap-2">
               {t.title}
             </h1>
             
@@ -349,19 +383,21 @@ export default function App() {
               )}
               {activeTab === 'store' && (
                 <Store 
+                  user={state.user}
                   unlockedThemes={state.stats.unlockedThemes} 
                   balance={state.stats.balance} 
                   currentTheme={state.user.currentTheme}
                   onUnlock={(themeId) => {
                     const theme = THEMES.find(t => t.id === themeId);
-                    if (!theme) return;
+                    const isCustom = themeId === 'custom';
+                    const cost = isCustom ? 40000 : (theme?.cost || 0);
                     
-                    if (state.stats.balance >= theme.cost) {
+                    if (state.stats.balance >= cost) {
                       soundManager.play('unlock');
                       handleUpdateState({
                         stats: { 
                           ...state.stats, 
-                          balance: state.stats.balance - theme.cost,
+                          balance: state.stats.balance - cost,
                           unlockedThemes: [...state.stats.unlockedThemes, themeId]
                         }
                       });
@@ -372,6 +408,7 @@ export default function App() {
                       user: { ...state.user, currentTheme: themeId }
                     });
                   }}
+                  onUpdateUser={(u) => handleUpdateState({ user: u })}
                   language={state.user.language}
                 />
               )}

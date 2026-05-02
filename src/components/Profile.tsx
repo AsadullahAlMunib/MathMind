@@ -438,67 +438,53 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
            </h3>
         </div>
         
-        <div className="math-card glass border-none overflow-hidden p-0 flex flex-col md:flex-row shadow-xl">
-          <div className="p-6 md:p-8 flex-1 flex flex-col items-center md:items-start text-center md:text-left gap-4 bg-gradient-to-br from-indigo-500/[0.03] to-transparent">
+        <div className="math-card glass border-none overflow-hidden p-0 shadow-xl">
+          <div className="p-4 md:p-6 flex flex-col md:flex-row items-center gap-6 bg-gradient-to-br from-indigo-500/[0.05] via-transparent to-transparent">
              <motion.div 
                 whileHover={{ rotate: 10, scale: 1.1 }}
-                className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/20"
+                className="w-16 h-16 rounded-2xl overflow-hidden shadow-2xl ring-2 ring-white/10 shrink-0"
              >
                 <img src="https://avatars.githubusercontent.com/u/163411448" alt="Md Asadullah Al Munib" />
              </motion.div>
-             <div className="space-y-1">
+             
+             <div className="space-y-1.5 flex-1 text-center md:text-left">
                 <h4 className="text-xl font-black tracking-tight">Md Asadullah Al Munib</h4>
-                <p className="text-xs font-bold opacity-50 uppercase tracking-widest">Lead Developer & Designer</p>
+                <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest leading-relaxed">
+                  {language === 'en' ? 'Lead Developer & Digital Architect' : 'প্রধান ডেভেলপার এবং ডিজিটাল আর্কিটেক্ট'}
+                </p>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5 mt-2.5">
+                  <a 
+                    href="https://munib.rf.gd" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-primary px-3 py-1.5 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all border border-primary/10"
+                  >
+                    Portfolio <ExternalLink size={10} />
+                  </a>
+                  <Tooltip content="Send Email">
+                    <a 
+                      href="mailto:asadullahweb1@gmail.com" 
+                      className="w-8 h-8 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                    >
+                      <Mail size={14} />
+                    </a>
+                  </Tooltip>
+                </div>
              </div>
-             <div className="flex items-center gap-2">
-                <Tooltip content="GitHub Profile">
+             
+             <div className="shrink-0 flex flex-col items-center gap-2">
+                <Tooltip content="Official GitHub Profile">
                   <a 
                     href="https://github.com/AsadullahAlMunib" 
                     target="_blank" 
                     rel="noreferrer"
-                    className="w-9 h-9 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
+                    className="flex items-center gap-2.5 px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black text-xs hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-black/30 group"
                   >
-                    <Github size={18} />
+                    <Github size={18} className="group-hover:rotate-12 transition-transform" />
+                    <span>Follow on GitHub</span>
                   </a>
                 </Tooltip>
-                <Tooltip content="Send Email">
-                  <a 
-                    href="mailto:asadullahweb1@gmail.com" 
-                    className="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
-                  >
-                    <Mail size={18} />
-                  </a>
-                </Tooltip>
-                <a 
-                  href="https://munib.rf.gd" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary px-4 py-2.5 bg-primary/5 hover:bg-primary/10 rounded-xl transition-all"
-                >
-                  Portfolio <ExternalLink size={12} />
-                </a>
-             </div>
-          </div>
-          
-          <div className="p-6 md:p-8 flex-1 grid grid-cols-2 gap-3 bg-white/5 md:border-l border-white/10">
-             <div className="p-3.5 rounded-xl bg-slate-500/5 border border-white/5">
-                <p className="text-[9px] uppercase font-black opacity-30 mb-1">Version</p>
-                <p className="text-xs font-black font-mono">1.0.0-PRO</p>
-             </div>
-             <div className="p-3.5 rounded-xl bg-slate-500/5 border border-white/5">
-                <p className="text-[9px] uppercase font-black opacity-30 mb-1">Engine</p>
-                <p className="text-xs font-black font-mono text-indigo-500">Vite + Gemini</p>
-             </div>
-             <div className="p-3.5 rounded-xl bg-slate-500/5 border border-white/5">
-                <p className="text-[9px] uppercase font-black opacity-30 mb-1">Stack</p>
-                <p className="text-xs font-black font-mono">React 19</p>
-             </div>
-             <div className="p-3.5 rounded-xl bg-slate-500/5 border border-white/5">
-                <p className="text-[9px] uppercase font-black opacity-30 mb-1">Status</p>
-                <div className="flex items-center gap-2">
-                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                   <p className="text-xs font-black font-mono uppercase">Stable</p>
-                </div>
+                <p className="text-[9px] font-black uppercase tracking-widest opacity-20">@AsadullahAlMunib</p>
              </div>
           </div>
         </div>

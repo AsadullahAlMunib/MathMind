@@ -37,6 +37,7 @@ import {
 } from 'recharts';
 import AppTooltip from './Tooltip';
 import { format, subDays, isSameDay } from 'date-fns';
+import Logo from './Logo';
 
 import { UserStats, UserProfile, Difficulty } from '../lib/types';
 import { translations } from '../lib/translations';
@@ -164,11 +165,11 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
              >
                <div className="absolute inset-0 bg-gradient-to-tr from-white/30 to-transparent rounded-[2.5rem]"></div>
                <div className="relative">
-                 <Flame size={70} className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.7)]" />
+                 <BrainCircuit size={70} className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.7)]" />
                  <motion.div 
                    animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
                    transition={{ duration: 3, repeat: Infinity }}
-                   className="absolute inset-0 bg-amber-400 rounded-full blur-2xl -z-10"
+                   className="absolute inset-0 bg-primary rounded-full blur-2xl -z-10"
                  />
                </div>
              </motion.div>

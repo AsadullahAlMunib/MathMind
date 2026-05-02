@@ -13,27 +13,45 @@ import {
   Sparkles
 } from 'lucide-react';
 
-import { THEMES } from '../lib/types';
+import { THEMES, UserProfile } from '../lib/types';
 import { translations } from '../lib/translations';
 import Tooltip from './Tooltip';
 
 interface StoreProps {
+  user: UserProfile;
   unlockedThemes: string[];
   balance: number;
   currentTheme: string;
   onUnlock: (themeId: string) => void;
   onSelect: (themeId: string) => void;
+  onUpdateUser: (user: UserProfile) => void;
   language: 'en' | 'bn';
 }
 
-export default function Store({ unlockedThemes, balance, currentTheme, onUnlock, onSelect, language }: StoreProps) {
-  const t = translations[language];
+export default function Store({ user, unlockedThemes, balance, currentTheme, onUnlock, onSelect, onUpdateUser, language }: StoreProps) {
+  const t = translations[language] as any;
+  const coreT = translations[language];
+
+  const CUSTOM_THEME_COST = 40000;
+  const isCustomUnlocked = unlockedThemes.includes('custom');
+  const isCustomSelected = currentTheme === 'custom';
+
+  const updateCustomColor = (type: 'primary' | 'secondary', color: string) => {
+    const currentCustom = user.customTheme || { primary: '#6366f1', secondary: '#4f46e5' };
+    onUpdateUser({
+      ...user,
+      customTheme: {
+        ...currentCustom,
+        [type]: color
+      }
+    });
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">{t.store}</h2>
+          <h2 className="text-3xl font-bold tracking-tight">{coreT.store}</h2>
           <p className="text-muted font-medium">{language === 'en' ? 'Use your balance to unlock new visual styles!' : 'আপনার ব্যালেন্স ব্যবহার করে নতুন ভিজ্যুয়াল স্টাইল আনলক করুন!'}</p>
         </div>
         <Tooltip content={language === 'en' ? 'Your spendable balance' : 'আপনার খরচযোগ্য ব্যালেন্স'}>
@@ -89,19 +107,19 @@ export default function Store({ unlockedThemes, balance, currentTheme, onUnlock,
                     <>
                       <Coins size={12} className="text-amber-500" />
                       <span className="text-[10px] font-black text-muted uppercase tracking-widest">
-                        {theme.cost} {t.points}
+                        {theme.cost} {coreT.points}
                       </span>
                     </>
                   ) : (
                     <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                      {t.free}
+                      {coreT.free}
                     </span>
                   )}
                 </div>
               </div>
 
               {isUnlocked ? (
-                <Tooltip content={t.selectTheme} position="bottom">
+                <Tooltip content={coreT.selectTheme} position="bottom">
                   <button 
                     onClick={() => onSelect(theme.id)}
                     disabled={isSelected}
@@ -122,13 +140,110 @@ export default function Store({ unlockedThemes, balance, currentTheme, onUnlock,
                     }`}
                   >
                     <Sparkles size={18} />
-                    {t.unlock}
+                    {coreT.unlock}
                   </button>
                 </Tooltip>
               )}
             </motion.div>
           );
         })}
+
+        {/* Custom Theme Creator Card */}
+        <motion.div
+          whileHover={{ y: -8 }}
+          className={`math-card p-8 flex flex-col gap-6 relative overflow-hidden group border-2 border-dashed ${
+            isCustomSelected ? 'ring-4 ring-primary border-primary' : 'border-primary/20'
+          }`}
+        >
+          {isCustomSelected && (
+            <div className="absolute top-4 right-4 bg-primary text-white p-1 rounded-full shadow-lg z-20">
+              <Check size={16} strokeWidth={4} />
+            </div>
+          )}
+
+          <div className="w-full h-32 rounded-2xl flex items-center justify-center shadow-inner overflow-hidden relative border border-theme bg-gradient-to-br from-black/5 to-white/5">
+            <div className="space-y-4 flex flex-col items-center">
+              <div className="flex gap-2">
+                <div 
+                  className="w-10 h-10 rounded-full border-4 border-white shadow-lg" 
+                  style={{ backgroundColor: user.customTheme?.primary || '#6366f1' }}
+                ></div>
+                <div 
+                  className="w-10 h-10 rounded-full border-4 border-white shadow-lg" 
+                  style={{ backgroundColor: user.customTheme?.secondary || '#4f46e5' }}
+                ></div>
+              </div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-primary">{t.customThemeCreator}</div>
+            </div>
+            {!isCustomUnlocked && (
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center text-white gap-2">
+                <Lock size={32} />
+                <span className="text-[8px] font-black uppercase tracking-[0.3em]">{t.buyCustomTheme}</span>
+              </div>
+            )}
+          </div>
+
+          <div>
+             <h3 className="text-xl font-bold flex items-center gap-2">
+              <Sparkles size={20} className="text-amber-500" />
+              {t.customThemeCreator}
+            </h3>
+            {!isCustomUnlocked ? (
+              <div className="flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-amber-500/10 w-fit border border-amber-500/20">
+                <Coins size={12} className="text-amber-500" />
+                <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">
+                  {CUSTOM_THEME_COST} {coreT.points}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase tracking-widest opacity-60">{t.primaryColor}</label>
+                    <input 
+                      type="color" 
+                      value={user.customTheme?.primary || '#6366f1'}
+                      onChange={(e) => updateCustomColor('primary', e.target.value)}
+                      className="w-full h-8 rounded-lg cursor-pointer bg-transparent"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase tracking-widest opacity-60">{t.secondaryColor}</label>
+                    <input 
+                      type="color" 
+                      value={user.customTheme?.secondary || '#4f46e5'}
+                      onChange={(e) => updateCustomColor('secondary', e.target.value)}
+                      className="w-full h-8 rounded-lg cursor-pointer bg-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {isCustomUnlocked ? (
+            <button 
+              onClick={() => onSelect('custom')}
+              disabled={isCustomSelected}
+              className={`w-full py-3 rounded-xl font-bold mt-auto transition-all ${
+                isCustomSelected ? 'bg-primary/10 text-primary cursor-default' : 'bg-primary text-white hover:shadow-lg'
+              }`}
+            >
+              {isCustomSelected ? (language === 'en' ? 'Active' : 'সক্রিয়') : (language === 'en' ? 'Use Custom Theme' : 'নিজস্ব থিম ব্যবহার করুন')}
+            </button>
+          ) : (
+             <button 
+              onClick={() => onUnlock('custom')}
+              disabled={balance < CUSTOM_THEME_COST}
+              className={`w-full py-3 rounded-xl font-bold mt-auto flex items-center justify-center gap-2 transition-all ${
+                balance >= CUSTOM_THEME_COST ? 'bg-amber-500 text-white hover:shadow-lg' : 'bg-gray-200 text-gray-500 dark:bg-white/5 cursor-not-allowed'
+              }`}
+            >
+              <Sparkles size={18} />
+              {t.buyCustomTheme}
+            </button>
+          )}
+        </motion.div>
       </div>
     </div>
   );

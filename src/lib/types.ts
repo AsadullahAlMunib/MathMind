@@ -104,6 +104,10 @@ export interface UserProfile {
   bio?: string;
   avatarStyle?: string;
   avatarColor?: string;
+  customTheme?: {
+    primary: string;
+    secondary: string;
+  };
   joinedAt: string;
   language: 'en' | 'bn';
   currentTheme: string;

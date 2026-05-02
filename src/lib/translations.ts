@@ -59,6 +59,11 @@ export const translations = {
     avatarStyle: 'Style',
     backgroundColor: 'Color',
     username: 'Username',
+    customThemeCreator: 'Custom Theme Creator',
+    primaryColor: 'Primary Color',
+    secondaryColor: 'Secondary Color',
+    createYourTheme: 'Create Your Theme',
+    buyCustomTheme: 'Access Theme Designer',
   },
   bn: {
     title: 'ম্যাথ মাইন্ড',
@@ -115,5 +120,10 @@ export const translations = {
     avatarStyle: 'স্টাইল',
     backgroundColor: 'রঙ',
     username: 'ইউজারনেম',
+    customThemeCreator: 'নিজস্ব থিম নির্মাতা',
+    primaryColor: 'প্রধান রঙ',
+    secondaryColor: 'দ্বিতীয় রঙ',
+    createYourTheme: 'আপনার থিম তৈরি করুন',
+    buyCustomTheme: 'থিম ডিজাইনার কিনুন',
   }
 };
