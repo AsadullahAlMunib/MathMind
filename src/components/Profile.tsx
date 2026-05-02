@@ -39,22 +39,11 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-import { UserStats, UserProfile, QuizHistory, ACHIEVEMENTS } from '../lib/types';
+import { UserStats, UserProfile, ACHIEVEMENTS } from '../lib/types';
 import { translations } from '../lib/translations';
 import { storage } from '../lib/storage';
 import Tooltip from './Tooltip';
-
-const AchievementIcon = ({ name, size = 18 }: { name: string, size?: number }) => {
-  switch (name) {
-    case 'target': return <Target size={size} />;
-    case 'zap': return <Zap size={size} />;
-    case 'flame': return <Flame size={size} />;
-    case 'coins': return <Coins size={size} />;
-    case 'palette': return <Palette size={size} />;
-    case 'crown': return <Crown size={size} />;
-    default: return <Trophy size={size} />;
-  }
-};
+import Achievements from './Achievements';
 
 interface ProfileProps {
   user: UserProfile;
@@ -312,58 +301,7 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
         </div>
       </section>
 
-      {/* Achievements Section */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
-            <Trophy size={14} />
-            {language === 'en' ? 'Achievements' : 'অ্যাচিভমেন্টস'}
-          </h3>
-          <div className="text-[10px] font-black text-amber-500 px-2 py-0.5 bg-amber-500/10 rounded-md">
-            {stats.unlockedAchievements?.length || 0} / {ACHIEVEMENTS.length} {language === 'en' ? 'Unlocked' : 'আনলকড'}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {ACHIEVEMENTS.map((achievement) => {
-            const isUnlocked = stats.unlockedAchievements?.includes(achievement.id);
-            return (
-              <div key={achievement.id}>
-                <Tooltip content={achievement.description}>
-                  <motion.div 
-                    whileHover={isUnlocked ? { y: -5 } : {}}
-                    className={`math-card p-4 flex flex-col items-center text-center gap-3 transition-all relative overflow-hidden ${
-                      isUnlocked 
-                        ? 'bg-gradient-to-br from-amber-500/5 to-transparent border-amber-500/20' 
-                        : 'bg-black/5 dark:bg-white/5 opacity-40 grayscale pointer-events-none'
-                    }`}
-                  >
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                      isUnlocked ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-black/10 dark:bg-white/10'
-                    }`}>
-                      {isUnlocked ? <AchievementIcon name={achievement.icon} size={24} /> : <Lock size={20} />}
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black tracking-tight leading-tight">{achievement.title}</h4>
-                      {isUnlocked && (
-                        <p className="text-[8px] font-bold opacity-50 uppercase mt-1 tracking-widest">
-                          {language === 'en' ? 'Unlocked' : 'আনলক'}
-                        </p>
-                      )}
-                    </div>
-                    
-                    {isUnlocked && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-amber-500 rounded-bl-xl flex items-center justify-center">
-                        <CheckCircle size={10} className="text-white" />
-                      </div>
-                    )}
-                  </motion.div>
-                </Tooltip>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <Achievements stats={stats} language={language} />
 
       {/* Help & Settings Section */}
       <section className="space-y-4">
@@ -377,9 +315,9 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
               storage.save({ ...storage.load(), isFirstTime: true });
               window.location.reload();
             }}
-            className="math-card glass p-6 flex items-center gap-4 hover:bg-primary/5 transition-all group group"
+            className="math-card glass p-6 flex items-center gap-4 hover:bg-primary/5 transition-all duration-500 group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500">
               <BookOpen size={24} />
             </div>
             <div className="text-left">
@@ -392,9 +330,9 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
             href="https://github.com/AsadullahAlMunib/MathMind" 
             target="_blank" 
             rel="noreferrer"
-            className="math-card glass p-6 flex items-center gap-4 hover:bg-primary/5 transition-all group"
+            className="math-card glass p-6 flex items-center gap-4 hover:bg-primary/5 transition-all duration-500 group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
               <Github size={24} />
             </div>
             <div className="text-left">

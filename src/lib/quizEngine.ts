@@ -5,6 +5,7 @@
 
 import { GoogleGenAI } from '@google/genai';
 import { Difficulty, Question, QuestionType } from './types';
+import { storage } from './storage';
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
@@ -45,7 +46,12 @@ export const quizEngine = {
           const text = result.text;
           if (!text) throw new Error('Empty AI response');
           const cleanedText = text.replace(/```json|```/g, '').trim();
-          return JSON.parse(cleanedText);
+          const parsedQuestions: Question[] = JSON.parse(cleanedText);
+          
+          // Cache the AI generated questions for future offline use
+          storage.saveToQuestionCache(parsedQuestions);
+          
+          return parsedQuestions;
         } catch (error: any) {
           attempt++;
           const is429 = error?.message?.includes('429') || error?.status === 429 || error?.code === 429;
@@ -56,12 +62,23 @@ export const quizEngine = {
             continue;
           }
           
-          console.error('Gemini error, falling back to offline:', error);
-          return this.generateOffline(difficulty, count);
+          console.error('Gemini error, falling back to cache/offline:', error);
+          break; // Exit retry loop and fall through to fallback logic
         }
       }
     }
 
+    // Fallback Logic: 
+    // 1. Try to find suitable questions in the local cache
+    const cache = storage.getQuestionCache();
+    const suitableFromCache = cache.filter(q => q.difficulty === difficulty).slice(0, count);
+    
+    if (suitableFromCache.length >= count) {
+      // Shuffle the cache subset so it's not always the same questions if we have extra
+      return suitableFromCache.sort(() => Math.random() - 0.5).slice(0, count);
+    }
+
+    // 2. If not enough cached questions, generate algorithmically
     return this.generateOffline(difficulty, count);
   },
 

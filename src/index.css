@@ -14,6 +14,13 @@
   --color-surface: var(--surface);
 }
 
+@property --primary { syntax: '<color>'; inherits: true; initial-value: #6366f1; }
+@property --secondary { syntax: '<color>'; inherits: true; initial-value: #4f46e5; }
+@property --bg { syntax: '<color>'; inherits: true; initial-value: #f9fafb; }
+@property --text { syntax: '<color>'; inherits: true; initial-value: #111827; }
+@property --text-muted { syntax: '<color>'; inherits: true; initial-value: #6b7280; }
+@property --surface { syntax: '<color>'; inherits: true; initial-value: rgba(255,255,255,0.8); }
+
 :root {
   --primary: #6366f1;
   --secondary: #4f46e5;
@@ -22,17 +29,18 @@
   --text-muted: #6b7280;
   --border: rgba(0,0,0,0.1);
   --surface: rgba(255,255,255,0.8);
+  transition: --primary 0.5s, --secondary 0.5s, --bg 0.5s, --text 0.5s, --text-muted 0.5s, --surface 0.5s;
 }
 
 body {
   background-color: var(--bg);
   color: var(--text);
   overflow-x: hidden;
-  @apply transition-colors duration-300;
+  @apply transition-colors duration-500 ease-in-out;
 }
 
 .theme-transition {
-  @apply transition-all duration-300;
+  @apply transition-all duration-500 ease-in-out;
 }
 
 .glass {
@@ -40,12 +48,12 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border);
-  @apply shadow-sm;
+  @apply shadow-sm transition-all duration-500 ease-in-out;
 }
 
 .math-card {
   background: var(--surface);
-  @apply rounded-3xl p-6 shadow-md transition-all duration-300;
+  @apply rounded-3xl p-6 shadow-md transition-all duration-500 ease-in-out;
   border: 1px solid var(--border);
 }
 

@@ -201,7 +201,7 @@ export default function App() {
   return (
     <div className="min-h-screen theme-transition pb-24 md:pb-0 md:pl-20 font-sans">
       {/* Header Info */}
-      <header className="sticky top-0 z-40 p-3 md:p-4 px-4 md:px-8 flex justify-between items-center max-w-full mx-auto bg-surface/70 backdrop-blur-xl border-b border-white/10 transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.05)]">
+      <header className="sticky top-0 z-40 p-3 md:p-4 px-4 md:px-8 flex justify-between items-center max-w-full mx-auto bg-surface/70 backdrop-blur-xl border-b border-white/10 transition-all duration-500 shadow-[0_4px_30px_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-4">
           <motion.button 
             whileHover={{ scale: 1.05 }}
@@ -340,7 +340,13 @@ export default function App() {
                   ))}
                 </div>
               )}
-              {activeTab === 'leaderboard' && <Leaderboard highScores={state.stats.highScores} language={state.user.language} />}
+              {activeTab === 'leaderboard' && (
+                <Leaderboard 
+                  highScores={state.stats.highScores} 
+                  userName={state.user.name}
+                  language={state.user.language} 
+                />
+              )}
               {activeTab === 'store' && (
                 <Store 
                   unlockedThemes={state.stats.unlockedThemes} 
@@ -388,7 +394,7 @@ export default function App() {
       </main>
 
       {/* Navigation Sidebar (Desktop) / Bottom Bar (Mobile) */}
-      <nav id="main-nav" className="fixed bottom-0 left-0 right-0 md:top-0 md:right-auto md:w-20 md:flex-col glass border-t md:border-t-0 md:border-r border-theme flex items-center justify-around md:justify-center gap-2 p-3 z-50">
+      <nav id="main-nav" className="fixed bottom-0 left-0 right-0 md:top-0 md:right-auto md:w-20 md:flex-col glass border-t md:border-t-0 md:border-r border-theme flex items-center justify-around md:justify-center gap-2 p-3 z-50 transition-all duration-500">
         <NavButton id="nav-dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label={t.dashboard} tooltip={t.viewDashboard} />
         <NavButton id="nav-quiz" active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<Gamepad2 />} label={t.startQuiz} tooltip={t.startQuiz} />
         <NavButton id="nav-leaderboard" active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} icon={<Trophy />} label={t.leaderboard} tooltip={t.viewLeaderboard} />

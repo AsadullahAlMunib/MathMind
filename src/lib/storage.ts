@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AppState, UserProfile, UserStats } from './types';
+import { AppState, UserProfile, UserStats, Question } from './types';
 
 const INITIAL_STATS: UserStats = {
   totalPoints: 0,
@@ -29,12 +29,32 @@ const INITIAL_USER: UserProfile = {
 };
 
 const STORAGE_KEY = 'math_mind_v1';
+const QUESTION_CACHE_KEY = 'math_mind_questions_cache';
 
 export const storage = {
   save: (data: AppState) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   },
   
+  saveToQuestionCache: (questions: Question[]) => {
+    try {
+      const existing = storage.getQuestionCache();
+      const updated = [...questions, ...existing].slice(0, 50); // Keep last 50 questions
+      localStorage.setItem(QUESTION_CACHE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to save to question cache', e);
+    }
+  },
+
+  getQuestionCache: (): Question[] => {
+    try {
+      const data = localStorage.getItem(QUESTION_CACHE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
   load: (): AppState => {
     const data = localStorage.getItem(STORAGE_KEY);
     if (!data) {

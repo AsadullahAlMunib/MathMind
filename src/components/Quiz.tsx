@@ -43,11 +43,14 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(!initialQuestions);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine || !process.env.GEMINI_API_KEY);
   const [showResult, setShowResult] = useState<'correct' | 'incorrect' | null>(null);
   const [results, setResults] = useState<{ id: string; correct: boolean }[]>([]);
   const [timeLeft, setTimeLeft] = useState(30);
   const [isPaused, setIsPaused] = useState(false);
   const [points, setPoints] = useState(0);
+  const [scoreAnimate, setScoreAnimate] = useState(false);
+  const [floatingPoints, setFloatingPoints] = useState<{ id: number; value: number }[]>([]);
   const [missedQuestions, setMissedQuestions] = useState<Question[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -59,6 +62,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
       setLoading(true);
       const q = await quizEngine.generateQuestions(difficulty, language, 10);
       setQuestions(q);
+      setIsOffline(!navigator.onLine || !process.env.GEMINI_API_KEY || (q.length > 0 && q[0].id.length <= 9)); // Algorithmic IDs are short
       setLoading(false);
       startTimer();
     }
@@ -113,11 +117,23 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
   const handleAnswer = (answer: string) => {
     if (showResult) return;
     
+    // Normalize Bengali digits to English for comparison
+    const normalizeDigits = (str: string) => {
+      const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+      return str.split('').map(char => {
+        const index = bengaliDigits.indexOf(char);
+        return index !== -1 ? index.toString() : char;
+      }).join('');
+    };
+
     stopTimer();
     setIsPaused(false);
     setSelectedAnswer(answer);
     const currentQ = questions[currentIndex];
-    const isCorrect = answer.toLowerCase().trim() === currentQ.answer.toLowerCase().trim();
+    
+    const normalizedInput = normalizeDigits(answer.toLowerCase().trim());
+    const normalizedCorrect = normalizeDigits(currentQ.answer.toLowerCase().trim());
+    const isCorrect = normalizedInput === normalizedCorrect;
     
     setShowResult(isCorrect ? 'correct' : 'incorrect');
     setResults(prev => [...prev, { id: currentQ.id, correct: isCorrect }]);
@@ -126,7 +142,17 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
       soundManager.play('correct');
       const basePoints = difficulty === 'basic' ? 10 : difficulty === 'normal' ? 25 : 50;
       const speedBonus = Math.floor(timeLeft * (difficulty === 'hard' ? 2.5 : 1.5));
-      setPoints(prev => prev + basePoints + speedBonus);
+      const totalAwarded = basePoints + speedBonus;
+      
+      setPoints(prev => prev + totalAwarded);
+      setScoreAnimate(true);
+      setTimeout(() => setScoreAnimate(false), 500);
+      
+      const id = Date.now();
+      setFloatingPoints(prev => [...prev, { id, value: totalAwarded }]);
+      setTimeout(() => {
+        setFloatingPoints(prev => prev.filter(p => p.id !== id));
+      }, 1000);
     } else {
       soundManager.play('incorrect');
       setMissedQuestions(prev => [...prev, currentQ]);
@@ -290,8 +316,32 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
           </div>
           
           <Tooltip content={language === 'en' ? 'Current points' : 'বর্তমান পয়েন্ট'}>
-            <div className="font-mono text-xl font-black text-primary px-3 py-1 bg-primary/5 rounded-xl border border-primary/10">
-              {points}
+            <div className="relative">
+              <motion.div 
+                animate={scoreAnimate ? { 
+                  scale: [1, 1.2, 1],
+                  color: ['#6366f1', '#10b981', '#6366f1'] 
+                } : {}}
+                className="font-mono text-xl font-black text-primary px-3 py-1 bg-primary/5 rounded-xl border border-primary/10"
+              >
+                {points}
+              </motion.div>
+              
+              <AnimatePresence>
+                {floatingPoints.map(fp => (
+                  <motion.div
+                    key={fp.id}
+                    initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, y: -40, scale: 1.2 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="absolute inset-0 flex justify-center items-center pointer-events-none"
+                  >
+                    <span className="text-emerald-500 font-black text-lg whitespace-nowrap">
+                      +{fp.value}
+                    </span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </Tooltip>
         </div>
@@ -311,9 +361,19 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
         <motion.div
           key={currentIndex}
           initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: isPaused ? 0.2 : 1, x: 0, scale: isPaused ? 0.98 : 1 }}
+          animate={{ 
+            opacity: isPaused ? 0.2 : 1, 
+            x: showResult === 'incorrect' ? [0, -10, 10, -10, 10, 0] : 0, 
+            scale: showResult === 'correct' ? 1.02 : isPaused ? 0.98 : 1,
+            borderColor: showResult === 'correct' ? 'rgba(16, 185, 129, 0.5)' : showResult === 'incorrect' ? 'rgba(244, 63, 94, 0.5)' : 'var(--border)'
+          }}
+          transition={{ 
+            x: { duration: 0.4, ease: "easeInOut" },
+            opacity: { duration: 0.3 },
+            scale: { duration: 0.2 }
+          }}
           exit={{ opacity: 0, x: -50 }}
-          className={`math-card p-10 flex flex-col items-center text-center gap-8 relative overflow-hidden border-2 border-theme transition-all duration-500 ${
+          className={`math-card p-10 flex flex-col items-center text-center gap-8 relative overflow-hidden border-2 transition-all duration-500 ${
             isPaused ? 'grayscale pointer-events-none' : ''
           }`}
         >
@@ -550,6 +610,8 @@ function AnswerButton({ label, onClick, active, correct, wrong, disabled }: {
     <motion.button
       whileHover={!disabled ? { scale: 1.02, backgroundColor: 'rgba(0,0,0,0.05)', color: 'inherit' } : {}}
       whileTap={!disabled ? { scale: 0.98 } : {}}
+      animate={wrong ? { x: [0, -5, 5, -5, 5, 0] } : {}}
+      transition={{ duration: 0.3 }}
       onClick={onClick}
       disabled={disabled}
       className={`relative w-full p-6 rounded-2xl border-2 font-black text-lg transition-all text-center flex items-center justify-center gap-3 ${

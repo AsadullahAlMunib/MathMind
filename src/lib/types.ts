@@ -206,11 +206,11 @@ export const THEMES: Theme[] = [
     colors: { 
       primary: '#ff00ff', 
       secondary: '#00ffff', 
-      bg: '#0d0221', 
-      text: '#00ff00',
-      textMuted: '#00cc00',
-      surface: '#1a0b2e',
-      border: '#2d0e4e'
+      bg: '#fdf4ff', 
+      text: '#4a044e',
+      textMuted: '#701a75',
+      surface: '#ffffff',
+      border: '#f5d0fe'
     }, 
     darkColors: {
       primary: '#ff00ff', 
@@ -227,13 +227,13 @@ export const THEMES: Theme[] = [
     id: 'royal', 
     name: 'Royal Gold', 
     colors: { 
-      primary: '#d97706', 
-      secondary: '#fbbf24', 
-      bg: '#fff7ed', 
-      text: '#431407',
-      textMuted: '#7c2d12',
+      primary: '#92400e', 
+      secondary: '#b45309', 
+      bg: '#fffbeb', 
+      text: '#451a03',
+      textMuted: '#78350f',
       surface: '#ffffff',
-      border: '#fed7aa'
+      border: '#fef3c7'
     }, 
     darkColors: {
       primary: '#fbbf24', 
@@ -251,10 +251,10 @@ export const THEMES: Theme[] = [
     name: 'Ocean Breeze', 
     colors: { 
       primary: '#0ea5e9', 
-      secondary: '#06b6d4', 
+      secondary: '#38bdf8', 
       bg: '#f0f9ff', 
       text: '#0c4a6e',
-      textMuted: '#0369a1',
+      textMuted: '#075985',
       surface: '#ffffff',
       border: '#bae6fd'
     }, 
@@ -273,11 +273,11 @@ export const THEMES: Theme[] = [
     id: 'lavender', 
     name: 'Lavender Dream', 
     colors: { 
-      primary: '#8b5cf6', 
-      secondary: '#a78bfa', 
+      primary: '#7c3aed', 
+      secondary: '#8b5cf6', 
       bg: '#f5f3ff', 
       text: '#4c1d95',
-      textMuted: '#6d28d9',
+      textMuted: '#5b21b6',
       surface: '#ffffff',
       border: '#ddd6fe'
     }, 
@@ -298,10 +298,10 @@ export const THEMES: Theme[] = [
     colors: { 
       primary: '#18181b', 
       secondary: '#3f3f46', 
-      bg: '#fafafa', 
+      bg: '#ffffff', 
       text: '#18181b',
       textMuted: '#52525b',
-      surface: '#ffffff',
+      surface: '#f4f4f5',
       border: '#e4e4e7'
     }, 
     darkColors: {
@@ -320,12 +320,12 @@ export const THEMES: Theme[] = [
     name: 'Nebula', 
     colors: { 
       primary: '#ec4899', 
-      secondary: '#8b5cf6', 
-      bg: '#0f172a', 
-      text: '#f8fafc',
-      textMuted: '#94a3b8',
-      surface: '#1e293b',
-      border: '#334155'
+      secondary: '#a855f7', 
+      bg: '#fdf2f8', 
+      text: '#831843',
+      textMuted: '#9d174d',
+      surface: '#ffffff',
+      border: '#fbcfe8'
     }, 
     darkColors: {
       primary: '#f472b6', 
@@ -342,9 +342,9 @@ export const THEMES: Theme[] = [
     id: 'crimson', 
     name: 'Crimson Fury', 
     colors: { 
-      primary: '#dc2626', 
-      secondary: '#b91c1c', 
-      bg: '#fef2f2', 
+      primary: '#b91c1c', 
+      secondary: '#dc2626', 
+      bg: '#fff1f2', 
       text: '#7f1d1d',
       textMuted: '#991b1b',
       surface: '#ffffff',
