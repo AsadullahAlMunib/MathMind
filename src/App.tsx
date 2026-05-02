@@ -26,6 +26,7 @@ import {
 import { storage } from './lib/storage';
 import { translations } from './lib/translations';
 import { THEMES, AppState, Difficulty, Question, ACHIEVEMENTS } from './lib/types';
+import { soundManager } from './lib/sounds';
 
 // Components
 import Quiz from './components/Quiz';
@@ -100,6 +101,7 @@ export default function App() {
         };
         
         // Show toasts for newly unlocked achievements
+        soundManager.play('unlock');
         newlyUnlocked.forEach(id => {
           const achievement = ACHIEVEMENTS.find(a => a.id === id);
           if (achievement) {
@@ -108,7 +110,6 @@ export default function App() {
         });
       }
     }
-
     setState(updated);
     storage.save(updated);
   };
@@ -128,6 +129,9 @@ export default function App() {
       if (points > newHighScores[diff]) newHighScores[diff] = points;
       
       const newLevel = Math.floor(newTotalPoints / 1000) + 1;
+      if (newLevel > stats.level) {
+        soundManager.play('levelUp');
+      }
       const newBestStreak = Math.max(stats.bestStreak || 0, sessionStreak);
       
       // Merge missed questions, avoiding duplicates
@@ -171,6 +175,7 @@ export default function App() {
         finalStats.unlockedAchievements = [...unlocked, ...newlyUnlocked];
         
         // Show toasts for newly unlocked achievements
+        soundManager.play('unlock');
         newlyUnlocked.forEach(id => {
           const achievement = ACHIEVEMENTS.find(a => a.id === id);
           if (achievement) {
@@ -178,7 +183,6 @@ export default function App() {
           }
         });
       }
-
       return finalStats;
     });
     storage.logActivity();
@@ -347,6 +351,7 @@ export default function App() {
                     if (!theme) return;
                     
                     if (state.stats.balance >= theme.cost) {
+                      soundManager.play('unlock');
                       handleUpdateState({
                         stats: { 
                           ...state.stats, 

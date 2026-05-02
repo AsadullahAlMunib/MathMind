@@ -411,59 +411,79 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
         </div>
       </section>
 
-      {/* Global Summary Card */}
-      <section className="math-card glass p-4 md:p-6 overflow-hidden relative group">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none"></div>
-        <div className="relative z-10 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
-              <TrendingUp size={14} />
-              {t.lifetimePoints}
-            </h3>
+      {/* Global Summary Card - Redesigned for Premium Feel */}
+      <section className="relative overflow-hidden group rounded-[2rem] border border-white/10 shadow-2xl bg-slate-950 text-white p-6 md:p-8">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-secondary/20 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(var(--primary-rgb),0.15),transparent)]"></div>
+        <div className="absolute top-0 right-0 p-8 z-0 opacity-10 group-hover:opacity-20 transition-opacity">
+          <TrendingUp size={200} className="rotate-12" />
+        </div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+          {/* Main Point Display */}
+          <div className="flex flex-col items-center md:items-start space-y-2">
+            <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/10 w-fit backdrop-blur-md">
+              <Trophy size={14} className="text-amber-400" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">{t.lifetimePoints}</span>
+            </div>
+            <div className="flex flex-col items-center md:items-start group/score">
+              <div className="flex items-baseline gap-3">
+                <span className="text-6xl md:text-8xl font-black tracking-tighter bg-gradient-to-b from-white to-white/60 bg-clip-text text-transparent drop-shadow-2xl">
+                  {stats.totalPoints.toLocaleString()}
+                </span>
+                <span className="text-xs md:text-sm font-black text-primary tracking-widest uppercase opacity-80 mb-2 md:mb-4">pts</span>
+              </div>
+              <p className="text-[10px] md:text-xs font-medium text-white/40 tracking-wider">
+                {language === 'en' ? 'RANK: MASTER MIND' : 'র‍্যাঙ্ক: মাস্টার মাইন্ড'}
+              </p>
+            </div>
           </div>
-          
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6 py-2">
-            <div className="flex flex-col items-center md:items-start flex-1 text-center md:text-left space-y-1">
-              <p className="text-[9px] font-black text-muted uppercase tracking-widest leading-none">{t.lifetimePoints}</p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl md:text-5xl font-black text-primary tracking-tighter leading-none">{stats.totalPoints}</span>
-                <span className="text-[10px] font-bold opacity-30 tracking-widest leading-none">PTS</span>
+
+          {/* Vertical Divider */}
+          <div className="hidden md:block w-px h-24 bg-gradient-to-b from-transparent via-white/10 to-transparent"></div>
+
+          {/* Secondary Stats Grid */}
+          <div className="grid grid-cols-2 gap-8 md:gap-12 flex-1 w-full max-w-sm">
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest opacity-60">{language === 'en' ? 'Accurate Answer' : 'সঠিক উত্তর'}</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-emerald-400 leading-none">{stats.correctAnswers}</span>
+                  <span className="text-[10px] font-bold text-emerald-400/40">{Math.round((stats.correctAnswers / (Math.max(1, stats.totalQuizzes) * 10)) * 100)}%</span>
+                </div>
+              </div>
+              <div className="h-1 w-full bg-emerald-400/10 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.round((stats.correctAnswers / (Math.max(1, stats.totalQuizzes) * 10)) * 100)}%` }}
+                  className="h-full bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                />
               </div>
             </div>
-            
-            <div className="flex items-center gap-8 md:gap-16 flex-1 justify-center md:justify-end">
-              <div className="flex flex-col items-center md:items-start space-y-1">
-                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest leading-none">{language === 'en' ? 'Correct' : 'সঠিক'}</p>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest opacity-60">{language === 'en' ? 'Total Quizzes' : 'মোট কুইজ'}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl md:text-3xl font-black text-emerald-500 tracking-tight leading-none">{stats.correctAnswers}</span>
-                  <div className="flex flex-col -space-y-0.5">
-                    <span className="text-[8px] font-bold opacity-30 leading-none">TOTAL</span>
-                    <span className="text-[8px] font-black text-emerald-500/50 leading-none">+{Math.round((stats.correctAnswers / (Math.max(1, stats.totalQuizzes) * 10)) * 100)}%</span>
-                  </div>
+                  <span className="text-3xl font-black text-rose-400 leading-none">{stats.totalQuizzes}</span>
+                  <span className="text-[10px] font-bold text-rose-400/40">COMPLETED</span>
                 </div>
               </div>
-
-              <div className="flex flex-col items-center md:items-start space-y-1">
-                <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest leading-none">{language === 'en' ? 'Incorrect' : 'ভুল'}</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl md:text-3xl font-black text-rose-500 tracking-tight leading-none">
-                    {Math.max(0, (stats.totalQuizzes * 10) - stats.correctAnswers)}
-                  </span>
-                  <div className="flex flex-col -space-y-0.5">
-                    <span className="text-[8px] font-bold opacity-30 leading-none">TOTAL</span>
-                    <span className="text-[8px] font-black text-rose-500/50 leading-none">
-                      {stats.totalQuizzes > 0 ? (100 - Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100)) : 0}%
-                    </span>
-                  </div>
-                </div>
+              <div className="h-1 w-full bg-rose-400/10 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: '100%' }}
+                  className="h-full bg-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.5)]"
+                />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Abstract background blobs */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -translate-y-1/2 translate-x-1/2 rounded-full"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/5 blur-3xl translate-y-1/2 -translate-x-1/2 rounded-full"></div>
+        {/* Floating background decorations */}
+        <div className="absolute -bottom-12 -right-12 w-64 h-64 bg-primary/20 blur-[100px] rounded-full pointer-events-none"></div>
+        <div className="absolute -top-12 -left-12 w-64 h-64 bg-secondary/10 blur-[100px] rounded-full pointer-events-none"></div>
       </section>
 
       {/* Activity Graph and Performance */}

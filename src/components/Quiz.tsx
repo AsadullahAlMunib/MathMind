@@ -27,6 +27,7 @@ import {
 import { Difficulty, Question, QuestionType } from '../lib/types';
 import { quizEngine } from '../lib/quizEngine';
 import { translations } from '../lib/translations';
+import { soundManager } from '../lib/sounds';
 import Tooltip from './Tooltip';
 
 interface QuizProps {
@@ -121,14 +122,14 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
     setShowResult(isCorrect ? 'correct' : 'incorrect');
     setResults(prev => [...prev, { id: currentQ.id, correct: isCorrect }]);
     
-    if (!isCorrect) {
-      setMissedQuestions(prev => [...prev, currentQ]);
-    }
-
     if (isCorrect) {
+      soundManager.play('correct');
       const basePoints = difficulty === 'basic' ? 10 : difficulty === 'normal' ? 25 : 50;
       const speedBonus = Math.floor(timeLeft * (difficulty === 'hard' ? 2.5 : 1.5));
       setPoints(prev => prev + basePoints + speedBonus);
+    } else {
+      soundManager.play('incorrect');
+      setMissedQuestions(prev => [...prev, currentQ]);
     }
 
     // Manual completion/next logic
