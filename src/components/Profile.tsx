@@ -55,7 +55,9 @@ interface ProfileProps {
 
 export default function Profile({ user, stats, onUpdateUser, onClearReview, language }: ProfileProps) {
   const [isChangingAvatar, setIsChangingAvatar] = useState(false);
-  const t = translations[language];
+  const [activeCustomTab, setActiveCustomTab] = useState<'style' | 'color' | 'text'>('style');
+  const t = (translations[language] as any);
+  const coreT = translations[language];
 
   const avatarStyles = [
     'avataaars', 
@@ -66,18 +68,36 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
     'notionists', 
     'miniavs', 
     'big-smile',
-    'croodles'
+    'croodles',
+    'micah',
+    'open-peeps',
+    'shapes'
   ];
+
+  const avatarColors = [
+    'b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf', 'c0f2f1', 
+    '000000', 'ffffff', 'f1f5f9', '4f46e5', '059669', 'd97706'
+  ];
+
+  const handleUpdateAvatar = (style?: string, color?: string, seed?: string) => {
+    const currentStyle = style || user.avatarStyle || 'avataaars';
+    const currentColor = color || user.avatarColor || 'b6e3f4,c0aede,d1d4f9';
+    const currentSeed = seed || user.avatar.split('seed=')[1]?.split('&')[0] || Math.random().toString(36).substring(2, 10);
+    
+    const newAvatar = `https://api.dicebear.com/9.x/${currentStyle}/svg?seed=${currentSeed}&backgroundColor=${currentColor}`;
+    onUpdateUser({ 
+      ...user, 
+      avatar: newAvatar,
+      avatarStyle: currentStyle,
+      avatarColor: currentColor
+    });
+  };
 
   const handleRandomAvatar = () => {
     const randomStyle = avatarStyles[Math.floor(Math.random() * avatarStyles.length)];
+    const randomColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
     const randomSeed = Math.random().toString(36).substring(2, 10);
-    onUpdateUser({ ...user, avatar: `https://api.dicebear.com/9.x/${randomStyle}/svg?seed=${randomSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9` });
-  };
-
-  const handleSetStyle = (style: string) => {
-    const randomSeed = Math.random().toString(36).substring(2, 10);
-    onUpdateUser({ ...user, avatar: `https://api.dicebear.com/9.x/${style}/svg?seed=${randomSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9` });
+    handleUpdateAvatar(randomStyle, randomColor, randomSeed);
   };
 
   // Prepare chart data from history
@@ -88,6 +108,20 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0,0,0,0.05);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: var(--primary);
+          border-radius: 10px;
+          opacity: 0.5;
+        }
+      `}} />
       {/* User Info Section */}
       <section className="math-card glass p-8 relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-3xl -translate-y-1/2 translate-x-1/2 rounded-full"></div>
@@ -119,14 +153,25 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
             </div>
           </div>
           
-          <div className="flex-1 text-center md:text-left space-y-3">
-            <div className="space-y-0.5">
-               <input 
-                 type="text" 
-                 value={user.name}
-                 onChange={(e) => onUpdateUser({ ...user, name: e.target.value })}
-                 className="text-2xl md:text-3xl font-black bg-transparent border-none focus:ring-2 ring-primary/20 rounded-lg outline-none w-full text-center md:text-left tracking-tight"
+          <div className="flex-1 text-center md:text-left space-y-4">
+            <div className="space-y-1">
+               <div className="flex flex-col md:flex-row md:items-baseline gap-2">
+                 <input 
+                   type="text" 
+                   value={user.name}
+                   onChange={(e) => onUpdateUser({ ...user, name: e.target.value })}
+                   className="text-2xl md:text-3xl font-black bg-transparent border-none focus:ring-2 ring-primary/20 rounded-lg outline-none w-full text-center md:text-left tracking-tight"
+                   placeholder={t.username}
+                 />
+               </div>
+               
+               <textarea
+                 value={user.bio || ''}
+                 onChange={(e) => onUpdateUser({ ...user, bio: e.target.value })}
+                 className="text-xs md:text-sm opacity-70 w-full bg-transparent border-none focus:ring-1 ring-primary/10 rounded-lg outline-none resize-none h-12 md:h-16 text-center md:text-left"
+                 placeholder={t.bio}
                />
+
                <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-1.5 md:gap-4 opacity-70 text-[11px] md:text-xs font-bold uppercase tracking-wide">
                   <p className="flex items-center gap-1.5">
                     <Calendar size={12} className="text-primary" />
@@ -141,20 +186,17 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
             </div>
             
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-               <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-widest">
-                 <span className="opacity-50">#</span> {t.level} {stats.level}
+               <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-widest border border-primary/5">
+                 <span className="opacity-50">#</span> {coreT.level} {stats.level}
                </div>
-               <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                 <Coins size={11} className="shrink-0" /> {t.balance}: {stats.balance}
-               </div>
-               <div className="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                 <TrendingUp size={11} className="shrink-0" /> {t.lifetimePoints}: {stats.totalPoints}
+               <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[10px] font-black uppercase tracking-widest border border-amber-500/5">
+                 <Coins size={11} className="shrink-0" /> {coreT.balance}: {stats.balance}
                </div>
             </div>
           </div>
         </div>
 
-        {/* Avatar Style Selector Grid */}
+        {/* Enhanced Avatar Customization Panel */}
         <AnimatePresence>
           {isChangingAvatar && (
             <motion.div 
@@ -163,26 +205,70 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
               exit={{ height: 0, opacity: 0 }}
               className="mt-8 pt-6 border-t border-white/10 overflow-hidden"
             >
-              <h4 className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-4 text-center md:text-left">Choose Your Aesthetic</h4>
-              <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3">
-                {avatarStyles.map((style) => (
-                  <motion.button
-                    key={style}
-                    whileHover={{ scale: 1.1, y: -2 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleSetStyle(style)}
-                    className={`w-full aspect-square rounded-xl bg-white/5 border-2 transition-all p-1 flex items-center justify-center overflow-hidden h-12 md:h-14 ${
-                      user.avatar.includes(style) ? 'border-primary bg-primary/5' : 'border-transparent hover:border-white/20'
-                    }`}
-                  >
-                    <img 
-                      src={`https://api.dicebear.com/9.x/${style}/svg?seed=preview`} 
-                      alt={style} 
-                      className="w-full h-full object-contain"
-                    />
-                  </motion.button>
-                ))}
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
+                  {(['style', 'color'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveCustomTab(tab)}
+                      className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                        activeCustomTab === tab 
+                          ? 'bg-surface shadow-sm text-primary' 
+                          : 'text-muted hover:text-foreground'
+                      }`}
+                    >
+                      {tab === 'style' ? t.avatarStyle : t.backgroundColor}
+                    </button>
+                  ))}
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleRandomAvatar}
+                  className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all"
+                >
+                  <RefreshCcw size={12} />
+                  {language === 'en' ? 'Shuffle' : 'সাফল'}
+                </motion.button>
               </div>
+
+              {activeCustomTab === 'style' ? (
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 max-h-[180px] overflow-y-auto pr-2 custom-scrollbar">
+                  {avatarStyles.map((style) => (
+                    <motion.button
+                      key={style}
+                      whileHover={{ scale: 1.1, y: -2 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleUpdateAvatar(style)}
+                      className={`w-full aspect-square rounded-2xl bg-surface border-2 transition-all p-1.5 flex items-center justify-center overflow-hidden h-14 md:h-16 ${
+                        user.avatar.includes(style) ? 'border-primary shadow-lg shadow-primary/20' : 'border-transparent hover:border-white/20'
+                      }`}
+                    >
+                      <img 
+                        src={`https://api.dicebear.com/9.x/${style}/svg?seed=preview&backgroundColor=b6e3f4,c0aede,d1d4f9`} 
+                        alt={style} 
+                        className="w-full h-full object-contain"
+                      />
+                    </motion.button>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-3">
+                  {avatarColors.map((color) => (
+                    <motion.button
+                      key={color}
+                      whileHover={{ scale: 1.15 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleUpdateAvatar(undefined, color)}
+                      className={`w-full aspect-square rounded-full border-4 transition-all shadow-sm ${
+                        user.avatar.includes(color) ? 'border-primary ring-2 ring-primary/20 scale-110' : 'border-white/20 hover:border-white/40'
+                      }`}
+                      style={{ backgroundColor: `#${color === 'ffffff' ? 'fff' : color}` }}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

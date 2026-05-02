@@ -101,6 +101,9 @@ export interface UserStats {
 export interface UserProfile {
   name: string;
   avatar: string;
+  bio?: string;
+  avatarStyle?: string;
+  avatarColor?: string;
   joinedAt: string;
   language: 'en' | 'bn';
   currentTheme: string;

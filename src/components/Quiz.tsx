@@ -170,7 +170,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
       setSelectedAnswer(null);
       setShowResult(null);
       if (questions[currentIndex + 1]) {
-        setTimeLeft(difficulty === 'hard' ? 20 : 30);
+        setTimeLeft(30);
         startTimer();
       }
     } else {

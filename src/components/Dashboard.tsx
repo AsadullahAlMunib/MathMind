@@ -94,6 +94,11 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
               >
                 {language === 'en' ? `Hello, ${user.name}!` : `হ্যালো, ${user.name}!`}
               </motion.h2>
+              {user.bio && (
+                <p className="text-white/60 text-xs font-bold uppercase tracking-wide line-clamp-1 italic">
+                  {user.bio}
+                </p>
+              )}
               <p className="text-white/80 max-w-sm font-medium leading-tight text-sm md:text-base">
                 {language === 'en' 
                   ? "Ready to exercise your brain today?"

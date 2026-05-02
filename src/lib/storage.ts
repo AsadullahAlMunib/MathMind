@@ -22,7 +22,10 @@ const INITIAL_STATS: UserStats = {
 
 const INITIAL_USER: UserProfile = {
   name: 'Math Explorer',
-  avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MathMind',
+  avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=MathMind&backgroundColor=b6e3f4',
+  bio: 'Exploring the beauty of mathematics one problem at a time.',
+  avatarStyle: 'avataaars',
+  avatarColor: 'b6e3f4',
   joinedAt: new Date().toISOString(),
   language: 'bn',
   currentTheme: 'default',
@@ -80,6 +83,17 @@ export const storage = {
     // Ensure 'dark' is removed from unlocked themes to keep it clean
     if (parsed.stats.unlockedThemes.includes('dark')) {
       parsed.stats.unlockedThemes = parsed.stats.unlockedThemes.filter(id => id !== 'dark');
+    }
+
+    // Migration: Ensure bio and avatar metadata exist
+    if (parsed.user.bio === undefined) {
+      parsed.user.bio = 'Exploring the beauty of mathematics one problem at a time.';
+    }
+    if (parsed.user.avatarStyle === undefined) {
+      parsed.user.avatarStyle = 'avataaars';
+    }
+    if (parsed.user.avatarColor === undefined) {
+      parsed.user.avatarColor = 'b6e3f4';
     }
 
     return parsed;

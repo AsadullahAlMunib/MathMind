@@ -73,55 +73,95 @@ export default function Achievements({ stats, language }: AchievementsProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-y-12 gap-x-6 px-2">
         {ACHIEVEMENTS.map((achievement, idx) => {
           const isUnlocked = unlockedAchievements.includes(achievement.id);
           return (
             <motion.div 
               key={achievement.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.03 * idx }}
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ 
+                duration: 0.6,
+                delay: 0.02 * idx,
+                ease: [0.34, 1.56, 0.64, 1]
+              }}
+              className="flex flex-col items-center group"
             >
-              <Tooltip content={achievement.description}>
-                <motion.div 
-                  whileHover={isUnlocked ? { scale: 1.05 } : {}}
-                  className={`relative p-3 rounded-2xl flex flex-col items-center text-center gap-2 transition-all duration-300 border h-full group cursor-help ${
-                    isUnlocked 
-                      ? 'bg-surface border-amber-500/30 shadow-sm' 
-                      : 'bg-black/[0.02] dark:bg-white/[0.02] border-transparent opacity-40 grayscale'
-                  }`}
-                >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500 relative ${
-                    isUnlocked 
-                      ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-md' 
-                      : 'bg-slate-500/10 text-slate-400/50'
-                  }`}>
-                    {isUnlocked ? (
-                      <AchievementIcon name={achievement.icon} size={20} />
-                    ) : (
-                      <Lock size={18} />
+              <Tooltip content={achievement.description} delay={100}>
+                <div className="relative flex flex-col items-center">
+                  {/* The Medallion */}
+                  <motion.div 
+                    whileHover={isUnlocked ? { scale: 1.1, y: -10 } : {}}
+                    className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all duration-700 ${
+                      isUnlocked 
+                        ? 'bg-gradient-to-br from-amber-300 via-amber-500 to-amber-800 shadow-[0_20px_50px_-15px_rgba(245,158,11,0.4)] ring-[6px] ring-amber-500/10' 
+                        : 'bg-black/5 dark:bg-white/5 border-2 border-dashed border-theme opacity-30 grayscale'
+                    }`}
+                  >
+                    {/* Inner Texture & Visual Effects */}
+                    {isUnlocked && (
+                      <div className="absolute inset-0 rounded-full overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.4)_0%,transparent_70%)]"></div>
+                        <div className="absolute inset-[3px] rounded-full border border-white/30"></div>
+                        <motion.div 
+                          animate={{ x: [-120, 120] }}
+                          transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 4, ease: "easeInOut" }}
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12"
+                        />
+                      </div>
                     )}
-                  </div>
 
-                  <div className="space-y-0.5 w-full overflow-hidden">
-                    <h4 className={`text-[9px] font-black tracking-tight leading-tight uppercase transition-colors truncate ${
+                    {/* Icon */}
+                    <div className={`relative z-10 transition-transform duration-500 group-hover:scale-110 ${isUnlocked ? 'text-white' : 'text-muted/50'}`}>
+                      {isUnlocked ? (
+                        <AchievementIcon name={achievement.icon} size={32} className="drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)]" />
+                      ) : (
+                        <Lock size={24} strokeWidth={1} />
+                      )}
+                    </div>
+
+                    {/* Achievement Status Badge */}
+                    {isUnlocked && (
+                      <motion.div 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-[3px] border-surface flex items-center justify-center shadow-xl z-20"
+                      >
+                        <CheckCircle size={10} className="text-white" strokeWidth={5} />
+                      </motion.div>
+                    )}
+
+                    {/* Atmospheric Underglow */}
+                    {isUnlocked && (
+                      <div className="absolute inset-0 rounded-full bg-amber-500/20 blur-2xl -z-10 group-hover:bg-amber-500/40 transition-all duration-700"></div>
+                    )}
+                  </motion.div>
+
+                  {/* Labels Section */}
+                  <div className="mt-5 space-y-1.5 text-center px-1">
+                    <h4 className={`text-[11px] font-black uppercase tracking-tight leading-tight transition-all duration-500 ${
                       isUnlocked ? 'text-foreground' : 'text-muted'
                     }`}>
                       {achievement.title}
                     </h4>
                     
                     {isUnlocked ? (
-                       <p className="text-[7px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest opacity-60">
-                         {language === 'en' ? 'Earned' : 'অর্জিত'}
-                       </p>
+                       <div className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                         <span className="text-[7px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest whitespace-nowrap">
+                           {language === 'en' ? 'Unlocked' : 'অর্জিত'}
+                         </span>
+                       </div>
                     ) : (
-                       <span className="text-[7px] font-black opacity-20 uppercase tracking-widest">
+                       <span className="text-[7px] font-black uppercase tracking-widest opacity-30 whitespace-nowrap">
                          {language === 'en' ? 'Locked' : 'লকড'}
                        </span>
                     )}
                   </div>
-                </motion.div>
+
+                  {/* Shelf Reflection */}
+                  <div className={`absolute -bottom-4 w-12 h-1.5 bg-black/5 dark:bg-white/5 blur-md rounded-full transition-all duration-700 group-hover:scale-[2] group-hover:opacity-40 ${isUnlocked ? 'opacity-100' : 'opacity-0'}`}></div>
+                </div>
               </Tooltip>
             </motion.div>
           );

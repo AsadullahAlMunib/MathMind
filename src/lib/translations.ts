@@ -52,6 +52,13 @@ export const translations = {
     viewStore: 'View Store',
     viewProfile: 'View Profile',
     newAchievement: 'Achievement Unlocked!',
+    bio: 'Bio',
+    editProfile: 'Edit Profile',
+    save: 'Save Changes',
+    customizeAvatar: 'Customize Avatar',
+    avatarStyle: 'Style',
+    backgroundColor: 'Color',
+    username: 'Username',
   },
   bn: {
     title: 'ম্যাথ মাইন্ড',
@@ -101,5 +108,12 @@ export const translations = {
     viewStore: 'স্টোর দেখুন',
     viewProfile: 'প্রোফাইল দেখুন',
     newAchievement: 'নতুন অর্জন আনলক হয়েছে!',
+    bio: 'কিছু কথা...',
+    editProfile: 'প্রোফাইল সম্পাদন',
+    save: 'সংরক্ষণ করুন',
+    customizeAvatar: 'আভাটার পরিবর্তন',
+    avatarStyle: 'স্টাইল',
+    backgroundColor: 'রঙ',
+    username: 'ইউজারনেম',
   }
 };
