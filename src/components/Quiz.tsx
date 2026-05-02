@@ -277,39 +277,39 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
   const progress = ((currentIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-5">
       {/* Quiz Header */}
       <div className="flex items-center justify-between">
         <Tooltip content={t.quitQuiz} position="right">
-          <button onClick={onCancel} className="text-sm font-medium opacity-60 hover:opacity-100 flex items-center gap-1">
-            <X size={16} /> {language === 'en' ? 'Quit Game' : 'খেলা বন্ধ করুন'}
+          <button onClick={onCancel} className="text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 flex items-center gap-1.5 transition-opacity">
+            <X size={14} /> {language === 'en' ? 'Quit' : 'বন্ধ করুন'}
           </button>
         </Tooltip>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Tooltip content={isPaused ? (language === 'en' ? 'Resume Timer' : 'সময় আবার শুরু করুন') : (language === 'en' ? 'Pause Timer' : 'সময় থামান')}>
               <button 
                 onClick={handleTogglePause}
                 disabled={!!showResult}
-                className={`p-2 rounded-full transition-all ${
+                className={`p-1.5 rounded-xl transition-all ${
                   isPaused 
                     ? 'bg-emerald-500 text-white animate-pulse' 
-                    : 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20'
+                    : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10'
                 } disabled:opacity-30`}
               >
-                {isPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
+                {isPaused ? <Play size={16} fill="currentColor" /> : <Pause size={16} fill="currentColor" />}
               </button>
             </Tooltip>
 
             <Tooltip content={language === 'en' ? 'Time remaining' : 'বাকি সময়'}>
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-black transition-all duration-300 shadow-sm ${
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all duration-300 border ${
                 timeLeft <= 5 
-                  ? 'bg-rose-500 text-white shadow-rose-500/30' 
+                  ? 'bg-rose-500 border-rose-600 text-white shadow-lg shadow-rose-500/20' 
                   : isPaused 
-                    ? 'bg-slate-200 dark:bg-slate-800 text-slate-500' 
-                    : 'bg-amber-500/10 text-amber-500'
+                    ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500' 
+                    : 'bg-amber-500/5 border-amber-500/10 text-amber-500'
               }`}>
-                <Timer size={18} className={timeLeft <= 5 ? 'animate-pulse' : ''} />
+                <Timer size={14} className={timeLeft <= 5 ? 'animate-pulse' : ''} />
                 <span className={timeLeft <= 3 && !isPaused ? 'animate-ping' : ''}>{timeLeft}s</span>
               </div>
             </Tooltip>
@@ -322,7 +322,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
                   scale: [1, 1.2, 1],
                   color: ['#6366f1', '#10b981', '#6366f1'] 
                 } : {}}
-                className="font-mono text-xl font-black text-primary px-3 py-1 bg-primary/5 rounded-xl border border-primary/10"
+                className="font-mono text-sm font-black text-primary px-3 py-1.5 bg-primary/5 rounded-xl border border-primary/10"
               >
                 {points}
               </motion.div>
@@ -373,22 +373,22 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
             scale: { duration: 0.2 }
           }}
           exit={{ opacity: 0, x: -50 }}
-          className={`math-card p-10 flex flex-col items-center text-center gap-8 relative overflow-hidden border-2 transition-all duration-500 ${
+          className={`math-card p-6 md:p-8 flex flex-col items-center text-center gap-4 md:gap-6 relative overflow-hidden border-2 transition-all duration-500 ${
             isPaused ? 'grayscale pointer-events-none' : ''
           }`}
         >
           {isPaused && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-xl">
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md">
                <motion.div 
-                 initial={{ scale: 0 }}
-                 animate={{ scale: 1 }}
-                 className="p-6 bg-white dark:bg-slate-800 rounded-3xl shadow-2xl flex flex-col items-center gap-4"
+                 initial={{ scale: 0.9, opacity: 0 }}
+                 animate={{ scale: 1, opacity: 1 }}
+                 className="p-5 bg-surface rounded-3xl shadow-2xl flex flex-col items-center gap-3 border border-white/10"
                >
-                 <Pause size={48} className="text-primary" />
-                 <p className="text-xl font-black">{language === 'en' ? 'Game Paused' : 'খেলা থামানো হয়েছে'}</p>
+                 <Pause size={32} className="text-primary" />
+                 <p className="text-lg font-black uppercase tracking-tight">{language === 'en' ? 'Paused' : 'বিরতি'}</p>
                  <button 
                   onClick={handleTogglePause}
-                  className="bg-primary text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-transform"
+                  className="bg-primary text-white px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-transform"
                  >
                    {language === 'en' ? 'Resume' : 'চালু করুন'}
                  </button>
@@ -400,37 +400,42 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
             <motion.div 
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className={`absolute top-4 right-4 z-20 flex items-center justify-center p-3 rounded-2xl shadow-xl border-2 pointer-events-none ${
+              className={`absolute top-3 right-3 z-20 flex items-center justify-center p-2.5 rounded-xl shadow-lg border pointer-events-none ${
                 showResult === 'correct' 
                   ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' 
                   : 'bg-rose-500/10 border-rose-500/30 text-rose-500'
               }`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 {showResult === 'correct' ? (
                   <>
-                    <CheckCircle2 size={24} />
-                    <span className="font-black text-sm">{language === 'en' ? 'Excellent!' : 'চমৎকার!'}</span>
+                    <CheckCircle2 size={18} />
+                    <span className="font-black text-[10px] uppercase tracking-widest">{language === 'en' ? 'Nice!' : 'সাবাস!'}</span>
                   </>
                 ) : (
                   <>
-                    <XCircle size={24} />
-                    <span className="font-black text-sm">{language === 'en' ? 'Try Again!' : 'আবার চেষ্টা করুন!'}</span>
+                    <XCircle size={18} />
+                    <span className="font-black text-[10px] uppercase tracking-widest">{language === 'en' ? 'Oops!' : 'উফ!'}</span>
                   </>
                 )}
               </div>
             </motion.div>
           )}
 
-          <span className="text-xs font-bold uppercase tracking-widest opacity-40 px-3 py-1 border rounded-full">
-            {t[difficulty]} • {currentIndex + 1} / {questions.length}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 px-3 py-1 bg-black/5 dark:bg-white/5 rounded-lg border border-transparent">
+              {t[difficulty]}
+            </span>
+            <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 px-3 py-1 bg-primary/5 text-primary rounded-lg border border-primary/10">
+              {currentIndex + 1} / {questions.length}
+            </span>
+          </div>
           
-          <h2 className="text-2xl md:text-3xl font-bold leading-tight">
+          <h2 className="text-xl md:text-2xl font-black leading-tight tracking-tight px-4">
             {currentQ.question}
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          <div className="grid grid-cols-2 gap-3 w-full">
             {currentQ.type === 'mcq' && currentQ.options?.map((opt, i) => (
               <div key={i} className="relative">
                 <AnswerButton 
@@ -537,31 +542,21 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
           <AnimatePresence>
             {showResult && currentQ.explanation && (
               <motion.div 
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`mt-4 p-4 rounded-2xl text-sm text-left w-full border-l-4 shadow-sm ${
+                className={`mt-2 p-3.5 rounded-xl text-xs text-left w-full border-l-4 shadow-sm ${
                   showResult === 'correct' 
                     ? 'bg-emerald-500/5 border-emerald-500 text-emerald-800 dark:text-emerald-200' 
                     : 'bg-rose-500/5 border-rose-500 text-rose-800 dark:text-rose-200'
                 }`}
               >
-                <div className="flex items-center gap-1.5 mb-1.5 text-xs font-black uppercase tracking-widest opacity-80">
-                  <HelpCircle size={14} /> 
-                  {language === 'en' ? 'Logic Breakdown' : 'যুক্তি বিশ্লেষণ'}
+                <div className="flex items-center gap-1.5 mb-1 text-[10px] font-black uppercase tracking-widest opacity-80">
+                  <HelpCircle size={12} /> 
+                  {language === 'en' ? 'Core Logic' : 'মূল যুক্তি'}
                 </div>
-                <p className="leading-snug font-medium opacity-90">
+                <p className="leading-relaxed font-medium opacity-90">
                   {currentQ.explanation}
                 </p>
-                {showResult === 'incorrect' && (
-                  <div className="mt-2 pt-2 border-t border-rose-500/20 flex items-baseline gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60 shrink-0">
-                      {language === 'en' ? 'Correct Answer:' : 'সঠিক উত্তর:'}
-                    </span>
-                    <span className="text-lg font-black text-rose-600 dark:text-rose-400">
-                      {currentQ.answer}
-                    </span>
-                  </div>
-                )}
               </motion.div>
             )}
           </AnimatePresence>
@@ -569,20 +564,20 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
           <AnimatePresence>
             {showResult && (
               <motion.button
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={handleNext}
-                className={`mt-6 w-full py-5 rounded-3xl font-black text-xl shadow-2xl flex items-center justify-center gap-3 group transition-all ${
+                className={`mt-2 w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 group transition-all ${
                   showResult === 'correct' 
-                    ? 'bg-emerald-500 text-white shadow-emerald-500/40 hover:bg-emerald-600' 
-                    : 'bg-rose-500 text-white shadow-rose-500/40 hover:bg-rose-600'
+                    ? 'bg-emerald-500 text-white shadow-emerald-500/30 hover:bg-emerald-600' 
+                    : 'bg-rose-500 text-white shadow-rose-500/30 hover:bg-rose-600'
                 }`}
               >
                 {currentIndex < questions.length - 1 
-                  ? (language === 'en' ? 'Next Question' : 'পরবর্তী প্রশ্ন')
-                  : (language === 'en' ? 'See Results' : 'ফলাফল দেখুন')
+                  ? (language === 'en' ? 'Next' : 'পরবর্তী')
+                  : (language === 'en' ? 'Finish' : 'শেষ করুন')
                 }
-                <ArrowRight size={24} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </motion.button>
             )}
           </AnimatePresence>
@@ -608,21 +603,21 @@ function AnswerButton({ label, onClick, active, correct, wrong, disabled }: {
 }) {
   return (
     <motion.button
-      whileHover={!disabled ? { scale: 1.02, backgroundColor: 'rgba(0,0,0,0.05)', color: 'inherit' } : {}}
-      whileTap={!disabled ? { scale: 0.98 } : {}}
-      animate={wrong ? { x: [0, -5, 5, -5, 5, 0] } : {}}
+      whileHover={!disabled ? { scale: 1.01, backgroundColor: 'rgba(0,0,0,0.02)', color: 'inherit' } : {}}
+      whileTap={!disabled ? { scale: 0.99 } : {}}
+      animate={wrong ? { x: [0, -3, 3, -3, 3, 0] } : {}}
       transition={{ duration: 0.3 }}
       onClick={onClick}
       disabled={disabled}
-      className={`relative w-full p-6 rounded-2xl border-2 font-black text-lg transition-all text-center flex items-center justify-center gap-3 ${
-        correct ? 'bg-emerald-500 border-emerald-500 text-white shadow-xl shadow-emerald-500/20' :
-        wrong ? 'bg-rose-500 border-rose-500 text-white shadow-xl shadow-rose-500/20' :
-        active ? 'border-primary bg-primary text-white' : 'border-theme glass hover:border-primary/40 text-current'
+      className={`relative w-full p-4 rounded-xl border font-black text-sm transition-all text-center flex items-center justify-center gap-2 min-h-[60px] ${
+        correct ? 'bg-emerald-500 border-emerald-600 text-white shadow-lg shadow-emerald-500/20' :
+        wrong ? 'bg-rose-500 border-rose-600 text-white shadow-lg shadow-rose-500/20' :
+        active ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20' : 'border-black/10 dark:border-white/10 glass hover:border-primary/40 text-current'
       }`}
     >
       {label}
-      {correct && <CheckCircle2 size={24} className="shrink-0" />}
-      {wrong && <XCircle size={24} className="shrink-0" />}
+      {correct && <CheckCircle2 size={18} className="shrink-0" />}
+      {wrong && <XCircle size={18} className="shrink-0" />}
     </motion.button>
   );
 }

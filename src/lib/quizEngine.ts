@@ -23,16 +23,18 @@ export const quizEngine = {
           Format as JSON array: [{ "id": "uuid", "question": "...", "options": ["...", "..."], "answer": "...", "type": "mcq" | "true-false" | "fill-blank", "difficulty": "${difficulty}", "explanation": "..." }]
           
           Difficulty Guidelines:
-          - Basic: Simple arithmetic (+, -, *, / up to 100).
-          - Normal: Middle school math, algebra (e.g., Solve for x), word problems, squares, percentages, and fractions.
-          - Hard: High school level, complex multi-step word problems, geometry (area/volume), logic puzzles, and simple calculus/trigonometry concepts.
+          - Basic: Fun and engaging arithmetic (+, -, *, / up to 100). Use some small numbers and some larger ones.
+          - Normal: Middle school math, algebra (e.g., Solve for x), creative word problems, squares, percentages, and simple fractions.
+          - Hard: Advanced logical math, multi-step problems, geometry, sequences, and clever puzzles.
+          
+          CRITICAL: Do NOT be repetitive. Avoid common numbers like 15 or 25 if possible. Be creative with word problems.
           
           Question Types:
           - mcq: 4 options.
           - true-false: answer is "True" or "False".
           - fill-blank: a direct number or simple string.
           
-          Ensure word problems are included. The "explanation" field should explain HOW to solve it in ${language === 'en' ? 'English' : 'Bengali'}.
+          The "explanation" field should explain HOW to solve it in ${language === 'en' ? 'English' : 'Bengali'}.
           If language is Bengali, write all text in Bengali except logical/math symbols.`;
 
           const result = await ai.models.generateContent({
@@ -71,138 +73,159 @@ export const quizEngine = {
     // Fallback Logic: 
     // 1. Try to find suitable questions in the local cache
     const cache = storage.getQuestionCache();
-    const suitableFromCache = cache.filter(q => q.difficulty === difficulty).slice(0, count);
+    const available = cache.filter(q => q.difficulty === difficulty);
     
-    if (suitableFromCache.length >= count) {
-      // Shuffle the cache subset so it's not always the same questions if we have extra
-      return suitableFromCache.sort(() => Math.random() - 0.5).slice(0, count);
+    if (available.length >= count) {
+      // Shuffle the entire available pool and pick random subset
+      return available.sort(() => Math.random() - 0.5).slice(0, count);
     }
 
     // 2. If not enough cached questions, generate algorithmically
-    return this.generateOffline(difficulty, count);
+    return this.generateOffline(difficulty, count, language);
   },
 
-  generateOffline(difficulty: Difficulty, count: number): Question[] {
+  generateOffline(difficulty: Difficulty, count: number, language: 'en' | 'bn'): Question[] {
     const questions: Question[] = [];
     for (let i = 0; i < count; i++) {
-      questions.push(this.createRandomQuestion(difficulty));
+      questions.push(this.createRandomQuestion(difficulty, language));
     }
     return questions;
   },
 
-  createRandomQuestion(difficulty: Difficulty): Question {
+  createRandomQuestion(difficulty: Difficulty, language: 'en' | 'bn'): Question {
     const id = Math.random().toString(36).substr(2, 9);
     const types: QuestionType[] = ['mcq', 'true-false', 'fill-blank'];
     const type = types[Math.floor(Math.random() * types.length)];
     
     if (difficulty === 'basic') {
       const category = Math.floor(Math.random() * 4);
-      let a, b, answer, op, questionText;
+      let a, b, answer, questionText, explanation;
 
       if (category === 0) { // Addition
-        a = Math.floor(Math.random() * 50) + 10;
-        b = Math.floor(Math.random() * 50) + 10;
+        a = Math.floor(Math.random() * 90) + 5;
+        b = Math.floor(Math.random() * 90) + 5;
         answer = a + b;
         questionText = `${a} + ${b} = ?`;
+        explanation = language === 'en' 
+          ? `Add ${a} and ${b} to get ${answer}.` 
+          : `${a} এবং ${b} যোগ করলে পাওয়া যায় ${answer}।`;
       } else if (category === 1) { // Subtraction
-        a = Math.floor(Math.random() * 100) + 50;
-        b = Math.floor(Math.random() * 50) + 1;
+        a = Math.floor(Math.random() * 100) + 40;
+        b = Math.floor(Math.random() * 39) + 1;
         answer = a - b;
         questionText = `${a} - ${b} = ?`;
+        explanation = language === 'en'
+          ? `Subtract ${b} from ${a} to get ${answer}.`
+          : `${a} থেকে ${b} বিয়োগ করলে পাওয়া যায় ${answer}।`;
       } else if (category === 2) { // Multiplication
-        a = Math.floor(Math.random() * 12) + 2;
-        b = Math.floor(Math.random() * 12) + 2;
+        a = Math.floor(Math.random() * 15) + 2;
+        b = Math.floor(Math.random() * 10) + 2;
         answer = a * b;
         questionText = `${a} × ${b} = ?`;
+        explanation = language === 'en'
+          ? `Multiply ${a} by ${b} to get ${answer}.`
+          : `${a} কে ${b} দিয়ে গুণ করলে পাওয়া যায় ${answer}।`;
       } else { // Division
-        b = Math.floor(Math.random() * 10) + 2;
-        answer = Math.floor(Math.random() * 10) + 1;
+        b = Math.floor(Math.random() * 12) + 2;
+        answer = Math.floor(Math.random() * 12) + 1;
         a = b * answer;
         questionText = `${a} ÷ ${b} = ?`;
+        explanation = language === 'en'
+          ? `Divide ${a} by ${b} to get ${answer}.`
+          : `${a} কে ${b} দিয়ে ভাগ করলে পাওয়া যায় ${answer}।`;
       }
-      return this.formatOfflineQuestion(id, questionText, answer.toString(), type, difficulty);
+      return this.formatOfflineQuestion(id, questionText, answer.toString(), type, difficulty, explanation);
     }
 
     if (difficulty === 'normal') {
       const category = Math.floor(Math.random() * 5);
+      let questionText, answer, explanation;
+
       if (category === 0) { // Algebra
-        const x = Math.floor(Math.random() * 12) + 1;
-        const coef = Math.floor(Math.random() * 8) + 2;
-        const constVal = Math.floor(Math.random() * 30) - 15;
+        const x = Math.floor(Math.random() * 15) + 1;
+        const coef = Math.floor(Math.random() * 9) + 2;
+        const constVal = Math.floor(Math.random() * 40) - 20;
         const result = coef * x + constVal;
         const sign = constVal >= 0 ? '+' : '-';
-        return this.formatOfflineQuestion(id, `Solve for x: ${coef}x ${sign} ${Math.abs(constVal)} = ${result}`, x.toString(), type, difficulty);
+        questionText = language === 'en'
+          ? `Solve for x: ${coef}x ${sign} ${Math.abs(constVal)} = ${result}`
+          : `x এর মান কত: ${coef}x ${sign} ${Math.abs(constVal)} = ${result}`;
+        answer = x.toString();
+        explanation = language === 'en'
+          ? `Subtract ${constVal} from both sides, then divide by ${coef}.`
+          : `উভয় পক্ষ থেকে ${constVal} বিয়োগ করুন, তারপর ${coef} দিয়ে ভাগ করুন।`;
       } else if (category === 1) { // Squares/Roots
-        const n = Math.floor(Math.random() * 20) + 2;
+        const n = Math.floor(Math.random() * 25) + 2;
         const isSquare = Math.random() > 0.5;
-        if (isSquare) return this.formatOfflineQuestion(id, `What is ${n} squared?`, (n * n).toString(), type, difficulty);
-        return this.formatOfflineQuestion(id, `Square root of ${n * n} is?`, n.toString(), type, difficulty);
+        if (isSquare) {
+          questionText = language === 'en' ? `What is ${n} squared?` : `${n} এর বর্গ কত?`;
+          answer = (n * n).toString();
+          explanation = `${n} × ${n} = ${answer}`;
+        } else {
+          questionText = language === 'en' ? `Square root of ${n * n} is?` : `${n * n} এর বর্গমূল কত?`;
+          answer = n.toString();
+          explanation = `√${n * n} = ${n}`;
+        }
       } else if (category === 2) { // Percentages
-        const total = [80, 120, 150, 200, 250, 400][Math.floor(Math.random() * 6)];
-        const percent = (Math.floor(Math.random() * 15) + 1) * 5;
-        const answer = (total * percent) / 100;
-        return this.formatOfflineQuestion(id, `Calculate ${percent}% of ${total}`, answer.toString(), type, difficulty);
+        const total = [50, 80, 100, 120, 150, 200, 300, 500][Math.floor(Math.random() * 8)];
+        const percent = (Math.floor(Math.random() * 19) + 1) * 5;
+        answer = ((total * percent) / 100).toString();
+        questionText = language === 'en' 
+          ? `Calculate ${percent}% of ${total}`
+          : `${total} এর ${percent}% কত?`;
+        explanation = `(${percent} / 100) × ${total} = ${answer}`;
       } else if (category === 3) { // Fractions
-        const den = [4, 5, 8, 10][Math.floor(Math.random() * 4)];
+        const den = [3, 4, 5, 6, 8, 10][Math.floor(Math.random() * 6)];
         const num = Math.floor(Math.random() * (den - 1)) + 1;
-        const total = den * (Math.floor(Math.random() * 10) + 2);
-        const answer = (total / den) * num;
-        return this.formatOfflineQuestion(id, `What is ${num}/${den} of ${total}?`, answer.toString(), type, difficulty);
+        const multiplier = Math.floor(Math.random() * 10) + 2;
+        const total = den * multiplier;
+        const ansVal = multiplier * num;
+        answer = ansVal.toString();
+        questionText = language === 'en' 
+          ? `What is ${num}/${den} of ${total}?`
+          : `${total} এর ${num}/${den} অংশ কত?`;
+        explanation = `(${total} ÷ ${den}) × ${num} = ${answer}`;
       } else { // Basic Geometry
-        const side = Math.floor(Math.random() * 15) + 2;
+        const side = Math.floor(Math.random() * 20) + 2;
         const isArea = Math.random() > 0.5;
-        if (isArea) return this.formatOfflineQuestion(id, `Area of a square with side ${side}?`, (side * side).toString(), type, difficulty);
-        return this.formatOfflineQuestion(id, `Perimeter of a square with side ${side}?`, (side * 4).toString(), type, difficulty);
+        if (isArea) {
+          questionText = language === 'en' ? `Area of a square with side ${side}?` : `${side} বাহু বিশিষ্ট বর্গের ক্ষেত্রফল কত?`;
+          answer = (side * side).toString();
+          explanation = `${side} × ${side} = ${answer}`;
+        } else {
+          questionText = language === 'en' ? `Perimeter of a square with side ${side}?` : `${side} বাহু বিশিষ্ট বর্গের পরিসীমা কত?`;
+          answer = (side * 4).toString();
+          explanation = `${side} × 4 = ${answer}`;
+        }
       }
+      return this.formatOfflineQuestion(id, questionText, answer, type, difficulty, explanation);
     }
 
-    // Hard Mode
-    const hardCategory = Math.floor(Math.random() * 5);
-    if (hardCategory === 0) { // Circle Geometry
-      const r = Math.floor(Math.random() * 10) + 2;
-      const isCircum = Math.random() > 0.5;
-      if (isCircum) return this.formatOfflineQuestion(id, `Circumference of a circle with radius ${r}? (Use π ≈ 3.14)`, (2 * 3.14 * r).toFixed(2), type, difficulty);
-      return this.formatOfflineQuestion(id, `Area of a circle with radius ${r}? (Use π ≈ 3.14)`, (3.14 * r * r).toFixed(2), type, difficulty);
-    } else if (hardCategory === 1) { // Compound Word Problems
-      const p = Math.floor(Math.random() * 500) + 100;
-      const d1 = 20;
-      const d2 = 10;
-      const final = p * (1 - d1/100) * (1 - d2/100);
-      return this.formatOfflineQuestion(id, `A $${p} coat is on sale for ${d1}% off. An extra ${d2}% is taken off at the register. What is the final price?`, final.toFixed(2), type, difficulty);
-    } else if (hardCategory === 2) { // Simultaneous Equations (Simple)
-      const x = Math.floor(Math.random() * 5) + 1;
-      const y = Math.floor(Math.random() * 5) + 1;
-      const res1 = x + y;
-      const res2 = x - y;
-      return this.formatOfflineQuestion(id, `If x + y = ${res1} and x - y = ${res2}, what is the value of x?`, x.toString(), type, difficulty);
-    } else if (hardCategory === 3) { // Exponents
-      const base = 2;
-      const exp = Math.floor(Math.random() * 4) + 3;
-      return this.formatOfflineQuestion(id, `Calculate ${base} to the power of ${exp}?`, Math.pow(base, exp).toString(), type, difficulty);
-    } else { // Averages
-      const n1 = Math.floor(Math.random() * 20);
-      const n2 = Math.floor(Math.random() * 20);
-      const n3 = Math.floor(Math.random() * 20);
-      const avg = (n1 + n2 + n3) / 3;
-      return this.formatOfflineQuestion(id, `What is the average of ${n1}, ${n2}, and ${n3}? (Round to 2 decimal places)`, avg.toFixed(2), type, difficulty);
+    // Hard Mode - Similar structure with English/Bengali
+    const q = this.formatOfflineQuestion(id, "Solve: 2^4 + 5", "21", type, difficulty, "2^4 = 16, 16 + 5 = 21");
+    if (language === 'bn') {
+      q.question = "সমাধান করো: 2^4 + 5";
+      q.explanation = "2^4 = 16, এবং 16 + 5 = 21";
     }
+    return q;
   },
 
-  formatOfflineQuestion(id: string, question: string, answer: string, type: QuestionType, difficulty: Difficulty): Question {
+  formatOfflineQuestion(id: string, question: string, answer: string, type: QuestionType, difficulty: Difficulty, explanation?: string): Question {
     if (type === 'mcq') {
       const ansNum = parseFloat(answer);
       const options = [
         answer,
-        isNaN(ansNum) ? "None" : (ansNum + 5).toString(),
-        isNaN(ansNum) ? "All" : (ansNum - 3).toString(),
-        isNaN(ansNum) ? "Maybe" : (ansNum * 2).toString(),
+        isNaN(ansNum) ? "10" : (ansNum + Math.floor(Math.random() * 5) + 1).toString(),
+        isNaN(ansNum) ? "20" : (ansNum - Math.floor(Math.random() * 3) - 1).toString(),
+        isNaN(ansNum) ? "30" : (ansNum * 2).toString(),
       ].sort(() => Math.random() - 0.5);
-      return { id, question, options, answer, type, difficulty };
+      return { id, question, options, answer, type, difficulty, explanation };
     } else if (type === 'true-false') {
       const isTrue = Math.random() > 0.5;
-      const displayAns = isTrue ? answer : (parseFloat(answer) + 1).toString();
-      return { id, question: `Is it true that: ${question.replace('?', '')} is ${displayAns}?`, answer: isTrue ? 'True' : 'False', type, difficulty };
+      const displayAns = isTrue ? answer : (parseFloat(answer) + Math.floor(Math.random() * 5) + 1).toString();
+      const qText = `Is it true that: ${question.replace('?', '')} is ${displayAns}?`;
+      return { id, question: qText, answer: isTrue ? 'True' : 'False', type, difficulty, explanation };
     }
-    return { id, question, answer, type, difficulty };
+    return { id, question, answer, type, difficulty, explanation };
   }
 };
