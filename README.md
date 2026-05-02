@@ -25,7 +25,7 @@
 
 <br/>
 
-[📱 Download Android App](https://github.com/AsadullahAlMunib/MathMind/blob/main/app/MathMind-APK.zip) · [⭐ Star on GitHub](https://github.com/AsadullahAlMunib/MathMind) · [🐛 Report a Bug](https://github.com/AsadullahAlMunib/MathMind/issues)
+[📱 Download Android App](https://github.com/AsadullahAlMunib/MathMind/raw/refs/heads/main/app/MathMind-APK.zip) · [⭐ Star on GitHub](https://github.com/AsadullahAlMunib/MathMind) · [🐛 Report a Bug](https://github.com/AsadullahAlMunib/MathMind/issues)
 
 <br/>
 
