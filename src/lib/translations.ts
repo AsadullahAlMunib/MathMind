@@ -16,6 +16,9 @@ export const translations = {
     normal: 'Normal',
     hard: 'Hard',
     points: 'Points',
+    free: 'Free',
+    balance: 'Balance',
+    lifetimePoints: 'Lifetime Points',
     level: 'Level',
     totalQuizzes: 'Total Quizzes',
     correctAnswers: 'Correct Answers',
@@ -48,6 +51,7 @@ export const translations = {
     viewLeaderboard: 'View Leaderboard',
     viewStore: 'View Store',
     viewProfile: 'View Profile',
+    newAchievement: 'Achievement Unlocked!',
   },
   bn: {
     title: 'ম্যাথ মাইন্ড',
@@ -61,6 +65,9 @@ export const translations = {
     normal: 'সাধারণ',
     hard: 'কঠিন',
     points: 'পয়েন্ট',
+    free: 'ফ্রি',
+    balance: 'ব্যালেন্স',
+    lifetimePoints: 'মোট পয়েন্ট',
     level: 'লেভেল',
     totalQuizzes: 'মোট কুইজ',
     correctAnswers: 'সঠিক উত্তর',
@@ -93,5 +100,6 @@ export const translations = {
     viewLeaderboard: 'লিডারবোর্ড দেখুন',
     viewStore: 'স্টোর দেখুন',
     viewProfile: 'প্রোফাইল দেখুন',
+    newAchievement: 'নতুন অর্জন আনলক হয়েছে!',
   }
 };

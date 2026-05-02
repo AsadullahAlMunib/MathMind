@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   TrendingUp, 
   Target, 
@@ -15,7 +15,8 @@ import {
   BookOpen,
   Trophy,
   Medal,
-  Award
+  Award,
+  Coins
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -49,6 +50,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ stats, user, language, onStartQuiz, onStartReview }: DashboardProps) {
+  const [activeAnalysis, setActiveAnalysis] = useState<'accuracy' | 'mastery'>('accuracy');
   const t = translations[language];
 
   // Level progress calculation (based on 1000 points per level)
@@ -242,7 +244,7 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatItem icon={<TrendingUp />} label={t.points} value={stats.totalPoints} color="text-amber-500" />
+        <StatItem icon={<Coins />} label={t.balance} value={stats.balance} color="text-amber-500" />
         <StatItem icon={<Target />} label={t.level} value={stats.level} color="text-emerald-500" progress={levelProgress} />
         <StatItem icon={<Zap />} label={t.totalQuizzes} value={stats.totalQuizzes} color="text-indigo-500" />
         <StatItem 
@@ -297,91 +299,171 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Accuracy (Win Rate) Chart */}
-          <div className="math-card glass p-4 min-h-[280px] flex flex-col group hover:shadow-2xl transition-all">
-            <div className="flex items-center justify-between mb-2">
+        <div className="grid grid-cols-1 gap-4">
+          {/* Combined Analytics Card */}
+          <div className="math-card glass p-4 min-h-[300px] flex flex-col group hover:shadow-2xl transition-all relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 z-20">
+               <AppTooltip content={activeAnalysis === 'accuracy' ? (language === 'en' ? 'Switch to Mastery' : 'দক্ষতা দেখুন') : (language === 'en' ? 'Switch to Accuracy' : 'সঠিকতা দেখুন')}>
+                 <motion.button
+                   whileHover={{ scale: 1.1, rotate: 90 }}
+                   whileTap={{ scale: 0.9 }}
+                   onClick={() => setActiveAnalysis(activeAnalysis === 'accuracy' ? 'mastery' : 'accuracy')}
+                   className="w-9 h-9 bg-primary/10 text-primary rounded-xl flex items-center justify-center hover:bg-primary/20 transition-all border border-primary/20"
+                 >
+                   {activeAnalysis === 'accuracy' ? <BrainCircuit size={18} /> : <Target size={18} />}
+                 </motion.button>
+               </AppTooltip>
+            </div>
+
+            <div className="flex items-center justify-between mb-4 pr-12">
               <div>
-                <h4 className="font-black text-sm">{language === 'en' ? 'Accuracy Overview' : 'নির্ভুলতার চিত্র'}</h4>
-                <p className="text-[9px] text-muted font-bold tracking-tight">{language === 'en' ? `${stats.totalQuizzes} Quizzes Completed` : `${stats.totalQuizzes}টি কুইজ সম্পন্ন`}</p>
-              </div>
-              <div className="w-9 h-9 bg-emerald-500/10 text-emerald-500 rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform">
-                <Target size={18} />
+                <h4 className="font-black text-sm">
+                  {activeAnalysis === 'accuracy' 
+                    ? (language === 'en' ? 'Accuracy Overview' : 'নির্ভুলতার চিত্র')
+                    : (language === 'en' ? 'Mastery Profile' : 'দক্ষতার প্রোফাইল')
+                  }
+                </h4>
+                <p className="text-[9px] text-muted font-bold tracking-tight">
+                  {activeAnalysis === 'accuracy'
+                    ? (language === 'en' ? `${stats.totalQuizzes} Quizzes Completed` : `${stats.totalQuizzes}টি কুইজ সম্পন্ন`)
+                    : (language === 'en' ? 'High scores by difficulty' : 'কঠিন্য অনুযায়ী সর্বোচ্চ স্কোর')
+                  }
+                </p>
               </div>
             </div>
             
             <div className="flex-1 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: language === 'en' ? 'Correct' : 'সঠিক', value: stats.correctAnswers },
-                      { name: language === 'en' ? 'Incorrect' : 'ভুল', value: Math.max(0, (stats.totalQuizzes * 10) - stats.correctAnswers) }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={70}
-                    paddingAngle={6}
-                    dataKey="value"
-                    stroke="none"
+              <AnimatePresence mode="wait">
+                {activeAnalysis === 'accuracy' ? (
+                  <motion.div 
+                    key="accuracy"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="w-full h-full relative"
                   >
-                    <Cell fill="#10b981" />
-                    <Cell fill="#ef4444" opacity={0.2} />
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 5px 15px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '10px' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <div className="flex flex-col items-center bg-white dark:bg-slate-800 rounded-full w-20 h-20 md:w-28 md:h-28 justify-center shadow-inner border border-theme">
-                  <span className="text-xl md:text-3xl font-black text-emerald-500 leading-none">
-                    {stats.totalQuizzes > 0 ? Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100) : 0}%
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: language === 'en' ? 'Correct' : 'সঠিক', value: stats.correctAnswers },
+                            { name: language === 'en' ? 'Incorrect' : 'ভুল', value: Math.max(0, (stats.totalQuizzes * 10) - stats.correctAnswers) }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={70}
+                          paddingAngle={6}
+                          dataKey="value"
+                          stroke="none"
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#ef4444" opacity={0.2} />
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 5px 15px rgba(0,0,0,0.1)', fontWeight: 'bold', fontSize: '10px' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <div className="flex flex-col items-center bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-full w-20 h-20 md:w-28 md:h-28 justify-center shadow-inner border border-theme">
+                        <span className="text-xl md:text-3xl font-black text-emerald-500 leading-none">
+                          {stats.totalQuizzes > 0 ? Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100) : 0}%
+                        </span>
+                        <span className="text-[8px] md:text-[10px] uppercase font-black opacity-40">{language === 'en' ? 'Accuracy' : 'সঠিকতা'}</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="mastery"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="w-full h-full"
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
+                        { subject: t.basic, A: stats.highScores.basic, fullMark: 1000 },
+                        { subject: t.normal, A: stats.highScores.normal, fullMark: 2500 },
+                        { subject: t.hard, A: stats.highScores.hard, fullMark: 5000 },
+                      ]}>
+                        <PolarGrid stroke="currentColor" strokeOpacity={0.1} />
+                        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeights: 'bold', fill: 'currentColor', opacity: 0.6 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 'auto']} hide />
+                        <Radar
+                          name={user.name}
+                          dataKey="A"
+                          stroke="var(--primary)"
+                          fill="var(--primary)"
+                          fillOpacity={0.3}
+                        />
+                        <Tooltip 
+                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Global Summary Card */}
+      <section className="math-card glass p-4 md:p-6 overflow-hidden relative group">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none"></div>
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
+              <TrendingUp size={14} />
+              {t.lifetimePoints}
+            </h3>
+          </div>
+          
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6 py-2">
+            <div className="flex flex-col items-center md:items-start flex-1 text-center md:text-left space-y-1">
+              <p className="text-[9px] font-black text-muted uppercase tracking-widest leading-none">{t.lifetimePoints}</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl md:text-5xl font-black text-primary tracking-tighter leading-none">{stats.totalPoints}</span>
+                <span className="text-[10px] font-bold opacity-30 tracking-widest leading-none">PTS</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-8 md:gap-16 flex-1 justify-center md:justify-end">
+              <div className="flex flex-col items-center md:items-start space-y-1">
+                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest leading-none">{language === 'en' ? 'Correct' : 'সঠিক'}</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl md:text-3xl font-black text-emerald-500 tracking-tight leading-none">{stats.correctAnswers}</span>
+                  <div className="flex flex-col -space-y-0.5">
+                    <span className="text-[8px] font-bold opacity-30 leading-none">TOTAL</span>
+                    <span className="text-[8px] font-black text-emerald-500/50 leading-none">+{Math.round((stats.correctAnswers / (Math.max(1, stats.totalQuizzes) * 10)) * 100)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center md:items-start space-y-1">
+                <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest leading-none">{language === 'en' ? 'Incorrect' : 'ভুল'}</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl md:text-3xl font-black text-rose-500 tracking-tight leading-none">
+                    {Math.max(0, (stats.totalQuizzes * 10) - stats.correctAnswers)}
                   </span>
-                  <span className="text-[8px] md:text-[10px] uppercase font-black opacity-40">{language === 'en' ? 'Accuracy' : 'সঠিকতা'}</span>
+                  <div className="flex flex-col -space-y-0.5">
+                    <span className="text-[8px] font-bold opacity-30 leading-none">TOTAL</span>
+                    <span className="text-[8px] font-black text-rose-500/50 leading-none">
+                      {stats.totalQuizzes > 0 ? (100 - Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100)) : 0}%
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Difficulty Mastery Radar Chart */}
-          <div className="math-card glass p-4 min-h-[280px] flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h4 className="font-black text-sm">{language === 'en' ? 'Mastery Profile' : 'দক্ষতার প্রোফাইল'}</h4>
-                <p className="text-[9px] text-muted font-bold tracking-tight">{language === 'en' ? 'High scores by difficulty' : 'কঠিন্য অনুযায়ী সর্বোচ্চ স্কোর'}</p>
-              </div>
-              <div className="w-9 h-9 bg-indigo-500/10 text-indigo-500 rounded-lg flex items-center justify-center">
-                <BrainCircuit size={18} />
-              </div>
-            </div>
-
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
-                  { subject: t.basic, A: stats.highScores.basic, fullMark: 1000 },
-                  { subject: t.normal, A: stats.highScores.normal, fullMark: 2500 },
-                  { subject: t.hard, A: stats.highScores.hard, fullMark: 5000 },
-                ]}>
-                  <PolarGrid stroke="currentColor" strokeOpacity={0.1} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fontWeights: 'bold', fill: 'currentColor', opacity: 0.6 }} />
-                  <PolarRadiusAxis angle={30} domain={[0, 'auto']} hide />
-                  <Radar
-                    name={user.name}
-                    dataKey="A"
-                    stroke="var(--primary)"
-                    fill="var(--primary)"
-                    fillOpacity={0.3}
-                  />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
         </div>
+
+        {/* Abstract background blobs */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl -translate-y-1/2 translate-x-1/2 rounded-full"></div>
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/5 blur-3xl translate-y-1/2 -translate-x-1/2 rounded-full"></div>
       </section>
 
       {/* Activity Graph and Performance */}

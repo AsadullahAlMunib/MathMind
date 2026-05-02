@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Github, 
   ExternalLink, 
@@ -14,12 +14,47 @@ import {
   Mail,
   Camera,
   BookOpen,
-  Trophy
+  Trophy,
+  History,
+  TrendingUp,
+  BrainCircuit,
+  Zap,
+  Target,
+  RefreshCcw,
+  User,
+  Flame,
+  Coins,
+  Palette,
+  Crown,
+  Lock,
+  CheckCircle
 } from 'lucide-react';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer 
+} from 'recharts';
 
-import { UserStats, UserProfile } from '../lib/types';
+import { UserStats, UserProfile, QuizHistory, ACHIEVEMENTS } from '../lib/types';
 import { translations } from '../lib/translations';
+import { storage } from '../lib/storage';
 import Tooltip from './Tooltip';
+
+const AchievementIcon = ({ name, size = 18 }: { name: string, size?: number }) => {
+  switch (name) {
+    case 'target': return <Target size={size} />;
+    case 'zap': return <Zap size={size} />;
+    case 'flame': return <Flame size={size} />;
+    case 'coins': return <Coins size={size} />;
+    case 'palette': return <Palette size={size} />;
+    case 'crown': return <Crown size={size} />;
+    default: return <Trophy size={size} />;
+  }
+};
 
 interface ProfileProps {
   user: UserProfile;
@@ -30,59 +65,343 @@ interface ProfileProps {
 }
 
 export default function Profile({ user, stats, onUpdateUser, onClearReview, language }: ProfileProps) {
+  const [isChangingAvatar, setIsChangingAvatar] = useState(false);
   const t = translations[language];
+
+  const avatarStyles = [
+    'avataaars', 
+    'bottts', 
+    'adventurer', 
+    'pixel-art', 
+    'lorelei', 
+    'notionists', 
+    'miniavs', 
+    'big-smile',
+    'croodles'
+  ];
+
+  const handleRandomAvatar = () => {
+    const randomStyle = avatarStyles[Math.floor(Math.random() * avatarStyles.length)];
+    const randomSeed = Math.random().toString(36).substring(2, 10);
+    onUpdateUser({ ...user, avatar: `https://api.dicebear.com/9.x/${randomStyle}/svg?seed=${randomSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9` });
+  };
+
+  const handleSetStyle = (style: string) => {
+    const randomSeed = Math.random().toString(36).substring(2, 10);
+    onUpdateUser({ ...user, avatar: `https://api.dicebear.com/9.x/${style}/svg?seed=${randomSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9` });
+  };
+
+  // Prepare chart data from history
+  const chartData = [...(stats.history || [])].reverse().map(item => ({
+    score: item.score,
+    date: new Date(item.date).toLocaleDateString()
+  }));
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2">
       {/* User Info Section */}
-      <section className="math-card p-5 md:p-8 flex flex-col md:flex-row items-center gap-6 md:gap-8 group">
-        <div className="relative group">
-          <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden bg-primary/10 ring-2 ring-primary ring-offset-4 ring-offset-transparent transition-transform group-hover:scale-105 duration-300">
-            <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-          </div>
-          <button className="absolute bottom-0 right-0 p-1.5 bg-primary text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-            <Camera size={14} />
-          </button>
-        </div>
+      <section className="math-card glass p-8 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-3xl -translate-y-1/2 translate-x-1/2 rounded-full"></div>
         
-        <div className="flex-1 text-center md:text-left space-y-3">
-          <div className="space-y-0.5">
-             <input 
-               type="text" 
-               value={user.name}
-               onChange={(e) => onUpdateUser({ ...user, name: e.target.value })}
-               className="text-2xl md:text-3xl font-black bg-transparent border-none focus:ring-2 ring-primary/20 rounded-lg outline-none w-full text-center md:text-left tracking-tight"
-             />
-             <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-1.5 md:gap-4 opacity-70 text-[11px] md:text-xs font-bold uppercase tracking-wide">
-                <p className="flex items-center gap-1.5">
-                  <Calendar size={12} className="text-primary" />
-                  {language === 'en' ? 'Joined' : 'যোগদান'}: {new Date(user.joinedAt).toLocaleDateString()}
-                </p>
-                <div className="hidden md:block w-1 h-1 bg-current rounded-full opacity-30"></div>
-                <p className="flex items-center gap-1.5">
-                  <BookOpen size={12} className="text-primary" />
-                  {stats.missedQuestions?.length || 0} {language === 'en' ? 'Review Questions' : 'রিভিউ প্রশ্ন'}
-                </p>
-             </div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+          <div className="relative group">
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden bg-primary/10 ring-2 ring-primary ring-offset-4 ring-offset-transparent transition-transform group-hover:scale-105 duration-300">
+              <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            </div>
+            <div className="absolute -bottom-2 -right-2 flex flex-col gap-2">
+              <motion.button 
+                whileHover={{ scale: 1.1, rotate: 180 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={handleRandomAvatar}
+                className="p-2 bg-primary text-white rounded-full shadow-lg hover:shadow-primary/50 transition-all z-10"
+                title={language === 'en' ? 'Randomize Look' : 'এলোমেলো রূপ'}
+              >
+                <RefreshCcw size={16} />
+              </motion.button>
+              <motion.button 
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsChangingAvatar(!isChangingAvatar)}
+                className="p-2 bg-amber-500 text-white rounded-full shadow-lg hover:shadow-amber-500/50 transition-all z-10"
+                title={language === 'en' ? 'Select Style' : 'স্টাইল নির্বাচন করুন'}
+              >
+                <Palette size={16} />
+              </motion.button>
+            </div>
           </div>
           
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-             <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-widest">
-               <span className="opacity-50">#</span> {t.level} {stats.level}
-             </div>
-             <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
-               <Trophy size={11} className="shrink-0" /> {stats.totalPoints} {language === 'en' ? 'PTS' : 'পয়েন্ট'}
-             </div>
-             
-             {stats.missedQuestions && stats.missedQuestions.length > 0 && (
-               <button 
-                 onClick={onClearReview}
-                 className="px-3 py-1 bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1.5"
-               >
-                 {language === 'en' ? 'Clear History' : 'মুছে ফেলুন'}
-               </button>
-             )}
+          <div className="flex-1 text-center md:text-left space-y-3">
+            <div className="space-y-0.5">
+               <input 
+                 type="text" 
+                 value={user.name}
+                 onChange={(e) => onUpdateUser({ ...user, name: e.target.value })}
+                 className="text-2xl md:text-3xl font-black bg-transparent border-none focus:ring-2 ring-primary/20 rounded-lg outline-none w-full text-center md:text-left tracking-tight"
+               />
+               <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-1.5 md:gap-4 opacity-70 text-[11px] md:text-xs font-bold uppercase tracking-wide">
+                  <p className="flex items-center gap-1.5">
+                    <Calendar size={12} className="text-primary" />
+                    {language === 'en' ? 'Joined' : 'যোগদান'}: {new Date(user.joinedAt).toLocaleDateString()}
+                  </p>
+                  <div className="hidden md:block w-1 h-1 bg-current rounded-full opacity-30"></div>
+                  <p className="flex items-center gap-1.5">
+                    <BookOpen size={12} className="text-primary" />
+                    {stats.missedQuestions?.length || 0} {language === 'en' ? 'Review Questions' : 'রিভিউ প্রশ্ন'}
+                  </p>
+               </div>
+            </div>
+            
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+               <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black uppercase tracking-widest">
+                 <span className="opacity-50">#</span> {t.level} {stats.level}
+               </div>
+               <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                 <Coins size={11} className="shrink-0" /> {t.balance}: {stats.balance}
+               </div>
+               <div className="flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-500 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                 <TrendingUp size={11} className="shrink-0" /> {t.lifetimePoints}: {stats.totalPoints}
+               </div>
+            </div>
           </div>
+        </div>
+
+        {/* Avatar Style Selector Grid */}
+        <AnimatePresence>
+          {isChangingAvatar && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mt-8 pt-6 border-t border-white/10 overflow-hidden"
+            >
+              <h4 className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-4 text-center md:text-left">Choose Your Aesthetic</h4>
+              <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3">
+                {avatarStyles.map((style) => (
+                  <motion.button
+                    key={style}
+                    whileHover={{ scale: 1.1, y: -2 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleSetStyle(style)}
+                    className={`w-full aspect-square rounded-xl bg-white/5 border-2 transition-all p-1 flex items-center justify-center overflow-hidden h-12 md:h-14 ${
+                      user.avatar.includes(style) ? 'border-primary bg-primary/5' : 'border-transparent hover:border-white/20'
+                    }`}
+                  >
+                    <img 
+                      src={`https://api.dicebear.com/9.x/${style}/svg?seed=preview`} 
+                      alt={style} 
+                      className="w-full h-full object-contain"
+                    />
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
+
+      {/* Recent Activity Section */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="md:col-span-2 math-card glass p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
+              <History size={14} />
+              {language === 'en' ? 'Recent Quiz History' : 'সাম্প্রতিক কুইজ ইতিহাস'}
+            </h3>
+            <div className="text-[10px] font-black text-primary px-2 py-0.5 bg-primary/10 rounded-md">
+              {language === 'en' ? 'Last 10' : 'শেষ ১০ টি'}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {stats.history && stats.history.length > 0 ? (
+              stats.history.map((item, idx) => (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  key={item.id} 
+                  className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${
+                      item.difficulty === 'basic' ? 'bg-emerald-500' :
+                      item.difficulty === 'normal' ? 'bg-amber-500' : 'bg-rose-500'
+                    }`}>
+                      <Zap size={14} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black capitalize tracking-tight">{t[item.difficulty]}</p>
+                      <p className="text-[9px] opacity-40 font-bold uppercase">{new Date(item.date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-primary">+{item.score}</p>
+                    <p className="text-[9px] font-bold opacity-40 uppercase">
+                      {item.correctCount}/{item.totalQuestions} {language === 'en' ? 'Correct' : 'সঠিক'} • {Math.round((item.correctCount / item.totalQuestions) * 100)}%
+                    </p>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="py-12 flex flex-col items-center justify-center opacity-30 italic text-sm">
+                <History size={32} className="mb-2" />
+                <p>{language === 'en' ? 'No recent activity found' : 'কোনো সাম্প্রতিক কাজ পাওয়া যায়নি'}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="math-card glass p-6 flex flex-col space-y-6">
+          <div className="space-y-1">
+            <h3 className="text-sm font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
+              <TrendingUp size={14} />
+              {language === 'en' ? 'Performance' : 'পারফরম্যান্স'}
+            </h3>
+            <p className="text-[10px] font-bold opacity-40 leading-none">
+              {language === 'en' ? 'Score progression' : 'স্কোরের অগ্রগতি'}
+            </p>
+          </div>
+
+          <div className="flex-1 min-h-[150px] relative">
+            {chartData.length > 1 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <Line 
+                    type="monotone" 
+                    dataKey="score" 
+                    stroke="var(--primary)" 
+                    strokeWidth={4} 
+                    dot={{ fill: 'var(--primary)', r: 4 }} 
+                    activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+                    animationDuration={1500}
+                  />
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      borderRadius: '12px', 
+                      border: 'none', 
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+                      fontSize: '10px',
+                      fontWeight: 'bold'
+                    }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 transform -rotate-12">
+                 <TrendingUp size={64} />
+                 <p className="text-[10px] font-black uppercase tracking-widest mt-2">{language === 'en' ? 'Need more data' : 'আরো তথ্য প্রয়োজন'}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-white/10 space-y-3">
+             <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{language === 'en' ? 'Accuracy' : 'সঠিকতা'}</span>
+                <span className="text-xs font-black text-emerald-500">
+                  {stats.totalQuizzes > 0 ? Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100) : 0}%
+                </span>
+             </div>
+             <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${stats.totalQuizzes > 0 ? (stats.correctAnswers / (stats.totalQuizzes * 10)) * 100 : 0}%` }}
+                  className="h-full bg-emerald-500"
+                />
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Achievements Section */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
+            <Trophy size={14} />
+            {language === 'en' ? 'Achievements' : 'অ্যাচিভমেন্টস'}
+          </h3>
+          <div className="text-[10px] font-black text-amber-500 px-2 py-0.5 bg-amber-500/10 rounded-md">
+            {stats.unlockedAchievements?.length || 0} / {ACHIEVEMENTS.length} {language === 'en' ? 'Unlocked' : 'আনলকড'}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {ACHIEVEMENTS.map((achievement) => {
+            const isUnlocked = stats.unlockedAchievements?.includes(achievement.id);
+            return (
+              <div key={achievement.id}>
+                <Tooltip content={achievement.description}>
+                  <motion.div 
+                    whileHover={isUnlocked ? { y: -5 } : {}}
+                    className={`math-card p-4 flex flex-col items-center text-center gap-3 transition-all relative overflow-hidden ${
+                      isUnlocked 
+                        ? 'bg-gradient-to-br from-amber-500/5 to-transparent border-amber-500/20' 
+                        : 'bg-black/5 dark:bg-white/5 opacity-40 grayscale pointer-events-none'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                      isUnlocked ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-black/10 dark:bg-white/10'
+                    }`}>
+                      {isUnlocked ? <AchievementIcon name={achievement.icon} size={24} /> : <Lock size={20} />}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black tracking-tight leading-tight">{achievement.title}</h4>
+                      {isUnlocked && (
+                        <p className="text-[8px] font-bold opacity-50 uppercase mt-1 tracking-widest">
+                          {language === 'en' ? 'Unlocked' : 'আনলক'}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {isUnlocked && (
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-amber-500 rounded-bl-xl flex items-center justify-center">
+                        <CheckCircle size={10} className="text-white" />
+                      </div>
+                    )}
+                  </motion.div>
+                </Tooltip>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Help & Settings Section */}
+      <section className="space-y-4">
+        <h3 className="text-sm font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
+          <BookOpen size={14} />
+          {language === 'en' ? 'Help & Resources' : 'সাহায্য ও রিসোর্স'}
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button 
+            onClick={() => {
+              storage.save({ ...storage.load(), isFirstTime: true });
+              window.location.reload();
+            }}
+            className="math-card glass p-6 flex items-center gap-4 hover:bg-primary/5 transition-all group group"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+              <BookOpen size={24} />
+            </div>
+            <div className="text-left">
+              <p className="font-black tracking-tight">{language === 'en' ? 'Restart Tutorial' : 'টিউটোরিয়াল পুনরায় চালু করুন'}</p>
+              <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">{language === 'en' ? 'Learn the basics' : 'নিয়মাবলী শিখুন'}</p>
+            </div>
+          </button>
+
+          <a 
+            href="https://github.com/AsadullahAlMunib/MathMind" 
+            target="_blank" 
+            rel="noreferrer"
+            className="math-card glass p-6 flex items-center gap-4 hover:bg-primary/5 transition-all group"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Github size={24} />
+            </div>
+            <div className="text-left">
+              <p className="font-black tracking-tight">{language === 'en' ? 'Documentation' : 'ডকুমেন্টেশন'}</p>
+              <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">{language === 'en' ? 'View on GitHub' : 'গিটহাবে দেখুন'}</p>
+            </div>
+          </a>
         </div>
       </section>
 

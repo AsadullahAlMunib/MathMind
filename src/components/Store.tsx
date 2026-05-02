@@ -19,14 +19,14 @@ import Tooltip from './Tooltip';
 
 interface StoreProps {
   unlockedThemes: string[];
-  totalPoints: number;
+  balance: number;
   currentTheme: string;
-  onUnlock: (themeId: string, cost: number) => void;
+  onUnlock: (themeId: string) => void;
   onSelect: (themeId: string) => void;
   language: 'en' | 'bn';
 }
 
-export default function Store({ unlockedThemes, totalPoints, currentTheme, onUnlock, onSelect, language }: StoreProps) {
+export default function Store({ unlockedThemes, balance, currentTheme, onUnlock, onSelect, language }: StoreProps) {
   const t = translations[language];
 
   return (
@@ -34,12 +34,12 @@ export default function Store({ unlockedThemes, totalPoints, currentTheme, onUnl
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">{t.store}</h2>
-          <p className="text-muted font-medium">{language === 'en' ? 'Unlock new visual styles with your points!' : 'আপনার পয়েন্ট দিয়ে নতুন ভিজ্যুয়াল স্টাইল আনলক করুন!'}</p>
+          <p className="text-muted font-medium">{language === 'en' ? 'Use your balance to unlock new visual styles!' : 'আপনার ব্যালেন্স ব্যবহার করে নতুন ভিজ্যুয়াল স্টাইল আনলক করুন!'}</p>
         </div>
-        <Tooltip content={language === 'en' ? 'Your total earned points' : 'আপনার অর্জিত মোট পয়েন্ট'}>
+        <Tooltip content={language === 'en' ? 'Your spendable balance' : 'আপনার খরচযোগ্য ব্যালেন্স'}>
           <div className="bg-amber-500/10 text-amber-500 px-6 py-3 rounded-2xl flex items-center gap-3 font-bold text-xl border border-amber-500/20 glass shadow-sm">
             <Coins size={24} />
-            {totalPoints}
+            {balance}
           </div>
         </Tooltip>
       </div>
@@ -48,7 +48,7 @@ export default function Store({ unlockedThemes, totalPoints, currentTheme, onUnl
         {THEMES.map((theme) => {
           const isUnlocked = unlockedThemes.includes(theme.id);
           const isSelected = currentTheme === theme.id;
-          const canAfford = totalPoints >= theme.cost;
+          const canAfford = balance >= theme.cost;
 
           return (
             <motion.div
@@ -84,9 +84,20 @@ export default function Store({ unlockedThemes, totalPoints, currentTheme, onUnl
                   <Palette size={20} className="text-primary" />
                   {theme.name}
                 </h3>
-                <p className="text-[10px] font-black text-muted uppercase tracking-widest mt-1">
-                  {theme.cost > 0 ? `${theme.cost} ${t.points}` : 'Free'}
-                </p>
+                <div className="flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 w-fit border border-black/5">
+                  {theme.cost > 0 ? (
+                    <>
+                      <Coins size={12} className="text-amber-500" />
+                      <span className="text-[10px] font-black text-muted uppercase tracking-widest">
+                        {theme.cost} {t.points}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                      {t.free}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {isUnlocked ? (
@@ -104,7 +115,7 @@ export default function Store({ unlockedThemes, totalPoints, currentTheme, onUnl
               ) : (
                 <Tooltip content={canAfford ? (language === 'en' ? 'Unlock this theme' : 'এই থিমটি আনলক করুন') : (language === 'en' ? 'Not enough points' : 'পর্যাপ্ত পয়েন্ট নেই')} position="bottom">
                   <button 
-                    onClick={() => onUnlock(theme.id, theme.cost)}
+                    onClick={() => onUnlock(theme.id)}
                     disabled={!canAfford}
                     className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
                       canAfford ? 'bg-amber-500 text-white hover:shadow-lg' : 'bg-gray-200 text-gray-500 dark:bg-white/5 cursor-not-allowed'

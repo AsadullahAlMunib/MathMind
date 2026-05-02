@@ -17,12 +17,15 @@ import {
   Languages,
   BookOpen,
   Github,
-  Award
+  Award,
+  Coins,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 
 import { storage } from './lib/storage';
 import { translations } from './lib/translations';
-import { THEMES, AppState, Difficulty, Question } from './lib/types';
+import { THEMES, AppState, Difficulty, Question, ACHIEVEMENTS } from './lib/types';
 
 // Components
 import Quiz from './components/Quiz';
@@ -38,8 +41,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'quiz' | 'dashboard' | 'leaderboard' | 'store' | 'profile'>('dashboard');
   const [isDark, setIsDark] = useState(false);
   const [quizDifficulty, setQuizDifficulty] = useState<Difficulty | null>(null);
-
   const [quizQuestions, setQuizQuestions] = useState<Question[] | null>(null);
+  const [toasts, setToasts] = useState<{ id: string; title: string; subtitle: string; icon?: React.ReactNode }[]>([]);
 
   const t = translations[state.user.language];
   const currentTheme = useMemo(() => {
@@ -69,8 +72,43 @@ export default function App() {
     root.style.setProperty('--surface', (themeColors as any).surface || 'rgba(255,255,255,0.8)');
   }, [currentTheme, isDark]);
 
+  const addToast = (title: string, subtitle: string, icon?: React.ReactNode) => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, title, subtitle, icon }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 5000);
+  };
+
   const handleUpdateState = (newState: Partial<AppState>) => {
-    const updated = { ...state, ...newState };
+    let updated = { ...state, ...newState };
+    
+    // Check achievements if stats changed
+    if (newState.stats) {
+      const unlocked = updated.stats.unlockedAchievements || [];
+      const newlyUnlocked = ACHIEVEMENTS
+        .filter(a => !unlocked.includes(a.id) && a.requirement(updated.stats))
+        .map(a => a.id);
+      
+      if (newlyUnlocked.length > 0) {
+        updated = {
+          ...updated,
+          stats: {
+            ...updated.stats,
+            unlockedAchievements: [...unlocked, ...newlyUnlocked]
+          }
+        };
+        
+        // Show toasts for newly unlocked achievements
+        newlyUnlocked.forEach(id => {
+          const achievement = ACHIEVEMENTS.find(a => a.id === id);
+          if (achievement) {
+            addToast(t.newAchievement, achievement.title, <Trophy className="text-amber-500" />);
+          }
+        });
+      }
+    }
+
     setState(updated);
     storage.save(updated);
   };
@@ -82,13 +120,15 @@ export default function App() {
     });
   };
 
-  const handleQuizComplete = (points: number, correct: number, diff: Difficulty, missed: Question[]) => {
+  const handleQuizComplete = (points: number, correct: number, diff: Difficulty, missed: Question[], sessionStreak: number) => {
     storage.updateStats(stats => {
       const newTotalPoints = stats.totalPoints + points;
+      const newBalance = (stats.balance || 0) + points;
       const newHighScores = { ...stats.highScores };
       if (points > newHighScores[diff]) newHighScores[diff] = points;
       
       const newLevel = Math.floor(newTotalPoints / 1000) + 1;
+      const newBestStreak = Math.max(stats.bestStreak || 0, sessionStreak);
       
       // Merge missed questions, avoiding duplicates
       const currentMissed = stats.missedQuestions || [];
@@ -99,15 +139,47 @@ export default function App() {
         }
       });
 
-      return {
+      const newHistoryItem = {
+        id: Math.random().toString(36).substring(2, 9),
+        date: new Date().toISOString(),
+        difficulty: diff,
+        score: points,
+        correctCount: correct,
+        totalQuestions: 10
+      };
+
+      const finalStats = {
         ...stats,
         totalPoints: newTotalPoints,
+        balance: newBalance,
         totalQuizzes: stats.totalQuizzes + 1,
         correctAnswers: stats.correctAnswers + correct,
         highScores: newHighScores,
         level: newLevel,
-        missedQuestions: newMissed.slice(-50) // Keep last 50 only
+        bestStreak: newBestStreak,
+        missedQuestions: newMissed.slice(-50), // Keep last 50 only
+        history: [newHistoryItem, ...(stats.history || [])].slice(0, 10)
       };
+
+      // Check achievements
+      const unlocked = finalStats.unlockedAchievements || [];
+      const newlyUnlocked = ACHIEVEMENTS
+        .filter(a => !unlocked.includes(a.id) && a.requirement(finalStats))
+        .map(a => a.id);
+
+      if (newlyUnlocked.length > 0) {
+        finalStats.unlockedAchievements = [...unlocked, ...newlyUnlocked];
+        
+        // Show toasts for newly unlocked achievements
+        newlyUnlocked.forEach(id => {
+          const achievement = ACHIEVEMENTS.find(a => a.id === id);
+          if (achievement) {
+            addToast(t.newAchievement, achievement.title, <Trophy className="text-amber-500" />);
+          }
+        });
+      }
+
+      return finalStats;
     });
     storage.logActivity();
     setQuizDifficulty(null);
@@ -125,52 +197,74 @@ export default function App() {
   return (
     <div className="min-h-screen theme-transition pb-24 md:pb-0 md:pl-20 font-sans">
       {/* Header Info */}
-      <header className="sticky top-0 z-40 p-4 md:p-6 flex justify-between items-center max-w-7xl mx-auto glass border-b border-theme transition-all duration-300 shadow-sm">
+      <header className="sticky top-0 z-40 p-3 md:p-4 px-4 md:px-8 flex justify-between items-center max-w-full mx-auto bg-surface/70 backdrop-blur-xl border-b border-white/10 transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.05)]">
         <div className="flex items-center gap-4">
-          <motion.div 
-            whileHover={{ rotate: 15 }}
-            className="p-3 bg-primary rounded-2xl text-white shadow-xl shadow-primary/30 flex items-center justify-center"
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setActiveTab('profile')}
+            className="group relative"
           >
-            <Gamepad2 size={24} />
-          </motion.div>
+            <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl overflow-hidden ring-2 ring-primary/20 ring-offset-2 ring-offset-transparent shadow-xl transition-all group-hover:ring-primary group-hover:shadow-primary/20">
+              <img src={state.user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-surface rounded-full"></div>
+          </motion.button>
           
           <div className="flex flex-col">
-            <h1 className="text-xl font-black tracking-tight leading-none mb-1">{t.title}</h1>
-            <div className="flex items-center gap-2">
+            <h1 className="text-lg md:text-xl font-black tracking-tight leading-none bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              {t.title}
+            </h1>
+            
+            <div className="flex items-center gap-3 mt-1.5">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
-                < Award size={10} className="text-primary" />
-                <span className="text-[10px] font-black uppercase tracking-wider text-primary">{t.level} {state.stats.level}</span>
+                <Award size={10} className="text-primary" />
+                <span className="text-[9px] font-black uppercase tracking-wider text-primary">{t.level} {state.stats.level}</span>
               </div>
-              <span className="text-[10px] font-bold text-muted uppercase tracking-tighter">
-                {state.stats.totalPoints} {t.points}
-              </span>
+
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <Coins size={10} className="text-amber-500" />
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-500">
+                  {state.stats.balance}
+                </span>
+              </div>
+              
+              {/* Level Progress Bar in Header */}
+              <div className="w-24 md:w-32 h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden hidden xs:block">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(state.stats.totalPoints % 1000) / 10}%` }}
+                  className="h-full bg-primary"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Tooltip content={t.switchLanguage} position="bottom">
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={toggleLanguage}
-              className="h-11 px-4 glass border-theme rounded-xl hover:bg-primary/5 transition-colors flex items-center gap-2 text-xs font-black uppercase tracking-widest"
-            >
-              <Languages size={18} className="text-muted" />
-              <span className="hidden sm:inline">{state.user.language}</span>
-            </motion.button>
-          </Tooltip>
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-1.5 md:gap-2">
+             <Tooltip content={t.switchLanguage} position="bottom">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleLanguage}
+                className="h-9 w-9 md:h-10 md:w-10 glass border-theme rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center text-[10px] font-black uppercase"
+              >
+                <Languages size={16} className="text-muted md:w-[18px] md:h-[18px]" />
+              </motion.button>
+            </Tooltip>
 
-          <Tooltip content={t.switchTheme} position="bottom">
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setIsDark(!isDark)}
-              className="w-11 h-11 glass border-theme rounded-xl hover:bg-primary/5 transition-colors flex items-center justify-center"
-            >
-              {isDark ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} className="text-indigo-600" />}
-            </motion.button>
-          </Tooltip>
+            <Tooltip content={t.switchTheme} position="bottom">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsDark(!isDark)}
+                className="w-9 h-9 md:w-10 md:h-10 glass border-theme rounded-xl hover:bg-primary/5 transition-all flex items-center justify-center"
+              >
+                {isDark ? <Sun size={16} className="text-amber-400 md:w-[18px] md:h-[18px]" /> : <Moon size={16} className="text-indigo-600 md:w-[18px] md:h-[18px]" />}
+              </motion.button>
+            </Tooltip>
+          </div>
         </div>
       </header>
 
@@ -208,7 +302,7 @@ export default function App() {
               {activeTab === 'quiz' && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
                   {(['basic', 'normal', 'hard'] as Difficulty[]).map((d) => (
-                    <div key={d}>
+                    <div key={d} id={`quiz-mode-${d}`}>
                       <Tooltip content={`${t.startQuiz} (${t[d]})`}>
                         <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -246,16 +340,21 @@ export default function App() {
               {activeTab === 'store' && (
                 <Store 
                   unlockedThemes={state.stats.unlockedThemes} 
-                  totalPoints={state.stats.totalPoints} 
+                  balance={state.stats.balance} 
                   currentTheme={state.user.currentTheme}
-                  onUnlock={(themeId, cost) => {
-                    handleUpdateState({
-                      stats: { 
-                        ...state.stats, 
-                        totalPoints: state.stats.totalPoints - cost,
-                        unlockedThemes: [...state.stats.unlockedThemes, themeId]
-                      }
-                    });
+                  onUnlock={(themeId) => {
+                    const theme = THEMES.find(t => t.id === themeId);
+                    if (!theme) return;
+                    
+                    if (state.stats.balance >= theme.cost) {
+                      handleUpdateState({
+                        stats: { 
+                          ...state.stats, 
+                          balance: state.stats.balance - theme.cost,
+                          unlockedThemes: [...state.stats.unlockedThemes, themeId]
+                        }
+                      });
+                    }
                   }}
                   onSelect={(themeId) => {
                     handleUpdateState({
@@ -284,12 +383,12 @@ export default function App() {
       </main>
 
       {/* Navigation Sidebar (Desktop) / Bottom Bar (Mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 md:top-0 md:right-auto md:w-20 md:flex-col glass border-t md:border-t-0 md:border-r border-theme flex items-center justify-around md:justify-center gap-2 p-3 z-50">
-        <NavButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label={t.dashboard} tooltip={t.viewDashboard} />
-        <NavButton active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<Gamepad2 />} label={t.startQuiz} tooltip={t.startQuiz} />
-        <NavButton active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} icon={<Trophy />} label={t.leaderboard} tooltip={t.viewLeaderboard} />
-        <NavButton active={activeTab === 'store'} onClick={() => setActiveTab('store')} icon={<ShoppingBag />} label={t.store} tooltip={t.viewStore} />
-        <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<UserIcon />} label={t.profile} tooltip={t.viewProfile} />
+      <nav id="main-nav" className="fixed bottom-0 left-0 right-0 md:top-0 md:right-auto md:w-20 md:flex-col glass border-t md:border-t-0 md:border-r border-theme flex items-center justify-around md:justify-center gap-2 p-3 z-50">
+        <NavButton id="nav-dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} icon={<LayoutDashboard />} label={t.dashboard} tooltip={t.viewDashboard} />
+        <NavButton id="nav-quiz" active={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} icon={<Gamepad2 />} label={t.startQuiz} tooltip={t.startQuiz} />
+        <NavButton id="nav-leaderboard" active={activeTab === 'leaderboard'} onClick={() => setActiveTab('leaderboard')} icon={<Trophy />} label={t.leaderboard} tooltip={t.viewLeaderboard} />
+        <NavButton id="nav-store" active={activeTab === 'store'} onClick={() => setActiveTab('store')} icon={<ShoppingBag />} label={t.store} tooltip={t.viewStore} />
+        <NavButton id="nav-profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<UserIcon />} label={t.profile} tooltip={t.viewProfile} />
       </nav>
 
       <AnimatePresence>
@@ -311,14 +410,44 @@ export default function App() {
           <a href="https://github.com/AsadullahAlMunib" target="_blank" className="hover:text-primary"><Github size={12} /></a>
         </p>
       </footer>
+
+      {/* Toast Notifications */}
+      <div className="fixed top-20 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+        <AnimatePresence>
+          {toasts.map((toast) => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, x: 50, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 20, scale: 0.9 }}
+              className="pointer-events-auto bg-surface/90 backdrop-blur-xl border border-white/20 shadow-2xl rounded-2xl p-4 flex items-center gap-4 min-w-[280px] max-w-sm"
+            >
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                {toast.icon || <Trophy className="text-amber-500" size={24} />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary/50 mb-0.5">{toast.title}</h4>
+                <p className="font-bold text-sm truncate">{toast.subtitle}</p>
+              </div>
+              <button 
+                onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+                className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors text-muted"
+              >
+                <X size={16} />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
 
-function NavButton({ active, onClick, icon, label, tooltip }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, tooltip: string }) {
+function NavButton({ id, active, onClick, icon, label, tooltip }: { id?: string, active: boolean, onClick: () => void, icon: React.ReactNode, label: string, tooltip: string }) {
   return (
     <Tooltip content={tooltip} position="right">
       <button 
+        id={id}
         onClick={onClick}
         className={`relative flex flex-col items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl transition-all ${
           active 

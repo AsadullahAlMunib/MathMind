@@ -31,7 +31,7 @@ import Tooltip from './Tooltip';
 
 interface QuizProps {
   difficulty: Difficulty;
-  onComplete: (points: number, correct: number, diff: Difficulty, missed: Question[]) => void;
+  onComplete: (points: number, correct: number, diff: Difficulty, missed: Question[], streak: number) => void;
   onCancel: () => void;
   language: 'en' | 'bn';
   initialQuestions?: Question[];
@@ -153,7 +153,20 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
 
   const finishQuiz = () => {
     const correctCount = results.filter(r => r.correct).length;
-    onComplete(points, correctCount, difficulty, missedQuestions);
+    
+    // Calculate max streak in this session
+    let maxStreak = 0;
+    let currentStreak = 0;
+    results.forEach(r => {
+      if (r.correct) {
+        currentStreak++;
+        if (currentStreak > maxStreak) maxStreak = currentStreak;
+      } else {
+        currentStreak = 0;
+      }
+    });
+
+    onComplete(points, correctCount, difficulty, missedQuestions, maxStreak);
   };
 
   if (loading) {
@@ -400,29 +413,63 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
               </div>
             ))}
             {currentQ.type === 'fill-blank' && (
-              <div className="col-span-full space-y-4">
-                <input 
-                  type="text" 
-                  autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                       handleAnswer((e.currentTarget as HTMLInputElement).value);
-                       (e.currentTarget as HTMLInputElement).value = '';
-                    }
-                  }}
-                  className={`w-full text-center text-4xl p-4 bg-transparent border-b-4 focus:outline-none transition-colors ${
-                    showResult === 'correct' ? 'border-emerald-500 text-emerald-500' : 
-                    showResult === 'incorrect' ? 'border-rose-500 text-rose-500' : 'border-primary'
-                  }`}
-                  placeholder="?"
-                  disabled={!!showResult}
-                />
-                {showResult === 'incorrect' && (
-                  <p className="text-rose-500 font-bold animate-bounce">
-                    Ans: {currentQ.answer}
-                  </p>
+              <form 
+                className="col-span-full space-y-6"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const input = (e.currentTarget.elements.namedItem('blank-answer') as HTMLInputElement);
+                  if (input && !showResult && input.value.trim()) {
+                    handleAnswer(input.value);
+                  }
+                }}
+              >
+                <div className="relative">
+                  <input 
+                    name="blank-answer"
+                    type="text" 
+                    autoFocus
+                    autoComplete="off"
+                    className={`w-full text-center text-4xl p-4 bg-transparent border-b-4 focus:outline-none transition-all duration-300 ${
+                      showResult === 'correct' ? 'border-emerald-500 text-emerald-500' : 
+                      showResult === 'incorrect' ? 'border-rose-500 text-rose-500' : 'border-primary/30 focus:border-primary'
+                    }`}
+                    placeholder="?"
+                    disabled={!!showResult}
+                  />
+                  {!showResult && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none"
+                    >
+                      <ArrowRight size={24} />
+                    </motion.div>
+                  )}
+                </div>
+
+                {!showResult && (
+                  <motion.button
+                    type="submit"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-4 rounded-2xl bg-primary text-white font-black text-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle2 size={20} />
+                    {language === 'en' ? 'Submit Answer' : 'উত্তর জমা দিন'}
+                  </motion.button>
                 )}
-              </div>
+
+                {showResult === 'incorrect' && (
+                  <motion.p 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-rose-500 font-black text-xl flex items-center justify-center gap-2"
+                  >
+                    <XCircle size={20} />
+                    {language === 'en' ? 'Correct Ans:' : 'সঠিক উত্তর:'} {currentQ.answer}
+                  </motion.p>
+                )}
+              </form>
             )}
           </div>
 

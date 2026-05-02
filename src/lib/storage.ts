@@ -7,6 +7,7 @@ import { AppState, UserProfile, UserStats } from './types';
 
 const INITIAL_STATS: UserStats = {
   totalPoints: 0,
+  balance: 0,
   totalQuizzes: 0,
   correctAnswers: 0,
   bestStreak: 0,
@@ -15,6 +16,8 @@ const INITIAL_STATS: UserStats = {
   activity: [],
   highScores: { basic: 0, normal: 0, hard: 0 },
   missedQuestions: [],
+  history: [],
+  unlockedAchievements: [],
 };
 
 const INITIAL_USER: UserProfile = {
@@ -42,6 +45,11 @@ export const storage = {
       };
     }
     const parsed: AppState = JSON.parse(data);
+    
+    // Migration: Ensure balance exists
+    if (parsed.stats.balance === undefined) {
+      parsed.stats.balance = parsed.stats.totalPoints;
+    }
     
     // Migration: If user was using the old standalone 'dark' theme, 
     // move them to 'default' which now has dark mode support.

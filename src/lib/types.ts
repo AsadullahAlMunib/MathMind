@@ -21,16 +21,81 @@ export interface ActivityDay {
   count: number;
 }
 
+export interface QuizHistory {
+  id: string;
+  date: string;
+  difficulty: Difficulty;
+  score: number;
+  correctCount: number;
+  totalQuestions: number;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string; // Lucide icon name or emoji
+  requirement: (stats: UserStats) => boolean;
+}
+
+export const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: 'first_quiz',
+    title: 'First Step',
+    description: 'Complete your first math quiz',
+    icon: 'target',
+    requirement: (stats) => stats.totalQuizzes >= 1
+  },
+  {
+    id: 'perfect_basic',
+    title: 'Warm Up Master',
+    description: 'Get a perfect score in Basic difficulty',
+    icon: 'zap',
+    requirement: (stats) => stats.highScores.basic >= 1000
+  },
+  {
+    id: 'streak_10',
+    title: 'On Fire',
+    description: 'Achieve a best streak of 10 or more',
+    icon: 'flame',
+    requirement: (stats) => stats.bestStreak >= 10
+  },
+  {
+    id: 'point_collector_10k',
+    title: 'Point Hoarder',
+    description: 'Earn a total of 10,000 points',
+    icon: 'coins',
+    requirement: (stats) => stats.totalPoints >= 10000
+  },
+  {
+    id: 'theme_fanatic',
+    title: 'Fashionable',
+    description: 'Unlock 5 different themes',
+    icon: 'palette',
+    requirement: (stats) => stats.unlockedThemes.length >= 5
+  },
+  {
+    id: 'hard_core',
+    title: 'Math Legend',
+    description: 'Complete a Hard mode quiz with score > 4000',
+    icon: 'crown',
+    requirement: (stats) => stats.highScores.hard >= 4000
+  }
+];
+
 export interface UserStats {
   totalPoints: number;
+  balance: number;
   totalQuizzes: number;
   correctAnswers: number;
   bestStreak: number;
   level: number;
   unlockedThemes: string[];
+  unlockedAchievements?: string[];
   activity: ActivityDay[];
   highScores: Record<Difficulty, number>;
   missedQuestions?: Question[];
+  history?: QuizHistory[];
 }
 
 export interface UserProfile {
@@ -180,5 +245,120 @@ export const THEMES: Theme[] = [
       border: '#44403c'
     },
     cost: 5000 
+  },
+  { 
+    id: 'ocean_breeze', 
+    name: 'Ocean Breeze', 
+    colors: { 
+      primary: '#0ea5e9', 
+      secondary: '#06b6d4', 
+      bg: '#f0f9ff', 
+      text: '#0c4a6e',
+      textMuted: '#0369a1',
+      surface: '#ffffff',
+      border: '#bae6fd'
+    }, 
+    darkColors: {
+      primary: '#38bdf8', 
+      secondary: '#22d3ee', 
+      bg: '#082f49', 
+      text: '#e0f2fe',
+      textMuted: '#7dd3fc',
+      surface: '#0c4a6e',
+      border: '#075985'
+    },
+    cost: 7500 
+  },
+  { 
+    id: 'lavender', 
+    name: 'Lavender Dream', 
+    colors: { 
+      primary: '#8b5cf6', 
+      secondary: '#a78bfa', 
+      bg: '#f5f3ff', 
+      text: '#4c1d95',
+      textMuted: '#6d28d9',
+      surface: '#ffffff',
+      border: '#ddd6fe'
+    }, 
+    darkColors: {
+      primary: '#a78bfa', 
+      secondary: '#c4b5fd', 
+      bg: '#2e1065', 
+      text: '#f5f3ff',
+      textMuted: '#ddd6fe',
+      surface: '#4c1d95',
+      border: '#5b21b6'
+    },
+    cost: 10000 
+  },
+  { 
+    id: 'monochrome', 
+    name: 'Monochrome Pro', 
+    colors: { 
+      primary: '#18181b', 
+      secondary: '#3f3f46', 
+      bg: '#fafafa', 
+      text: '#18181b',
+      textMuted: '#52525b',
+      surface: '#ffffff',
+      border: '#e4e4e7'
+    }, 
+    darkColors: {
+      primary: '#f4f4f5', 
+      secondary: '#a1a1aa', 
+      bg: '#09090b', 
+      text: '#f4f4f5',
+      textMuted: '#a1a1aa',
+      surface: '#18181b',
+      border: '#27272a'
+    },
+    cost: 15000 
+  },
+  { 
+    id: 'nebula', 
+    name: 'Nebula', 
+    colors: { 
+      primary: '#ec4899', 
+      secondary: '#8b5cf6', 
+      bg: '#0f172a', 
+      text: '#f8fafc',
+      textMuted: '#94a3b8',
+      surface: '#1e293b',
+      border: '#334155'
+    }, 
+    darkColors: {
+      primary: '#f472b6', 
+      secondary: '#a78bfa', 
+      bg: '#020617', 
+      text: '#f8fafc',
+      textMuted: '#94a3b8',
+      surface: '#0f172a',
+      border: '#1e293b'
+    },
+    cost: 20000 
+  },
+  { 
+    id: 'crimson', 
+    name: 'Crimson Fury', 
+    colors: { 
+      primary: '#dc2626', 
+      secondary: '#b91c1c', 
+      bg: '#fef2f2', 
+      text: '#7f1d1d',
+      textMuted: '#991b1b',
+      surface: '#ffffff',
+      border: '#fecaca'
+    }, 
+    darkColors: {
+      primary: '#ef4444', 
+      secondary: '#dc2626', 
+      bg: '#450a0a', 
+      text: '#fef2f2',
+      textMuted: '#fca5a5',
+      surface: '#7f1d1d',
+      border: '#991b1b'
+    },
+    cost: 30000 
   },
 ];
