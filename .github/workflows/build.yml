@@ -47,7 +47,7 @@ jobs:
           EOF
           npx cap add android || true
           npx cap sync android
-
+ 
       - name: Set App Icon and Splash Screen
         run: |
           sudo apt-get install -y imagemagick
