@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
 
 @theme {
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
@@ -12,6 +13,16 @@
   --color-muted: var(--text-muted);
   --color-border-theme: var(--border);
   --color-surface: var(--surface);
+
+  @keyframes gradient-x {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 3s ease infinite;
 }
 
 @property --primary { syntax: '<color>'; inherits: true; initial-value: #6366f1; }
@@ -72,4 +83,3 @@ body {
 .contribution-cell {
   @apply w-3 h-3 rounded-sm;
 }
-

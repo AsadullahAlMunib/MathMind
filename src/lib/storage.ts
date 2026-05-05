@@ -3,7 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AppState, UserProfile, UserStats, Question } from './types';
+import { AppState, UserProfile, UserStats, Question, LeaderboardRival, Difficulty } from './types';
+
+const INITIAL_RIVALS: LeaderboardRival[] = [
+  { id: 'r1', name: 'Euler_Math', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Euler', totalPoints: 150000, scores: { basic: 50420, normal: 51200, hard: 52100 }, lifetimeLevelScores: { basic: 45000, normal: 55000, hard: 50000 }, trend: 'stable', lastActive: new Date().toISOString() },
+  { id: 'r2', name: 'Pythagoras', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Pythagoras', totalPoints: 130000, scores: { basic: 46200, normal: 45800, hard: 44500 }, lifetimeLevelScores: { basic: 52000, normal: 38000, hard: 40000 }, trend: 'up', lastActive: new Date().toISOString() },
+  { id: 'r3', name: 'Gauss_99', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Gauss', totalPoints: 115000, scores: { basic: 41800, normal: 39500, hard: 37800 }, lifetimeLevelScores: { basic: 32000, normal: 48000, hard: 35000 }, trend: 'down', lastActive: new Date().toISOString() },
+  { id: 'r4', name: 'Hypatia_X', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Hypatia', totalPoints: 100000, scores: { basic: 36500, normal: 34200, hard: 31500 }, lifetimeLevelScores: { basic: 28000, normal: 30000, hard: 42000 }, trend: 'up', lastActive: new Date().toISOString() },
+  { id: 'r5', name: 'Newton_Apple', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Newton', totalPoints: 85000, scores: { basic: 31200, normal: 29800, hard: 27200 }, lifetimeLevelScores: { basic: 35000, normal: 25000, hard: 25000 }, trend: 'stable', lastActive: new Date().toISOString() },
+  { id: 'r6', name: 'Ada_L', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Ada', totalPoints: 75000, scores: { basic: 27400, normal: 25400, hard: 22800 }, lifetimeLevelScores: { basic: 20000, normal: 32000, hard: 23000 }, trend: 'up', lastActive: new Date().toISOString() },
+  { id: 'r7', name: 'Ramanujan', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Rama', totalPoints: 65000, scores: { basic: 23100, normal: 21600, hard: 18900 }, lifetimeLevelScores: { basic: 25000, normal: 18000, hard: 22000 }, trend: 'stable', lastActive: new Date().toISOString() },
+  { id: 'r8', name: 'Descartes', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Descartes', totalPoints: 55000, scores: { basic: 19500, normal: 17800, hard: 14600 }, lifetimeLevelScores: { basic: 15000, normal: 22000, hard: 18000 }, trend: 'down', lastActive: new Date().toISOString() },
+  { id: 'r9', name: 'Fibonacci', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Fibo', totalPoints: 45000, scores: { basic: 15800, normal: 14200, hard: 11200 }, lifetimeLevelScores: { basic: 18000, normal: 12000, hard: 15000 }, trend: 'up', lastActive: new Date().toISOString() },
+  { id: 'r10', name: 'Leibniz_DT', avatar: 'https://api.dicebear.com/9.x/avataaars/svg?seed=Leibniz', totalPoints: 35000, scores: { basic: 12450, normal: 10840, hard: 8620 }, lifetimeLevelScores: { basic: 10000, normal: 11000, hard: 14000 }, trend: 'stable', lastActive: new Date().toISOString() },
+];
 
 const INITIAL_STATS: UserStats = {
   totalPoints: 0,
@@ -15,9 +28,12 @@ const INITIAL_STATS: UserStats = {
   unlockedThemes: ['default'],
   activity: [],
   highScores: { basic: 0, normal: 0, hard: 0 },
+  lifetimeLevelScores: { basic: 0, normal: 0, hard: 0 },
   missedQuestions: [],
   history: [],
   unlockedAchievements: [],
+  achievementUnlocks: {},
+  rivals: INITIAL_RIVALS,
 };
 
 const INITIAL_USER: UserProfile = {
@@ -29,6 +45,7 @@ const INITIAL_USER: UserProfile = {
   joinedAt: new Date().toISOString(),
   language: 'bn',
   currentTheme: 'default',
+  soundsEnabled: true,
 };
 
 const STORAGE_KEY = 'math_mind_v1';
@@ -42,7 +59,11 @@ export const storage = {
   saveToQuestionCache: (questions: Question[]) => {
     try {
       const existing = storage.getQuestionCache();
-      const updated = [...questions, ...existing].slice(0, 50); // Keep last 50 questions
+      // Deduplicate by ID
+      const existingIds = new Set(existing.map(q => q.id));
+      const newQuestions = questions.filter(q => !existingIds.has(q.id));
+      
+      const updated = [...newQuestions, ...existing].slice(0, 150); // Increased to 150 for better offline variety
       localStorage.setItem(QUESTION_CACHE_KEY, JSON.stringify(updated));
     } catch (e) {
       console.error('Failed to save to question cache', e);
@@ -74,6 +95,11 @@ export const storage = {
       parsed.stats.balance = parsed.stats.totalPoints;
     }
     
+    // Migration: Initialize lifetimeLevelScores
+    if (parsed.stats.lifetimeLevelScores === undefined) {
+      parsed.stats.lifetimeLevelScores = { ...parsed.stats.highScores };
+    }
+    
     // Migration: If user was using the old standalone 'dark' theme, 
     // move them to 'default' which now has dark mode support.
     if (parsed.user.currentTheme === 'dark') {
@@ -94,6 +120,38 @@ export const storage = {
     }
     if (parsed.user.avatarColor === undefined) {
       parsed.user.avatarColor = 'b6e3f4';
+    }
+    if (parsed.user.soundsEnabled === undefined) {
+      parsed.user.soundsEnabled = true;
+    }
+
+    // Force update rivals if they are using the old scoring scale (less than 10k for top rank)
+    const topRival = parsed.stats.rivals?.find(r => r.id === 'r1');
+    const needsScoreReset = topRival && topRival.scores.basic < 10000;
+
+    if (parsed.stats.rivals === undefined || needsScoreReset) {
+      parsed.stats.rivals = INITIAL_RIVALS;
+    } else {
+      // Evolve rivals: small chance to change score and trend to make it feel alive
+      parsed.stats.rivals = parsed.stats.rivals.map(rival => {
+        const shouldChange = Math.random() > 0.7;
+        if (!shouldChange) return rival;
+
+        const newScores = { ...rival.scores };
+        const d: Difficulty[] = ['basic', 'normal', 'hard'];
+        d.forEach(level => {
+          const change = Math.floor((Math.random() - 0.4) * 50); // Small random change
+          newScores[level] = Math.max(0, newScores[level] + change);
+        });
+
+        const trends: ('up' | 'down' | 'stable')[] = ['up', 'down', 'stable'];
+        return {
+          ...rival,
+          scores: newScores,
+          trend: trends[Math.floor(Math.random() * trends.length)],
+          lastActive: new Date().toISOString()
+        };
+      });
     }
 
     return parsed;
@@ -131,5 +189,17 @@ export const storage = {
       }
       return { ...stats, activity };
     });
+  },
+
+  saveApiKey: (key: string) => {
+    localStorage.setItem('gemini_api_key', key);
+  },
+
+  getApiKey: () => {
+    return localStorage.getItem('gemini_api_key');
+  },
+
+  clearApiKey: () => {
+    localStorage.removeItem('gemini_api_key');
   }
 };

@@ -3,201 +3,200 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Trophy, 
-  Medal, 
-  Star, 
-  Crown,
-  History
+  Trophy,
+  ChevronRight
 } from 'lucide-react';
 import { translations } from '../lib/translations';
-import { Difficulty } from '../lib/types';
+import { Difficulty, LeaderboardRival } from '../lib/types';
 
 interface LeaderboardEntry {
+  id: string;
   rank: number;
   name: string;
   score: number;
+  avatar: string;
   isCurrentUser?: boolean;
 }
 
+export type RankingType = Difficulty;
+
 interface LeaderboardProps {
-  highScores: Record<string, number>;
   userName: string;
+  userAvatar: string;
+  rivals: LeaderboardRival[];
   language: 'en' | 'bn';
+  highScores: Record<Difficulty, number>;
+  totalPoints: number;
+  lifetimeLevelScores: Record<Difficulty, number>;
 }
 
-export default function Leaderboard({ highScores, userName, language }: LeaderboardProps) {
+export default function Leaderboard({ userName, userAvatar, rivals, language, highScores, totalPoints, lifetimeLevelScores }: LeaderboardProps) {
   const t = translations[language];
-  const [activeTab, setActiveTab] = React.useState<Difficulty>('basic');
+  const [rankingType, setRankingType] = React.useState<RankingType>('basic');
 
-  // Hardcoded "Legendary" players for a feel of competition
-  // In a real app, these would come from a backend (Firebase)
-  const getLeaderboardData = (difficulty: Difficulty): LeaderboardEntry[] => {
-    const legends: Omit<LeaderboardEntry, 'rank'>[] = [
-      { name: 'Euler_Math', score: difficulty === 'hard' ? 12500 : difficulty === 'normal' ? 8200 : 4500 },
-      { name: 'Pythagoras', score: difficulty === 'hard' ? 11200 : difficulty === 'normal' ? 7800 : 4200 },
-      { name: 'Gauss_99', score: difficulty === 'hard' ? 10800 : difficulty === 'normal' ? 7500 : 4100 },
-      { name: 'Hypatia_X', score: difficulty === 'hard' ? 9500 : difficulty === 'normal' ? 6900 : 3800 },
-      { name: 'Newton_Apple', score: difficulty === 'hard' ? 8900 : difficulty === 'normal' ? 6500 : 3500 },
-      { name: 'Ada_L', score: difficulty === 'hard' ? 8200 : difficulty === 'normal' ? 6100 : 3300 },
-      { name: 'Ramanujan', score: difficulty === 'hard' ? 7800 : difficulty === 'normal' ? 5800 : 3100 },
-      { name: 'Descartes', score: difficulty === 'hard' ? 7200 : difficulty === 'normal' ? 5200 : 2900 },
-      { name: 'Fibonacci', score: difficulty === 'hard' ? 6800 : difficulty === 'normal' ? 4900 : 2700 },
-    ];
+  const currentLeaderboard = useMemo(() => {
+    const userEntry: LeaderboardEntry = {
+      id: 'current-user',
+      rank: 0,
+      name: userName || (language === 'en' ? 'You' : 'আপনি'),
+      score: lifetimeLevelScores[rankingType] || 0,
+      avatar: userAvatar,
+      isCurrentUser: true
+    };
 
-    const currentScore = highScores[difficulty] || 0;
-    const allEntries = [
-      ...legends,
-      { name: userName || (language === 'en' ? 'You' : 'আপনি'), score: currentScore, isCurrentUser: true }
-    ];
+    const rivalEntries: LeaderboardEntry[] = rivals.map(r => ({
+      id: r.id,
+      rank: 0,
+      name: r.name,
+      score: r.lifetimeLevelScores?.[rankingType] || r.scores[rankingType] || 0,
+      avatar: r.avatar
+    }));
 
-    return allEntries
+    const sorted = [...rivalEntries, userEntry]
       .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
       .map((entry, index) => ({ ...entry, rank: index + 1 }));
-  };
 
-  const currentLeaderboard = getLeaderboardData(activeTab);
+    // If user is not in top 10, search for them and show top 10 + user
+    const top10 = sorted.slice(0, 10);
+    const isUserInTop10 = top10.some(e => e.isCurrentUser);
+
+    if (!isUserInTop10) {
+      const userFullEntry = sorted.find(e => e.isCurrentUser);
+      if (userFullEntry) {
+        return [...top10, userFullEntry];
+      }
+    }
+
+    return top10;
+  }, [userName, userAvatar, rivals, language, highScores, rankingType, lifetimeLevelScores]);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
-      <div className="text-center space-y-2">
-        <div className="inline-flex p-3 bg-amber-500/10 text-amber-500 rounded-3xl mb-2 glass border border-amber-500/20">
-           <Trophy size={40} />
-        </div>
-        <h2 className="text-4xl font-black tracking-tight">{t.leaderboard}</h2>
-        <p className="text-muted font-medium opacity-60">
-          {language === 'en' ? 'Top mathematical minds of the arena' : 'এই অঙ্গনের সেরা গণিতবিদগণ'}
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="text-center space-y-1">
+        <h2 className="text-3xl font-black tracking-tight text-text/90">
+          {language === 'en' ? `${t[rankingType]} Lifetime` : `${t[rankingType]} লাইফটাইম`}
+        </h2>
+        <p className="text-xs text-muted font-medium opacity-50 uppercase tracking-widest">
+          {language === 'en' ? 'Global Rankings' : 'গ্লোবাল র‍্যাঙ্কিং'}
         </p>
       </div>
 
       {/* Difficulty Tabs */}
-      <div className="flex justify-center p-1 bg-surface border border-theme rounded-2xl w-fit mx-auto shadow-sm">
-        {(['basic', 'normal', 'hard'] as Difficulty[]).map((diff) => (
+      <div className="flex justify-center gap-1 p-1 bg-surface/20 border border-theme/10 rounded-xl w-fit mx-auto shadow-sm">
+        {(['basic', 'normal', 'hard'] as Difficulty[]).map((tab) => (
           <button
-            key={diff}
-            onClick={() => setActiveTab(diff)}
-            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-              activeTab === diff 
-                ? 'bg-primary text-white shadow-lg' 
-                : 'text-muted hover:bg-muted/10'
+            key={tab}
+            onClick={() => setRankingType(tab)}
+            className={`px-5 py-2 rounded-lg font-bold uppercase transition-all relative text-[10px] tracking-wider ${
+              rankingType === tab ? 'text-white' : 'text-muted hover:text-text'
             }`}
           >
-            {t[diff]}
+            {rankingType === tab && (
+              <motion.div layoutId="activeRankBg" className="absolute inset-0 bg-primary rounded-lg shadow-sm" />
+            )}
+            <span className="relative z-10">
+              {t[tab]}
+            </span>
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 relative">
-        <div className="absolute inset-x-0 -top-6 flex justify-between px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted opacity-30">
-          <div className="flex gap-8">
-            <span>{language === 'en' ? 'Rank' : 'র‍্যাঙ্ক'}</span>
-            <span>{language === 'en' ? 'Player' : 'খেলোয়াড়'}</span>
-          </div>
-          <span>{language === 'en' ? 'Score' : 'স্কোর'}</span>
-        </div>
-
-        {currentLeaderboard.map((entry, idx) => (
-          <LeaderboardRow 
-            key={`${idx}-${entry.name}`} 
-            entry={entry} 
-            difficulty={activeTab}
-            language={language}
-          />
-        ))}
-
-        {currentLeaderboard.length === 0 && (
-          <div className="py-20 text-center text-muted opacity-40 italic">
-            {language === 'en' ? 'No scores recorded yet' : 'এখনো কোনো স্কোর রেকর্ড করা হয়নি'}
-          </div>
-        )}
+      {/* Leaderboard List */}
+      <div className="space-y-3 relative pb-20">
+        <AnimatePresence mode="popLayout">
+          {currentLeaderboard.map((entry) => (
+            <motion.div 
+              key={`${rankingType}-${entry.id}`}
+              layout
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+            >
+              <LeaderboardRow 
+                entry={entry} 
+                language={language}
+              />
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
-
-      <section className="math-card overflow-hidden relative glass border-theme p-6 group">
-         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-           <div className="flex items-center gap-4">
-             <div className="p-3 bg-primary/10 rounded-2xl text-primary">
-               <History size={24} />
-             </div>
-             <div>
-               <h3 className="font-bold">{language === 'en' ? 'Global Connectivity' : 'বৈশ্বিক সংযোগ'}</h3>
-               <p className="text-xs text-muted">
-                 {language === 'en' 
-                   ? 'Integrate Firebase for real-time global leaderboards!' 
-                   : 'রিয়েল-টাইম গ্লোবাল লিডারবোর্ডের জন্য ফায়ারবেস ইন্টিগ্রেট করুন!'}
-               </p>
-             </div>
-           </div>
-           <div className="px-4 py-2 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-xl opacity-50 cursor-not-allowed">
-              Coming Soon
-           </div>
-         </div>
-      </section>
     </div>
   );
 }
 
-interface LeaderboardRowProps {
-  entry: LeaderboardEntry;
-  difficulty: Difficulty;
-  language: 'en' | 'bn';
-  key?: string | number;
-}
-
-function LeaderboardRow({ entry, difficulty, language }: LeaderboardRowProps) {
-  const getRankColor = (rank: number) => {
-    if (rank === 1) return 'bg-amber-400 text-amber-950 border-amber-300';
-    if (rank === 2) return 'bg-slate-300 text-slate-900 border-slate-200';
-    if (rank === 3) return 'bg-orange-400 text-orange-950 border-orange-300';
-    return 'bg-muted/5 text-muted border-theme';
-  };
-
-  const getDifficultyColor = (diff: Difficulty) => {
-    if (diff === 'basic') return 'text-emerald-500';
-    if (diff === 'normal') return 'text-amber-500';
-    return 'text-rose-500';
-  };
+function LeaderboardRow({ entry, language }: { entry: LeaderboardEntry; language: 'en' | 'bn' }) {
+  // Custom rank display for user outside top 10
+  const rankDisplay = (entry.isCurrentUser && entry.rank > 10) ? '10+' : entry.rank;
+  const isTop3 = entry.rank <= 3;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: entry.rank * 0.05 }}
-      className={`math-card p-4 flex items-center justify-between group overflow-hidden relative ${
-        entry.isCurrentUser ? 'ring-2 ring-primary ring-offset-2 ring-offset-bg shadow-xl bg-primary/5' : 'glass'
+    <div
+      className={`p-4 flex items-center justify-between group rounded-xl transition-all duration-300 border relative overflow-hidden ${
+        entry.isCurrentUser 
+          ? 'bg-primary/5 border-primary/20 shadow-sm ring-1 ring-primary/10' 
+          : isTop3 
+            ? 'bg-surface/70 border-theme/10 shadow-md'
+            : 'bg-surface/40 border-theme/5 hover:border-theme/10 hover:shadow-md'
       }`}
     >
-      {entry.isCurrentUser && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+      {/* Top 3 Animated Background */}
+      {isTop3 && (
+        <motion.div
+          className="absolute inset-0 opacity-[0.08] pointer-events-none"
+          animate={{
+            background: [
+              'linear-gradient(90deg, var(--primary) 0%, transparent 50%, var(--primary) 100%)',
+              'linear-gradient(270deg, var(--primary) 0%, transparent 50%, var(--primary) 100%)',
+              'linear-gradient(90deg, var(--primary) 0%, transparent 50%, var(--primary) 100%)',
+            ],
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+        />
       )}
-      
-      <div className="flex items-center gap-4 md:gap-8 z-10">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg border-b-2 transition-transform group-hover:scale-110 ${getRankColor(entry.rank)}`}>
-          {entry.rank}
+
+      <div className="flex items-center gap-6 relative z-10">
+        <div className="w-8 flex flex-col items-center">
+          <span className={`text-[10px] font-black tracking-widest ${
+            entry.rank === 1 ? 'text-amber-500 scale-125' : 
+            entry.rank === 2 ? 'text-slate-400 scale-110' : 
+            entry.rank === 3 ? 'text-amber-700' : 
+            entry.isCurrentUser ? 'text-primary' : 'opacity-40'
+          }`}>
+            {rankDisplay}
+          </span>
         </div>
-        
+
         <div className="flex flex-col">
-          <span className={`font-black text-sm md:text-base tracking-tight ${entry.isCurrentUser ? 'text-primary' : ''}`}>
+          <span className={`font-black tracking-tight text-sm ${
+            entry.isCurrentUser ? 'text-primary' : 
+            entry.rank === 1 ? 'text-text' : 'text-text/80'
+          }`}>
             {entry.name}
-            {entry.isCurrentUser && (
-              <span className="ml-2 text-[8px] px-1.5 py-0.5 bg-primary text-white rounded-full uppercase">You</span>
-            )}
           </span>
-          <span className="text-[10px] font-medium text-muted uppercase tracking-wider">
-            {difficulty} Level
-          </span>
+          {entry.isCurrentUser && (
+            <span className="text-[7px] font-black uppercase tracking-widest text-primary/60">
+              {language === 'en' ? 'YOU' : 'আপনি'}
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="flex items-baseline gap-1 z-10">
-        <span className={`text-xl md:text-2xl font-black tabular-nums transition-all group-hover:scale-110 ${getDifficultyColor(difficulty)}`}>
-          {entry.score.toLocaleString()}
-        </span>
-        <span className="text-[10px] font-black opacity-30 uppercase tracking-tighter">pts</span>
+      <div className="flex items-center gap-2 relative z-10">
+        <div className="text-right">
+          <span className={`text-sm font-black tabular-nums ${
+            entry.rank === 1 ? 'text-amber-500' :
+            entry.isCurrentUser ? 'text-primary' : 'text-text/70'
+          }`}>
+            {entry.score.toLocaleString()}
+          </span>
+          <span className="text-[8px] font-bold opacity-30 uppercase ml-1 tracking-tighter">pts</span>
+        </div>
+        <ChevronRight size={14} className="text-muted opacity-0 group-hover:opacity-30 transition-opacity" />
       </div>
-    </motion.div>
+    </div>
   );
 }
 

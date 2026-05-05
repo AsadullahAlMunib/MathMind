@@ -12,18 +12,18 @@
   },
   "dependencies": {
     "@google/genai": "^1.51.0",
-    "@google/generative-ai": "^0.24.1",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "katex": "^0.16.45",
     "lucide-react": "^0.546.0",
     "motion": "^12.38.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "recharts": "^3.8.1",
-    "vite": "^6.2.3"
+    "react-katex": "^3.1.0",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

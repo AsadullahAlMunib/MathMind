@@ -12,7 +12,7 @@ import {
   Crown
 } from 'lucide-react';
 import { ACHIEVEMENTS, UserStats } from '../lib/types';
-import Tooltip from './Tooltip';
+import AppTooltip from './Tooltip';
 
 interface AchievementIconProps {
   name: string;
@@ -76,6 +76,77 @@ export default function Achievements({ stats, language }: AchievementsProps) {
       <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-y-12 gap-x-6 px-2">
         {ACHIEVEMENTS.map((achievement, idx) => {
           const isUnlocked = unlockedAchievements.includes(achievement.id);
+          const unlockDate = stats.achievementUnlocks?.[achievement.id];
+          const currentValue = achievement.getValue ? achievement.getValue(stats) : 0;
+          const targetValue = achievement.targetValue || 0;
+          const progress = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+          
+          const tooltipContent = (
+            <div className="flex flex-col gap-2 p-1 min-w-[180px]">
+              <div className="flex items-center gap-2 border-b border-white/10 pb-2">
+                <div className={`p-1.5 rounded-lg ${isUnlocked ? 'bg-amber-500/20 text-amber-500' : 'bg-slate-700/50 text-slate-400'}`}>
+                  <AchievementIcon name={achievement.icon} size={14} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-black text-[11px] leading-tight text-white">{achievement.title}</span>
+                  <span className={`text-[8px] font-bold uppercase tracking-widest ${isUnlocked ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {isUnlocked 
+                      ? (language === 'en' ? 'Unlocked' : 'অর্জিত') 
+                      : (language === 'en' ? 'Locked' : 'লকড')}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-2.5">
+                <div className="flex flex-col">
+                  <span className="text-[7px] font-black uppercase tracking-widest opacity-40 text-white/60">
+                    {language === 'en' ? 'Requirement' : 'প্রয়োজনীয়তা'}
+                  </span>
+                  <span className="text-[10px] font-medium leading-relaxed text-white/90">
+                    {achievement.description}
+                  </span>
+                </div>
+
+                {!isUnlocked && targetValue > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[7px] font-black uppercase tracking-widest opacity-40 text-white/60">
+                        {language === 'en' ? 'Progress' : 'অগ্রগতি'}
+                      </span>
+                      <span className="text-[9px] font-bold text-white/80">
+                        {currentValue.toLocaleString()} / {targetValue.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        className="h-full bg-amber-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {isUnlocked && unlockDate && (
+                  <div className="flex flex-col border-t border-white/5 pt-2">
+                    <span className="text-[7px] font-black uppercase tracking-widest opacity-40 text-white/60">
+                      {language === 'en' ? 'Achieved On' : 'অর্জিত হয়েছে'}
+                    </span>
+                    <span className="text-[10px] font-medium text-emerald-400">
+                      {new Date(unlockDate).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+
           return (
             <motion.div 
               key={achievement.id}
@@ -88,7 +159,7 @@ export default function Achievements({ stats, language }: AchievementsProps) {
               }}
               className="flex flex-col items-center group"
             >
-              <Tooltip content={achievement.description} delay={100}>
+              <AppTooltip content={tooltipContent} delay={0.1}>
                 <div className="relative flex flex-col items-center">
                   {/* The Medallion */}
                   <motion.div 
@@ -162,7 +233,7 @@ export default function Achievements({ stats, language }: AchievementsProps) {
                   {/* Shelf Reflection */}
                   <div className={`absolute -bottom-4 w-12 h-1.5 bg-black/5 dark:bg-white/5 blur-md rounded-full transition-all duration-700 group-hover:scale-[2] group-hover:opacity-40 ${isUnlocked ? 'opacity-100' : 'opacity-0'}`}></div>
                 </div>
-              </Tooltip>
+              </AppTooltip>
             </motion.div>
           );
         })}

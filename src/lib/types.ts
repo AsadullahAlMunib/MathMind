@@ -4,7 +4,12 @@
  */
 
 export type Difficulty = 'basic' | 'normal' | 'hard';
-export type QuestionType = 'mcq' | 'true-false' | 'fill-blank';
+export type QuestionType = 'mcq' | 'true-false' | 'fill-blank' | 'calculation' | 'matching';
+
+export interface MatchingPair {
+  left: string;
+  right: string;
+}
 
 export interface Question {
   id: string;
@@ -14,6 +19,7 @@ export interface Question {
   type: QuestionType;
   difficulty: Difficulty;
   explanation?: string;
+  pairs?: MatchingPair[]; // For matching type
 }
 
 export interface ActivityDay {
@@ -36,6 +42,8 @@ export interface Achievement {
   description: string;
   icon: string; // Lucide icon name or emoji
   requirement: (stats: UserStats) => boolean;
+  targetValue?: number;
+  getValue?: (stats: UserStats) => number;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -44,44 +52,67 @@ export const ACHIEVEMENTS: Achievement[] = [
     title: 'First Step',
     description: 'Complete your first math quiz',
     icon: 'target',
-    requirement: (stats) => stats.totalQuizzes >= 1
+    requirement: (stats) => stats.totalQuizzes >= 1,
+    targetValue: 1,
+    getValue: (stats) => stats.totalQuizzes
   },
   {
     id: 'perfect_basic',
     title: 'Warm Up Master',
     description: 'Get a perfect score in Basic difficulty',
     icon: 'zap',
-    requirement: (stats) => stats.highScores.basic >= 1000
+    requirement: (stats) => stats.highScores.basic >= 1000,
+    targetValue: 1000,
+    getValue: (stats) => stats.highScores.basic
   },
   {
     id: 'streak_10',
     title: 'On Fire',
     description: 'Achieve a best streak of 10 or more',
     icon: 'flame',
-    requirement: (stats) => stats.bestStreak >= 10
+    requirement: (stats) => stats.bestStreak >= 10,
+    targetValue: 10,
+    getValue: (stats) => stats.bestStreak
   },
   {
     id: 'point_collector_10k',
     title: 'Point Hoarder',
     description: 'Earn a total of 10,000 points',
     icon: 'coins',
-    requirement: (stats) => stats.totalPoints >= 10000
+    requirement: (stats) => stats.totalPoints >= 10000,
+    targetValue: 10000,
+    getValue: (stats) => stats.totalPoints
   },
   {
     id: 'theme_fanatic',
     title: 'Fashionable',
     description: 'Unlock 5 different themes',
     icon: 'palette',
-    requirement: (stats) => stats.unlockedThemes.length >= 5
+    requirement: (stats) => stats.unlockedThemes.length >= 5,
+    targetValue: 5,
+    getValue: (stats) => stats.unlockedThemes.length
   },
   {
     id: 'hard_core',
     title: 'Math Legend',
     description: 'Complete a Hard mode quiz with score > 4000',
     icon: 'crown',
-    requirement: (stats) => stats.highScores.hard >= 4000
+    requirement: (stats) => stats.highScores.hard >= 4000,
+    targetValue: 4000,
+    getValue: (stats) => stats.highScores.hard
   }
 ];
+
+export interface LeaderboardRival {
+  id: string;
+  name: string;
+  avatar: string;
+  totalPoints: number;
+  scores: Record<Difficulty, number>;
+  lifetimeLevelScores?: Record<Difficulty, number>;
+  trend: 'up' | 'down' | 'stable';
+  lastActive: string;
+}
 
 export interface UserStats {
   totalPoints: number;
@@ -92,10 +123,13 @@ export interface UserStats {
   level: number;
   unlockedThemes: string[];
   unlockedAchievements?: string[];
+  achievementUnlocks?: Record<string, string>;
   activity: ActivityDay[];
   highScores: Record<Difficulty, number>;
+  lifetimeLevelScores?: Record<Difficulty, number>;
   missedQuestions?: Question[];
   history?: QuizHistory[];
+  rivals?: LeaderboardRival[];
 }
 
 export interface UserProfile {
@@ -111,6 +145,7 @@ export interface UserProfile {
   joinedAt: string;
   language: 'en' | 'bn';
   currentTheme: string;
+  soundsEnabled: boolean;
 }
 
 export interface AppState {

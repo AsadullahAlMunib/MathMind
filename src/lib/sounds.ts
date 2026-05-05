@@ -6,9 +6,10 @@
 const SOUND_URLS = {
   correct: 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3', // Soft high-pitched melodic chime
   incorrect: 'https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3', // Soft descending melodic "error" tone
-  levelUp: 'https://assets.mixkit.co/active_storage/sfx/1997/1997-preview.mp3', // Melodic celebratory winning chime
+  levelUp: 'https://assets.mixkit.co/active_storage/sfx/1433/1433-preview.mp3', // Beautiful digital success chime
   unlock: 'https://assets.mixkit.co/active_storage/sfx/2011/2011-preview.mp3', // Magical revealing shimmer
-  click: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3' // Subtle UI pop
+  click: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3', // Subtle UI pop
+  countdown: 'https://assets.mixkit.co/active_storage/sfx/950/950-preview.mp3' // Retro arcade beep for countdown
 };
 
 class SoundManager {

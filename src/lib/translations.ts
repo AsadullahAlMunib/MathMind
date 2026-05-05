@@ -64,6 +64,14 @@ export const translations = {
     secondaryColor: 'Secondary Color',
     createYourTheme: 'Create Your Theme',
     buyCustomTheme: 'Access Theme Designer',
+    lifetime: 'Lifetime',
+    navDashboard: 'Dashboard',
+    navQuiz: 'Quiz',
+    navLeaderboard: 'Ranks',
+    navStore: 'Store',
+    navProfile: 'Profile',
+    true: 'True',
+    false: 'False',
   },
   bn: {
     title: 'ম্যাথ মাইন্ড',
@@ -125,5 +133,13 @@ export const translations = {
     secondaryColor: 'দ্বিতীয় রঙ',
     createYourTheme: 'আপনার থিম তৈরি করুন',
     buyCustomTheme: 'থিম ডিজাইনার কিনুন',
+    lifetime: 'লাইফটাইম',
+    navDashboard: 'ড্যাশবোর্ড',
+    navQuiz: 'কুইজ',
+    navLeaderboard: 'র‍্যাঙ্ক',
+    navStore: 'স্টোর',
+    navProfile: 'প্রোফাইল',
+    true: 'সত্য',
+    false: 'মিথ্যা',
   }
 };

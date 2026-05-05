@@ -12,11 +12,15 @@ import {
   Flame, 
   ArrowRight,
   BrainCircuit,
+  Brain,
+  Gamepad2,
   BookOpen,
   Trophy,
   Medal,
   Award,
-  Coins
+  Coins,
+  CircleDollarSign,
+  LayoutGrid
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -52,6 +56,7 @@ interface DashboardProps {
 
 export default function Dashboard({ stats, user, language, onStartQuiz, onStartReview }: DashboardProps) {
   const [activeAnalysis, setActiveAnalysis] = useState<'accuracy' | 'mastery'>('accuracy');
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const t = translations[language];
 
   // Level progress calculation (based on 1000 points per level)
@@ -165,7 +170,7 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
              >
                <div className="absolute inset-0 bg-gradient-to-tr from-white/30 to-transparent rounded-[2.5rem]"></div>
                <div className="relative">
-                 <BrainCircuit size={70} className="text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.7)]" />
+                 <Logo size={100} />
                  <motion.div 
                    animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
                    transition={{ duration: 3, repeat: Infinity }}
@@ -250,11 +255,11 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatItem icon={<Coins />} label={t.balance} value={stats.balance} color="text-amber-500" />
-        <StatItem icon={<Target />} label={t.level} value={stats.level} color="text-emerald-500" progress={levelProgress} />
-        <StatItem icon={<Zap />} label={t.totalQuizzes} value={stats.totalQuizzes} color="text-indigo-500" />
+        <StatItem icon={<Coins size={18} strokeWidth={2.5} />} label={t.balance} value={stats.balance.toLocaleString()} color="text-amber-500" />
+        <StatItem icon={<Award size={18} strokeWidth={2.5} />} label={t.level} value={stats.level} color="text-emerald-500" />
+        <StatItem icon={<Brain size={18} strokeWidth={2.5} />} label={t.totalQuizzes} value={stats.totalQuizzes} color="text-indigo-500" />
         <StatItem 
-          icon={<Flame />} 
+          icon={<Flame size={18} strokeWidth={2.5} />} 
           label={t.streak} 
           value={stats.bestStreak} 
           color="text-rose-500" 
@@ -269,8 +274,8 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
             <Trophy size={14} />
           </div>
           <div className="overflow-hidden">
-            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Basic' : 'বেসিক'}</p>
-            <p className="text-xs md:text-lg font-black truncate">{stats.highScores.basic}</p>
+            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Basic Lifetime' : 'বেসিক লাইফটাইম'}</p>
+            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.basic || stats.highScores.basic).toLocaleString()}</p>
           </div>
         </div>
         <div className="math-card glass border-amber-500/20 p-2.5 md:p-4 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-2 group">
@@ -278,8 +283,8 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
             <Medal size={14} />
           </div>
           <div className="overflow-hidden">
-            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Normal' : 'সাধারণ'}</p>
-            <p className="text-xs md:text-lg font-black truncate">{stats.highScores.normal}</p>
+            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Normal Lifetime' : 'সাধারণ লাইফটাইম'}</p>
+            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.normal || stats.highScores.normal).toLocaleString()}</p>
           </div>
         </div>
         <div className="math-card glass border-rose-500/20 p-2.5 md:p-4 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-2 group">
@@ -287,8 +292,8 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
             <Award size={14} />
           </div>
           <div className="overflow-hidden">
-            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Hard' : 'হার্ড'}</p>
-            <p className="text-xs md:text-lg font-black truncate">{stats.highScores.hard}</p>
+            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Hard Lifetime' : 'হার্ড লাইফটাইম'}</p>
+            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.hard || stats.highScores.hard).toLocaleString()}</p>
           </div>
         </div>
       </section>
@@ -511,19 +516,25 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
           <div className="relative z-10 overflow-x-auto pb-2 scrollbar-hide">
             <div className="grid grid-rows-7 grid-flow-col gap-1.5 min-w-max">
               {activityData.map((day, idx) => (
-                <motion.div
-                  key={day.date}
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.005 }}
-                  style={{ backgroundColor: getCellColor(day.count) }}
-                  className="w-3.5 h-3.5 md:w-4 md:h-4 rounded-[2px] transition-all hover:scale-125 cursor-pointer hover:ring-2 ring-primary/40 group relative"
-                >
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all scale-75 group-hover:scale-100 origin-bottom whitespace-nowrap z-50 shadow-2xl border border-white/10">
-                    <span className="font-bold">{day.count > 0 ? `${day.count} Quizzes` : 'No Activity'}</span>
-                    <span className="opacity-50 ml-1">on {day.label}</span>
-                  </div>
-                </motion.div>
+                <div key={day.date}>
+                  <AppTooltip 
+                    content={
+                      <div className="flex flex-col items-center">
+                        <span className="font-bold">{day.count > 0 ? `${day.count} Quizzes` : 'No Activity'}</span>
+                        <span className="text-[10px] opacity-60">on {day.label}</span>
+                      </div>
+                    }
+                  >
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.005 }}
+                      onClick={() => setSelectedDay(day.date)}
+                      style={{ backgroundColor: getCellColor(day.count) }}
+                      className={`w-3.5 h-3.5 md:w-4 md:h-4 rounded-[2px] transition-all hover:scale-125 cursor-pointer hover:ring-2 ring-primary/40 ${selectedDay === day.date ? 'ring-2 ring-primary scale-125' : ''}`}
+                    />
+                  </AppTooltip>
+                </div>
               ))}
             </div>
           </div>
@@ -544,6 +555,133 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
             </div>
           </div>
         </div>
+
+        {/* Detailed Activity View */}
+        <AnimatePresence>
+          {selectedDay && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="math-card glass border-primary/20 overflow-hidden"
+            >
+              <div className="p-4 space-y-4">
+                <div className="flex items-center justify-between border-b border-theme pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <BookOpen size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black">
+                        {language === 'en' ? 'Activity Details' : 'অ্যাক্টিভিটি ডিটেইলস'}
+                      </h4>
+                      <p className="text-[10px] font-bold text-muted uppercase tracking-wider">
+                        {format(new Date(selectedDay), language === 'en' ? 'MMMM d, yyyy' : 'MMMM d, yyyy')}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedDay(null)}
+                    className="text-muted hover:text-foreground transition-colors p-1"
+                  >
+                    <Target size={18} className="rotate-45" />
+                  </button>
+                </div>
+
+                {(() => {
+                  const dayHistory = stats.history?.filter(h => h.date.startsWith(selectedDay)) || [];
+                  const totalQuizzes = dayHistory.length;
+                  const totalPoints = dayHistory.reduce((acc, h) => acc + h.score, 0);
+                  const totalCorrect = dayHistory.reduce((acc, h) => acc + h.correctCount, 0);
+                  const totalQuestions = dayHistory.reduce((acc, h) => acc + h.totalQuestions, 0);
+                  
+                  const basicPoints = dayHistory.filter(h => h.difficulty === 'basic').reduce((acc, h) => acc + h.score, 0);
+                  const normalPoints = dayHistory.filter(h => h.difficulty === 'normal').reduce((acc, h) => acc + h.score, 0);
+                  const hardPoints = dayHistory.filter(h => h.difficulty === 'hard').reduce((acc, h) => acc + h.score, 0);
+                  
+                  if (totalQuizzes === 0) {
+                    return (
+                      <div className="py-8 text-center">
+                        <p className="text-muted font-bold text-xs">
+                          {language === 'en' ? 'No quizzes recorded on this day.' : 'এই দিনে কোন কুইজ রেকর্ড করা হয়নি।'}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Summary Grid 1 */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-primary/10 p-3 rounded-2xl border border-primary/20 text-center shadow-sm">
+                          <p className="text-[8px] font-black uppercase text-primary/60 mb-1">{language === 'en' ? 'Day Quizzes' : 'দিনের কুইজ'}</p>
+                          <p className="text-xl font-black">{totalQuizzes}</p>
+                        </div>
+                        <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20 text-center shadow-sm">
+                          <p className="text-[8px] font-black uppercase text-amber-500/60 mb-1">{language === 'en' ? 'Day Points' : 'দিনের পয়েন্ট'}</p>
+                          <p className="text-xl font-black">{totalPoints}</p>
+                        </div>
+                        <div className="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20 text-center shadow-sm">
+                          <p className="text-[8px] font-black uppercase text-emerald-500/60 mb-1">{language === 'en' ? 'Accuracy' : 'সঠিকতা'}</p>
+                          <p className="text-xl font-black">{totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0}%</p>
+                        </div>
+                      </div>
+
+                      {/* Summary Grid 2: Points by Level */}
+                      <div className="grid grid-cols-3 gap-2 md:gap-3">
+                        <div className="bg-emerald-500/5 p-3 rounded-2xl border border-emerald-500/10 text-center group transition-all hover:bg-emerald-500/10 hover:scale-[1.02]">
+                          <p className="text-[8px] font-black uppercase text-emerald-500/60 mb-1">{language === 'en' ? 'Basic' : 'বেসিক'}</p>
+                          <p className="text-base font-black text-emerald-600">{basicPoints.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-amber-500/5 p-3 rounded-2xl border border-amber-500/10 text-center group transition-all hover:bg-amber-500/10 hover:scale-[1.02]">
+                          <p className="text-[8px] font-black uppercase text-amber-500/60 mb-1">{language === 'en' ? 'Normal' : 'নরমাল'}</p>
+                          <p className="text-base font-black text-amber-600">{normalPoints.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-rose-500/5 p-3 rounded-2xl border border-rose-500/10 text-center group transition-all hover:bg-rose-500/10 hover:scale-[1.02]">
+                          <p className="text-[8px] font-black uppercase text-rose-500/60 mb-1">{language === 'en' ? 'Hard' : 'হার্ড'}</p>
+                          <p className="text-base font-black text-rose-600">{hardPoints.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h5 className="text-[10px] font-black uppercase tracking-widest text-muted">
+                          {language === 'en' ? 'Session History' : 'সেশনের ইতিহাস'}
+                        </h5>
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                          {dayHistory.map((quiz, i) => (
+                            <div key={quiz.id || i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5 group hover:border-primary/20 transition-all">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${
+                                  quiz.difficulty === 'hard' ? 'bg-rose-500/10 text-rose-500' : 
+                                  quiz.difficulty === 'normal' ? 'bg-amber-500/10 text-amber-500' : 
+                                  'bg-emerald-500/10 text-emerald-500'
+                                }`}>
+                                  {quiz.difficulty[0].toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold leading-none mb-1">
+                                    {language === 'en' ? 'Math Quiz' : 'গণিত কুইজ'}
+                                  </p>
+                                  <p className="text-[9px] text-muted font-medium">
+                                    {quiz.correctCount}/{quiz.totalQuestions} {language === 'en' ? 'Correct' : 'সঠিক'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs font-black text-primary">+{quiz.score} pts</p>
+                                <p className="text-[8px] text-muted font-bold uppercase">{quiz.difficulty}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Accuracy Chart */}
         <div className="math-card flex flex-col p-4">
@@ -600,37 +738,26 @@ function StatItem({
   return (
     <AppTooltip content={label}>
       <motion.div 
-        whileHover={{ y: -3, scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
-        className="math-card p-3.5 shadow-sm hover:shadow-xl transition-all text-center flex flex-col items-center justify-center relative overflow-hidden"
+        whileHover={{ y: -3, scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        className="math-card p-4 shadow-sm hover:shadow-xl transition-all text-center flex flex-col items-center justify-center relative overflow-hidden group border-none ring-1 ring-black/5 dark:ring-white/10"
       >
-      <div className={`w-8 h-8 md:w-10 md:h-10 mx-auto mb-1.5 md:mb-2 rounded-lg md:rounded-xl bg-opacity-10 flex items-center justify-center relative z-10 ${color.replace('text', 'bg')}`}>
-        <div className="relative">
-          {React.cloneElement(icon as React.ReactElement, { size: 16, className: color })}
-          {isStreak && (
-            <motion.div 
-              animate={{ opacity: [0, 1, 0], scale: [1, 2, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className={`absolute inset-0 rounded-full blur-md ${color.replace('text', 'bg')}`}
-            />
-          )}
+        <div className={`w-10 h-10 md:w-11 md:h-11 mx-auto mb-2 rounded-xl flex items-center justify-center relative z-10 transition-all duration-300 group-hover:scale-110 ${color.replace('text', 'bg')} bg-opacity-100 shadow-md shadow-black/10`}>
+          <div className="relative text-white flex items-center justify-center drop-shadow-sm">
+            {icon}
+            {isStreak && (
+              <motion.div 
+                animate={{ opacity: [0.2, 0.5, 0.2], scale: [1, 1.5, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute inset-0 rounded-full blur-xl bg-white/40"
+              />
+            )}
+          </div>
         </div>
-      </div>
-      <p className="text-[8px] md:text-[10px] text-muted font-bold uppercase tracking-widest mb-0.5 md:mb-1 relative z-10">{label}</p>
-      <p className="text-lg md:text-2xl font-black tracking-tight relative z-10">{value}</p>
-      
-      {progress !== undefined && (
-        <div className="w-full mt-2 md:mt-3 h-0.5 md:h-1 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden relative z-10">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            className={`h-full ${color.replace('text', 'bg-current')}`}
-          />
-        </div>
-      )}
-
-      {/* Decorative background circle */}
-      <div className={`absolute -bottom-4 -right-4 w-16 h-16 rounded-full opacity-5 ${color.replace('text', 'bg')}`}></div>
+        <p className="text-[8px] md:text-[10px] text-muted font-black uppercase tracking-widest mb-1 relative z-10 opacity-70">{label}</p>
+        <p className="text-xl md:text-2xl font-black tracking-tight relative z-10 leading-none">{value}</p>
+        
+        <div className={`absolute -bottom-8 -right-8 w-20 h-20 rounded-full blur-2xl opacity-5 group-hover:opacity-15 transition-opacity duration-700 ${color.replace('text', 'bg')}`}></div>
       </motion.div>
     </AppTooltip>
   );

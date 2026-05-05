@@ -15,7 +15,7 @@ import {
 
 import { THEMES, UserProfile } from '../lib/types';
 import { translations } from '../lib/translations';
-import Tooltip from './Tooltip';
+import AppTooltip from './Tooltip';
 
 interface StoreProps {
   user: UserProfile;
@@ -54,12 +54,12 @@ export default function Store({ user, unlockedThemes, balance, currentTheme, onU
           <h2 className="text-3xl font-bold tracking-tight">{coreT.store}</h2>
           <p className="text-muted font-medium">{language === 'en' ? 'Use your balance to unlock new visual styles!' : 'আপনার ব্যালেন্স ব্যবহার করে নতুন ভিজ্যুয়াল স্টাইল আনলক করুন!'}</p>
         </div>
-        <Tooltip content={language === 'en' ? 'Your spendable balance' : 'আপনার খরচযোগ্য ব্যালেন্স'}>
+        <AppTooltip content={language === 'en' ? 'Your spendable balance' : 'আপনার খরচযোগ্য ব্যালেন্স'}>
           <div className="bg-amber-500/10 text-amber-500 px-6 py-3 rounded-2xl flex items-center gap-3 font-bold text-xl border border-amber-500/20 glass shadow-sm">
             <Coins size={24} />
             {balance}
           </div>
-        </Tooltip>
+        </AppTooltip>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -119,7 +119,7 @@ export default function Store({ user, unlockedThemes, balance, currentTheme, onU
               </div>
 
               {isUnlocked ? (
-                <Tooltip content={coreT.selectTheme} position="bottom">
+                <AppTooltip content={coreT.selectTheme} position="bottom">
                   <button 
                     onClick={() => onSelect(theme.id)}
                     disabled={isSelected}
@@ -129,9 +129,9 @@ export default function Store({ user, unlockedThemes, balance, currentTheme, onU
                   >
                     {isSelected ? (language === 'en' ? 'Active' : 'সক্রিয়') : (language === 'en' ? 'Use Theme' : 'ব্যবহার করুন')}
                   </button>
-                </Tooltip>
+                </AppTooltip>
               ) : (
-                <Tooltip content={canAfford ? (language === 'en' ? 'Unlock this theme' : 'এই থিমটি আনলক করুন') : (language === 'en' ? 'Not enough points' : 'পর্যাপ্ত পয়েন্ট নেই')} position="bottom">
+                <AppTooltip content={canAfford ? (language === 'en' ? 'Unlock this theme' : 'এই থিমটি আনলক করুন') : (language === 'en' ? 'Not enough points' : 'পর্যাপ্ত পয়েন্ট নেই')} position="bottom">
                   <button 
                     onClick={() => onUnlock(theme.id)}
                     disabled={!canAfford}
@@ -142,7 +142,7 @@ export default function Store({ user, unlockedThemes, balance, currentTheme, onU
                     <Sparkles size={18} />
                     {coreT.unlock}
                   </button>
-                </Tooltip>
+                </AppTooltip>
               )}
             </motion.div>
           );

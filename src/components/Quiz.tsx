@@ -21,28 +21,136 @@ import {
   Plus,
   Minus,
   Divide,
-  Percent
+  Percent,
+  Delete
 } from 'lucide-react';
 
 import { Difficulty, Question, QuestionType } from '../lib/types';
 import { quizEngine } from '../lib/quizEngine';
 import { translations } from '../lib/translations';
 import { soundManager } from '../lib/sounds';
-import Tooltip from './Tooltip';
+import AppTooltip from './Tooltip';
+import 'katex/dist/katex.min.css';
+import { InlineMath } from 'react-katex';
 
 interface QuizProps {
   difficulty: Difficulty;
   onComplete: (points: number, correct: number, diff: Difficulty, missed: Question[], streak: number) => void;
   onCancel: () => void;
+  onQuotaExceeded?: () => void;
   language: 'en' | 'bn';
   initialQuestions?: Question[];
 }
 
-export default function Quiz({ difficulty, onComplete, onCancel, language, initialQuestions }: QuizProps) {
+// Normalize strings for comparison (converts Bengali digits, strips labels, extra spaces)
+const normalizeStr = (str: string) => {
+  if (!str) return '';
+  const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  
+  // Standardize boolean strings
+  const boolMap: Record<string, string> = {
+    'true': 'true',
+    'false': 'false',
+    'সত্য': 'true',
+    'সঠিক': 'true',
+    'মিথ্যা': 'false',
+    'ভুল': 'false',
+    'ভুল হয়েছে': 'false',
+    'yes': 'true',
+    'no': 'false',
+    'হ্যাঁ': 'true',
+    'না': 'false'
+  };
+
+  let text = str.trim().toLowerCase();
+  
+  // If it matches a boolean synonym, return standardized value
+  if (boolMap[text]) return boolMap[text];
+
+  // Strip common labels (e.g., "A. ", "1) ", "a- ")
+  text = text.replace(/^[a-z1-9]\s?[\.\)\-]\s*/, '').trim();
+  
+  // Check again after stripping labels for booleans
+  if (boolMap[text]) return boolMap[text];
+
+  let normalized = text.split('').map(char => {
+    const index = bengaliDigits.indexOf(char);
+    return index !== -1 ? index.toString() : char;
+  }).join('');
+  
+  return normalized.replace(/\s+/g, ' ').trim();
+};
+
+const isAnswerCorrect = (user: string, correct: string) => {
+  const u = normalizeStr(user);
+  const c = normalizeStr(correct);
+  
+  if (u === c) return true;
+  
+  // Try numerical comparison for fractions/decimals
+  const parseVal = (s: string) => {
+    if (s.includes('/')) {
+      const parts = s.split('/');
+      if (parts.length === 2) {
+        const num = parseFloat(parts[0]);
+        const den = parseFloat(parts[1]);
+        if (!isNaN(num) && !isNaN(den) && den !== 0) return num / den;
+      }
+    }
+    if (s.endsWith('%')) return parseFloat(s) / 100;
+    return parseFloat(s);
+  };
+  
+  const vU = parseVal(u);
+  const vC = parseVal(c);
+  
+  if (!isNaN(vU) && !isNaN(vC)) {
+    // Check with tolerance for rounding (e.g. 1/6 vs 0.16)
+    const diff = Math.abs(vU - vC);
+    // Allow 1% relative error or 0.01 absolute error
+    return diff < 0.011 || (vC !== 0 && diff / Math.abs(vC) < 0.05);
+  }
+  
+  return false;
+};
+
+const renderMathContent = (text: string) => {
+  if (!text) return '';
+
+  // Use a regex to split text by $...$ delimiters
+  const segments = text.split(/(\$.*?\$)/g);
+  
+  if (segments.length === 1 && !/\\|[\^_]|\{|\}|deg|^\d+\/\d+$|sin|cos|tan|log|pi/.test(text)) {
+    return text;
+  }
+
+  return (
+    <>
+      {segments.map((segment, i) => {
+        if (segment.startsWith('$') && segment.endsWith('$')) {
+          const content = segment.slice(1, -1); // Remove the $ signs
+          try {
+            // Clean up common things that might break simple latex
+            const cleaned = content
+              .replace(/(\d+)°/g, '$1^\\circ')
+              .replace(/deg/g, '^\\circ');
+            return <InlineMath key={i} math={cleaned} />;
+          } catch (e) {
+            return <span key={i}>{segment}</span>;
+          }
+        }
+        return <span key={i}>{segment}</span>;
+      })}
+    </>
+  );
+};
+
+export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded, language, initialQuestions }: QuizProps) {
   const [questions, setQuestions] = useState<Question[]>(initialQuestions || []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(!initialQuestions);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [source, setSource] = useState<'ai' | 'algorithmic' | 'cache' | null>(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine || !process.env.GEMINI_API_KEY);
   const [showResult, setShowResult] = useState<'correct' | 'incorrect' | null>(null);
   const [results, setResults] = useState<{ id: string; correct: boolean }[]>([]);
@@ -52,20 +160,47 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
   const [scoreAnimate, setScoreAnimate] = useState(false);
   const [floatingPoints, setFloatingPoints] = useState<{ id: number; value: number }[]>([]);
   const [missedQuestions, setMissedQuestions] = useState<Question[]>([]);
+  const [inputValue, setInputValue] = useState('');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const t = translations[language];
 
-  useEffect(() => {
-    if (initialQuestions) return;
-    async function fetchQuestions() {
-      setLoading(true);
-      const q = await quizEngine.generateQuestions(difficulty, language, 10);
-      setQuestions(q);
-      setIsOffline(!navigator.onLine || !process.env.GEMINI_API_KEY || (q.length > 0 && q[0].id.length <= 9)); // Algorithmic IDs are short
+  const fetchQuestions = async () => {
+    setLoading(true);
+    try {
+      const result = await quizEngine.generateQuestions(difficulty, language, 10);
+      setQuestions(result.questions);
+      setSource(result.source);
+      setIsOffline(!navigator.onLine || !process.env.GEMINI_API_KEY);
       setLoading(false);
       startTimer();
+    } catch (e: any) {
+      console.error('Quiz generation error:', e);
+      if (e.message === 'QUOTA_EXCEEDED') {
+        if (onQuotaExceeded) {
+          onQuotaExceeded();
+        } else {
+          // Fallback to offline if no handler
+          const result = await quizEngine.generateQuestions(difficulty, language, 10);
+          setQuestions(result.questions);
+          setSource(result.source);
+          setLoading(false);
+          startTimer();
+        }
+      } else {
+        // General error fallback to algorithmic
+        const questions = quizEngine.generateOffline(difficulty, 10, language);
+        setQuestions(questions);
+        setSource('algorithmic');
+        setLoading(false);
+        startTimer();
+      }
     }
+  };
+
+  useEffect(() => {
+    if (initialQuestions) return;
     fetchQuestions();
     return () => stopTimer();
   }, [difficulty, language, initialQuestions]);
@@ -90,6 +225,10 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
         if (prev <= 0) {
           clearInterval(timerRef.current!);
           return 0;
+        }
+        // Play countdown sound in final 3 seconds
+        if (prev <= 3 && prev > 0) {
+          soundManager.play('countdown');
         }
         return prev - 1;
       });
@@ -117,23 +256,13 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
   const handleAnswer = (answer: string) => {
     if (showResult) return;
     
-    // Normalize Bengali digits to English for comparison
-    const normalizeDigits = (str: string) => {
-      const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-      return str.split('').map(char => {
-        const index = bengaliDigits.indexOf(char);
-        return index !== -1 ? index.toString() : char;
-      }).join('');
-    };
 
     stopTimer();
     setIsPaused(false);
     setSelectedAnswer(answer);
     const currentQ = questions[currentIndex];
     
-    const normalizedInput = normalizeDigits(answer.toLowerCase().trim());
-    const normalizedCorrect = normalizeDigits(currentQ.answer.toLowerCase().trim());
-    const isCorrect = normalizedInput === normalizedCorrect;
+    const isCorrect = isAnswerCorrect(answer, currentQ.answer);
     
     setShowResult(isCorrect ? 'correct' : 'incorrect');
     setResults(prev => [...prev, { id: currentQ.id, correct: isCorrect }]);
@@ -169,6 +298,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
       setCurrentIndex(prev => prev + 1);
       setSelectedAnswer(null);
       setShowResult(null);
+      setInputValue('');
       if (questions[currentIndex + 1]) {
         setTimeLeft(30);
         startTimer();
@@ -280,14 +410,34 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
     <div className="max-w-2xl mx-auto space-y-5">
       {/* Quiz Header */}
       <div className="flex items-center justify-between">
-        <Tooltip content={t.quitQuiz} position="right">
+        <AppTooltip content={t.quitQuiz} position="right">
           <button onClick={onCancel} className="text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 flex items-center gap-1.5 transition-opacity">
             <X size={14} /> {language === 'en' ? 'Quit' : 'বন্ধ করুন'}
           </button>
-        </Tooltip>
+        </AppTooltip>
         <div className="flex items-center gap-2">
+          {source === 'ai' ? (
+            <AppTooltip content={language === 'en' ? 'Questions generated by Gemini AI' : 'প্রশ্নগুলো জেমিনি AI দ্বারা তৈরি'}>
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/10 text-indigo-500 rounded-lg text-xs font-black uppercase tracking-wider border border-indigo-500/20">
+                <Dna size={14} className="animate-pulse" />
+                AI
+              </div>
+            </AppTooltip>
+          ) : (
+            <AppTooltip content={language === 'en' ? 'Offline algorithmic questions' : 'অফলাইন অ্যালগরিদমিক প্রশ্ন'}>
+              <button 
+                onClick={fetchQuestions}
+                className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[9px] font-black uppercase tracking-wider border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
+                disabled={loading}
+              >
+                <ShieldAlert size={12} />
+                {loading ? '...' : (language === 'en' ? 'Go Online AI' : 'অনলাইন AI ব্যবহার করুন')}
+              </button>
+            </AppTooltip>
+          )}
+
           <div className="flex items-center gap-1.5">
-            <Tooltip content={isPaused ? (language === 'en' ? 'Resume Timer' : 'সময় আবার শুরু করুন') : (language === 'en' ? 'Pause Timer' : 'সময় থামান')}>
+            <AppTooltip content={isPaused ? (language === 'en' ? 'Resume Timer' : 'সময় আবার শুরু করুন') : (language === 'en' ? 'Pause Timer' : 'সময় থামান')}>
               <button 
                 onClick={handleTogglePause}
                 disabled={!!showResult}
@@ -299,9 +449,9 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
               >
                 {isPaused ? <Play size={16} fill="currentColor" /> : <Pause size={16} fill="currentColor" />}
               </button>
-            </Tooltip>
+            </AppTooltip>
 
-            <Tooltip content={language === 'en' ? 'Time remaining' : 'বাকি সময়'}>
+            <AppTooltip content={language === 'en' ? 'Time remaining' : 'বাকি সময়'}>
               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all duration-300 border ${
                 timeLeft <= 5 
                   ? 'bg-rose-500 border-rose-600 text-white shadow-lg shadow-rose-500/20' 
@@ -312,10 +462,10 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
                 <Timer size={14} className={timeLeft <= 5 ? 'animate-pulse' : ''} />
                 <span className={timeLeft <= 3 && !isPaused ? 'animate-ping' : ''}>{timeLeft}s</span>
               </div>
-            </Tooltip>
+            </AppTooltip>
           </div>
           
-          <Tooltip content={language === 'en' ? 'Current points' : 'বর্তমান পয়েন্ট'}>
+          <AppTooltip content={language === 'en' ? 'Current points' : 'বর্তমান পয়েন্ট'}>
             <div className="relative">
               <motion.div 
                 animate={scoreAnimate ? { 
@@ -343,17 +493,23 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
                 ))}
               </AnimatePresence>
             </div>
-          </Tooltip>
+          </AppTooltip>
         </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+      <div className="h-2.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden relative shadow-inner">
         <motion.div 
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
-          className="h-full bg-primary"
-        />
+          transition={{ type: "spring", stiffness: 50, damping: 20 }}
+          className="h-full relative bg-gradient-to-r from-primary via-primary/90 to-emerald-400 rounded-full"
+        >
+          {/* Shine effect */}
+          <div className="absolute inset-0 bg-white/20 blur-[1px] h-[30%] top-0 rounded-full mx-1 opacity-50" />
+          {/* Subtle glow at the tip */}
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-full bg-white/40 blur-md rounded-full" />
+        </motion.div>
       </div>
 
       {/* Question Card */}
@@ -432,14 +588,14 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
           </div>
           
           <h2 className="text-xl md:text-2xl font-black leading-tight tracking-tight px-4">
-            {currentQ.question}
+            {renderMathContent(currentQ.question)}
           </h2>
 
           <div className="grid grid-cols-2 gap-3 w-full">
             {currentQ.type === 'mcq' && currentQ.options?.map((opt, i) => (
               <div key={i} className="relative">
                 <AnswerButton 
-                  label={opt}
+                  label={renderMathContent(opt) as any}
                   onClick={() => handleAnswer(opt)}
                   active={selectedAnswer === opt}
                   correct={showResult && opt === currentQ.answer}
@@ -457,17 +613,20 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
                 )}
               </div>
             ))}
-            {currentQ.type === 'true-false' && ['True', 'False'].map((opt) => (
-              <div key={opt} className="relative">
+            {currentQ.type === 'true-false' && [
+              { key: 'True', label: t.true },
+              { key: 'False', label: t.false }
+            ].map((opt) => (
+              <div key={opt.key} className="relative">
                 <AnswerButton 
-                  label={opt}
-                  onClick={() => handleAnswer(opt)}
-                  active={selectedAnswer === opt}
-                  correct={showResult && opt === currentQ.answer}
-                  wrong={showResult === 'incorrect' && opt === selectedAnswer}
+                  label={opt.label}
+                  onClick={() => handleAnswer(opt.key)}
+                  active={selectedAnswer === opt.key}
+                  correct={showResult && normalizeStr(opt.key) === normalizeStr(currentQ.answer)}
+                  wrong={showResult === 'incorrect' && opt.key === selectedAnswer}
                   disabled={!!showResult}
                 />
-                {showResult && opt === currentQ.answer && (
+                {showResult && normalizeStr(opt.key) === normalizeStr(currentQ.answer) && (
                   <motion.div 
                     initial={{ scale: 0, x: -10 }} 
                     animate={{ scale: 1, x: 0 }}
@@ -478,64 +637,117 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
                 )}
               </div>
             ))}
-            {currentQ.type === 'fill-blank' && (
-              <form 
-                className="col-span-full space-y-6"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const input = (e.currentTarget.elements.namedItem('blank-answer') as HTMLInputElement);
-                  if (input && !showResult && input.value.trim()) {
-                    handleAnswer(input.value);
-                  }
-                }}
-              >
-                <div className="relative">
-                  <input 
-                    name="blank-answer"
-                    type="text" 
-                    autoFocus
-                    autoComplete="off"
-                    className={`w-full text-center text-4xl p-4 bg-transparent border-b-4 focus:outline-none transition-all duration-300 ${
-                      showResult === 'correct' ? 'border-emerald-500 text-emerald-500' : 
-                      showResult === 'incorrect' ? 'border-rose-500 text-rose-500' : 'border-primary/30 focus:border-primary'
-                    }`}
-                    placeholder="?"
-                    disabled={!!showResult}
-                  />
+            {(currentQ.type === 'fill-blank' || currentQ.type === 'calculation') && (
+              <div className="col-span-full space-y-6">
+                <form 
+                  className="space-y-6"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!showResult && inputValue.trim()) {
+                      handleAnswer(inputValue);
+                    }
+                  }}
+                >
+                  <div className="relative">
+                    <input 
+                      ref={inputRef}
+                      name="blank-answer"
+                      type="text" 
+                      inputMode="none"
+                      autoFocus
+                      autoComplete="off"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      className={`w-full text-center text-3xl md:text-4xl p-4 bg-transparent border-b-4 focus:outline-none transition-all duration-300 ${
+                        showResult === 'correct' ? 'border-emerald-500 text-emerald-500' : 
+                        showResult === 'incorrect' ? 'border-rose-500 text-rose-500' : 'border-primary/30 focus:border-primary'
+                      }`}
+                      placeholder={currentQ.type === 'calculation' ? (language === 'en' ? "Calculate Result" : "ফলাফল বের করো") : "?"}
+                      disabled={!!showResult}
+                    />
+                    {!showResult && (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none"
+                      >
+                        <ArrowRight size={24} />
+                      </motion.div>
+                    )}
+                  </div>
+
                   {!showResult && (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 text-primary/30 pointer-events-none"
-                    >
-                      <ArrowRight size={24} />
-                    </motion.div>
+                    <NumericKeyboard 
+                      onInput={(val) => setInputValue(prev => prev + val)}
+                      onDelete={() => setInputValue(prev => prev.slice(0, -1))}
+                      onSubmit={() => handleAnswer(inputValue)}
+                      language={language}
+                    />
                   )}
-                </div>
 
-                {!showResult && (
-                  <motion.button
-                    type="submit"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full py-4 rounded-2xl bg-primary text-white font-black text-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle2 size={20} />
-                    {language === 'en' ? 'Submit Answer' : 'উত্তর জমা দিন'}
-                  </motion.button>
-                )}
+                  {!showResult && (
+                    <motion.button
+                      type="submit"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full py-4 rounded-2xl bg-primary text-white font-black text-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 size={20} />
+                      {language === 'en' ? 'Submit Answer' : 'উত্তর জমা দিন'}
+                    </motion.button>
+                  )}
 
+                  {showResult === 'incorrect' && (
+                    <motion.p 
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-rose-500 font-black text-xl flex items-center justify-center gap-2"
+                    >
+                      <XCircle size={20} />
+                      {language === 'en' ? 'Correct Ans:' : 'সঠিক উত্তর:'} {currentQ.answer}
+                    </motion.p>
+                  )}
+                </form>
+              </div>
+            )}
+
+            {currentQ.type === 'matching' && (
+              <div className="col-span-full">
+                <motion.div key={currentQ.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <MatchingQuestion 
+                    pairs={currentQ.pairs || []}
+                    onComplete={(isCorrect) => handleAnswer(isCorrect ? currentQ.answer : 'wrong')}
+                    disabled={!!showResult}
+                    language={language}
+                  />
+                </motion.div>
+                
                 {showResult === 'incorrect' && (
-                  <motion.p 
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="text-rose-500 font-black text-xl flex items-center justify-center gap-2"
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-4 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-600 font-bold"
                   >
-                    <XCircle size={20} />
-                    {language === 'en' ? 'Correct Ans:' : 'সঠিক উত্তর:'} {currentQ.answer}
-                  </motion.p>
+                    <div className="flex items-center gap-2 mb-2">
+                       <HelpCircle size={14} />
+                       {language === 'en' ? 'Correct Pairings:' : 'সঠিক মিলগুলো:'}
+                    </div>
+                    <div className="grid grid-cols-1 gap-1 text-[11px] text-left opacity-90 font-medium">
+                      {currentQ.answer.split(',').map((pair, idx) => {
+                        const [l, r] = pair.includes('=') ? pair.split('=') : pair.includes('-') ? pair.split('-') : [pair, ''];
+                        return (
+                          <div key={idx} className="flex items-center gap-2 py-0.5 border-b border-rose-500/10 last:border-0">
+                            <span className="shrink-0 w-4 h-4 rounded-full bg-rose-500/20 flex items-center justify-center text-[10px] font-bold">{idx + 1}</span>
+                            <span className="truncate">{l?.trim()}</span>
+                            <ArrowRight size={10} className="shrink-0 opacity-50" />
+                            <span className="truncate text-rose-700 dark:text-rose-400 font-black">{r?.trim()}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
                 )}
-              </form>
+              </div>
             )}
           </div>
 
@@ -554,9 +766,9 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
                   <HelpCircle size={12} /> 
                   {language === 'en' ? 'Core Logic' : 'মূল যুক্তি'}
                 </div>
-                <p className="leading-relaxed font-medium opacity-90">
-                  {currentQ.explanation}
-                </p>
+                <div className="leading-relaxed font-medium opacity-90 prose-sm dark:prose-invert">
+                  {renderMathContent(currentQ.explanation || '')}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -593,8 +805,155 @@ export default function Quiz({ difficulty, onComplete, onCancel, language, initi
   );
 }
 
+function MatchingQuestion({ pairs, onComplete, disabled, language }: { 
+  pairs: { left: string; right: string }[];
+  onComplete: (correct: boolean) => void;
+  disabled: boolean;
+  language: 'en' | 'bn';
+}) {
+  const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
+  const [matches, setMatches] = useState<Record<string, string>>({});
+  const [incorrectFlash, setIncorrectFlash] = useState<string | null>(null);
+  const [lives, setLives] = useState(5); // Increased for better UX
+  const [isEvaluating, setIsEvaluating] = useState(false);
+
+  // Shuffle items once
+  const [shuffledLeft] = useState(() => 
+    [...pairs].sort(() => Math.random() - 0.5)
+  );
+  const [shuffledRight] = useState(() => 
+    [...pairs].map(p => p.right).sort(() => Math.random() - 0.5)
+  );
+
+  const handlePairSelection = (side: 'left' | 'right', value: string) => {
+    if (disabled || isEvaluating || lives <= 0) return;
+
+    // Check if item is already matched
+    const alreadyMatched = side === 'left' 
+      ? !!matches[value] 
+      : Object.values(matches).includes(value);
+    
+    if (alreadyMatched) return;
+
+    if (side === 'left') {
+      setSelectedLeft(value === selectedLeft ? null : value);
+    } else {
+      if (selectedLeft) {
+        setIsEvaluating(true);
+        const correctPair = pairs.find(p => normalizeStr(p.left) === normalizeStr(selectedLeft));
+        
+        if (correctPair && normalizeStr(correctPair.right) === normalizeStr(value)) {
+          const newMatches = { ...matches, [selectedLeft]: value };
+          setMatches(newMatches);
+          setSelectedLeft(null);
+          soundManager.play('click');
+          setIsEvaluating(false);
+          
+          if (Object.keys(newMatches).length === pairs.length) {
+            onComplete(true);
+          }
+        } else {
+          setIncorrectFlash(value);
+          const newLives = lives - 1;
+          setLives(newLives);
+          soundManager.play('incorrect');
+          
+          setTimeout(() => {
+            setIncorrectFlash(null);
+            setSelectedLeft(null);
+            setIsEvaluating(false);
+            if (newLives <= 0) {
+              onComplete(false);
+            }
+          }, 400);
+        }
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Lives/Attempts display */}
+      {!disabled && (
+        <div className="flex justify-center gap-1.5 mb-2">
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className={`w-2 h-2 rounded-full ${i < lives ? 'bg-primary' : 'bg-rose-500/30'}`}
+            />
+          ))}
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted ml-2">
+            {language === 'en' ? 'Attempts' : 'চেষ্টা'}
+          </span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 md:gap-8 w-full max-w-lg mx-auto py-2">
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-2 truncate">
+            {language === 'en' ? 'Match' : 'মিল করো'}
+          </p>
+          {shuffledLeft.map((p, i) => {
+            const isMatched = matches[p.left];
+            return (
+              <motion.button
+                key={i}
+                whileTap={!disabled && !isMatched ? { scale: 0.95 } : {}}
+                onClick={() => handlePairSelection('left', p.left)}
+                disabled={disabled || !!isMatched || isEvaluating}
+                className={`w-full p-3 md:p-4 rounded-xl border-2 font-bold text-xs md:text-sm transition-all text-center h-14 md:h-16 flex items-center justify-center ${
+                  isMatched 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600' 
+                    : selectedLeft === p.left
+                      ? 'border-primary bg-primary text-white shadow-lg'
+                      : 'bg-surface border-theme/10 hover:border-primary/30'
+                } ${disabled ? 'opacity-50' : ''}`}
+              >
+                {renderMathContent(p.left)}
+                {isMatched && <Check size={14} className="ml-2" />}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-2 truncate">
+            {language === 'en' ? 'With' : 'সাথে'}
+          </p>
+          {shuffledRight.map((r, i) => {
+            const matchedByLeft = Object.keys(matches).find(k => matches[k] === r);
+            const isIncorrect = incorrectFlash === r;
+            
+            return (
+              <motion.button
+                key={i}
+                whileTap={!disabled && !matchedByLeft ? { scale: 0.95 } : {}}
+                animate={isIncorrect ? { x: [0, -5, 5, -5, 5, 0] } : {}}
+                onClick={() => handlePairSelection('right', r)}
+                disabled={disabled || !!matchedByLeft || isEvaluating}
+                className={`w-full p-3 md:p-4 rounded-xl border-2 font-bold text-xs md:text-sm transition-all text-center h-14 md:h-16 flex items-center justify-center ${
+                  matchedByLeft 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600' 
+                    : isIncorrect
+                      ? 'border-rose-500 bg-rose-500/10 text-rose-600'
+                      : 'bg-surface border-theme/10 hover:border-primary/30'
+                } ${disabled ? 'opacity-50' : ''}`}
+              >
+                {renderMathContent(r)}
+                {matchedByLeft && <CheckCircle2 size={14} className="ml-2" />}
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AnswerButton({ label, onClick, active, correct, wrong, disabled }: { 
-  label: string; 
+  label: React.ReactNode; 
   onClick: () => void; 
   active: boolean;
   correct: boolean;
@@ -619,5 +978,71 @@ function AnswerButton({ label, onClick, active, correct, wrong, disabled }: {
       {correct && <CheckCircle2 size={18} className="shrink-0" />}
       {wrong && <XCircle size={18} className="shrink-0" />}
     </motion.button>
+  );
+}
+
+function NumericKeyboard({ onInput, onDelete, onSubmit, language }: { 
+  onInput: (digit: string) => void; 
+  onDelete: () => void;
+  onSubmit: () => void;
+  language: 'en' | 'bn';
+}) {
+  const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+  const bengaliDigits = ['১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  const zero = language === 'bn' ? '০' : '0';
+
+  return (
+    <div className="grid grid-cols-3 gap-2 w-full max-w-[280px] mx-auto mt-4 quiz-keypad">
+      {digits.map((digit, i) => (
+        <motion.button
+          key={digit}
+          type="button"
+          whileTap={{ scale: 0.95 }}
+          onClick={() => onInput(language === 'bn' ? bengaliDigits[i] : digit)}
+          className="h-14 bg-surface/50 border border-theme/10 rounded-xl font-black text-xl flex items-center justify-center hover:bg-primary/5 hover:border-primary/20 transition-all shadow-sm"
+        >
+          {language === 'bn' ? bengaliDigits[i] : digit}
+        </motion.button>
+      ))}
+      
+      {/* Last Row: Minus, Dot, 0, Backspace */}
+      <div className="col-span-3 grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-2">
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.95 }}
+          onClick={() => onInput('-')}
+          className="h-14 bg-surface/50 border border-theme/10 rounded-xl font-black text-xl flex items-center justify-center hover:bg-primary/5 hover:border-primary/20 transition-all shadow-sm"
+        >
+          <Minus size={22} strokeWidth={3} />
+        </motion.button>
+
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.95 }}
+          onClick={() => onInput('.')}
+          className="h-14 bg-surface/50 border border-theme/10 rounded-xl font-black text-xl flex items-center justify-center hover:bg-primary/5 hover:border-primary/20 transition-all shadow-sm"
+        >
+          .
+        </motion.button>
+
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.95 }}
+          onClick={() => onInput(zero)}
+          className="h-14 bg-surface/50 border border-theme/10 rounded-xl font-black text-xl flex items-center justify-center hover:bg-primary/5 hover:border-primary/20 transition-all shadow-sm"
+        >
+          {zero}
+        </motion.button>
+
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.95 }}
+          onClick={onDelete}
+          className="h-14 bg-rose-500/5 border border-rose-500/10 text-rose-500 rounded-xl font-black flex items-center justify-center hover:bg-rose-500/10 transition-all shadow-sm"
+        >
+          <Delete size={22} strokeWidth={3} />
+        </motion.button>
+      </div>
+    </div>
   );
 }

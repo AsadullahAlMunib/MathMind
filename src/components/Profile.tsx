@@ -27,7 +27,13 @@ import {
   Palette,
   Crown,
   Lock,
-  CheckCircle
+  CheckCircle,
+  Volume2,
+  VolumeX,
+  Settings as SettingsIcon,
+  HelpCircle,
+  ShieldCheck,
+  X,
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -42,7 +48,7 @@ import {
 import { UserStats, UserProfile, ACHIEVEMENTS } from '../lib/types';
 import { translations } from '../lib/translations';
 import { storage } from '../lib/storage';
-import Tooltip from './Tooltip';
+import AppTooltip from './Tooltip';
 import Achievements from './Achievements';
 
 interface ProfileProps {
@@ -50,11 +56,13 @@ interface ProfileProps {
   stats: UserStats;
   onUpdateUser: (user: UserProfile) => void;
   onClearReview: () => void;
+  onStartTutorial: () => void;
   language: 'en' | 'bn';
 }
 
-export default function Profile({ user, stats, onUpdateUser, onClearReview, language }: ProfileProps) {
+export default function Profile({ user, stats, onUpdateUser, onClearReview, onStartTutorial, language }: ProfileProps) {
   const [isChangingAvatar, setIsChangingAvatar] = useState(false);
+  const [showApiTips, setShowApiTips] = useState(false);
   const [activeCustomTab, setActiveCustomTab] = useState<'style' | 'color' | 'text'>('style');
   const t = (translations[language] as any);
   const coreT = translations[language];
@@ -132,24 +140,26 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
               <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
             </div>
             <div className="absolute -bottom-2 -right-2 flex flex-col gap-2">
-              <motion.button 
-                whileHover={{ scale: 1.1, rotate: 180 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleRandomAvatar}
-                className="p-2 bg-primary text-white rounded-full shadow-lg hover:shadow-primary/50 transition-all z-10"
-                title={language === 'en' ? 'Randomize Look' : 'এলোমেলো রূপ'}
-              >
-                <RefreshCcw size={16} />
-              </motion.button>
-              <motion.button 
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setIsChangingAvatar(!isChangingAvatar)}
-                className="p-2 bg-amber-500 text-white rounded-full shadow-lg hover:shadow-amber-500/50 transition-all z-10"
-                title={language === 'en' ? 'Select Style' : 'স্টাইল নির্বাচন করুন'}
-              >
-                <Palette size={16} />
-              </motion.button>
+              <AppTooltip content={language === 'en' ? 'Randomize Look' : 'এলোমেলো রূপ'}>
+                <motion.button 
+                  whileHover={{ scale: 1.1, rotate: 180 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={handleRandomAvatar}
+                  className="p-2 bg-primary text-white rounded-full shadow-lg hover:shadow-primary/50 transition-all z-10"
+                >
+                  <RefreshCcw size={16} />
+                </motion.button>
+              </AppTooltip>
+              <AppTooltip content={language === 'en' ? 'Select Style' : 'স্টাইল নির্বাচন করুন'}>
+                <motion.button 
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setIsChangingAvatar(!isChangingAvatar)}
+                  className="p-2 bg-amber-500 text-white rounded-full shadow-lg hover:shadow-amber-500/50 transition-all z-10"
+                >
+                  <Palette size={16} />
+                </motion.button>
+              </AppTooltip>
             </div>
           </div>
           
@@ -255,17 +265,19 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
               ) : (
                 <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-3">
                   {avatarColors.map((color) => (
-                    <motion.button
-                      key={color}
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handleUpdateAvatar(undefined, color)}
-                      className={`w-full aspect-square rounded-full border-4 transition-all shadow-sm ${
-                        user.avatar.includes(color) ? 'border-primary ring-2 ring-primary/20 scale-110' : 'border-white/20 hover:border-white/40'
-                      }`}
-                      style={{ backgroundColor: `#${color === 'ffffff' ? 'fff' : color}` }}
-                      title={color}
-                    />
+                    <div key={color}>
+                      <AppTooltip content={`Color: #${color}`}>
+                        <motion.button
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleUpdateAvatar(undefined, color)}
+                          className={`w-full aspect-square rounded-full border-4 transition-all shadow-sm ${
+                            user.avatar.includes(color) ? 'border-primary ring-2 ring-primary/20 scale-110' : 'border-white/20 hover:border-white/40'
+                          }`}
+                          style={{ backgroundColor: `#${color === 'ffffff' ? 'fff' : color}` }}
+                        />
+                      </AppTooltip>
+                    </div>
                   ))}
                 </div>
               )}
@@ -389,7 +401,108 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
 
       <Achievements stats={stats} language={language} />
 
-      {/* Help & Settings Section */}
+      {/* App Settings Section */}
+      <section className="space-y-4">
+        <h3 className="text-sm font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
+          <SettingsIcon size={14} />
+          {language === 'en' ? 'App Settings' : 'অ্যাপ সেটিংস'}
+        </h3>
+        
+        <div className="grid grid-cols-1 gap-4">
+          <div className="math-card glass p-6 flex items-center justify-between group">
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 ${user.soundsEnabled ? 'bg-primary/10 text-primary' : 'bg-rose-500/10 text-rose-500'}`}>
+                {user.soundsEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
+              </div>
+              <div>
+                <p className="font-black tracking-tight">{language === 'en' ? 'Sound Effects' : 'শব্দ ইফেক্ট'}</p>
+                <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">
+                  {user.soundsEnabled 
+                    ? (language === 'en' ? 'Enabled' : 'চালু') 
+                    : (language === 'en' ? 'Disabled' : 'বন্ধ')}
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={() => onUpdateUser({ ...user, soundsEnabled: !user.soundsEnabled })}
+              className={`w-14 h-8 rounded-full p-1 transition-all duration-300 relative ${user.soundsEnabled ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'}`}
+            >
+              <motion.div 
+                animate={{ x: user.soundsEnabled ? 24 : 0 }}
+                className="w-6 h-6 bg-white rounded-full shadow-md"
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              />
+            </button>
+          </div>
+
+          <div className="math-card glass p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                  <Lock size={24} />
+                </div>
+                <div>
+                  <p className="font-black tracking-tight">{language === 'en' ? 'Gemini AI API Key' : 'জেমিনি AI API Key'}</p>
+                  <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">
+                    {storage.getApiKey() ? (language === 'en' ? 'Custom Key Active' : 'কাস্টম কি সক্রিয়') : (language === 'en' ? 'Using Public Quota' : 'পাবলিক কোটা ব্যবহার হচ্ছে')}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setShowApiTips(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-500 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500/20 transition-all"
+                >
+                  <HelpCircle size={12} />
+                  {language === 'en' ? 'Tips' : 'টিপ্স'}
+                </button>
+                {storage.getApiKey() && (
+                <button 
+                  onClick={() => {
+                    storage.clearApiKey();
+                    window.location.reload();
+                  }}
+                  className="text-[9px] font-black uppercase text-rose-500 hover:bg-rose-500/5 px-2 py-1 rounded-lg"
+                >
+                  {language === 'en' ? 'Remove Key' : 'কি রিমুভ করুন'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+              <input 
+                type="password"
+                defaultValue={storage.getApiKey() || ''}
+                id="api-key-input"
+                className="flex-1 bg-black/5 dark:bg-white/5 border border-theme/10 rounded-xl px-4 py-2 text-sm outline-none focus:border-primary transition-all font-mono"
+                placeholder="AIza..."
+              />
+              <button 
+                onClick={() => {
+                  const input = document.getElementById('api-key-input') as HTMLInputElement;
+                  if (input.value.trim().startsWith('AIza')) {
+                    storage.saveApiKey(input.value.trim());
+                    window.location.reload();
+                  }
+                }}
+                className="px-4 bg-primary text-white text-xs font-black uppercase rounded-xl hover:bg-primary/90 transition-all"
+              >
+                {language === 'en' ? 'Save' : 'সেভ'}
+              </button>
+            </div>
+            
+            <p className="text-[10px] opacity-40 font-medium italic">
+              {language === 'en' 
+                ? "Providing your own key ensures you're never blocked by daily limits." 
+                : "আপনার নিজস্ব 'Gemini API Key' ব্যবহার করলে ডেইলি লিমিট নিয়ে চিন্তা থাকবে না।"
+              }
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="space-y-4">
         <h3 className="text-sm font-black uppercase tracking-widest opacity-40 flex items-center gap-2">
           <BookOpen size={14} />
@@ -397,17 +510,14 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button 
-            onClick={() => {
-              storage.save({ ...storage.load(), isFirstTime: true });
-              window.location.reload();
-            }}
+            onClick={onStartTutorial}
             className="math-card glass p-6 flex items-center gap-4 hover:bg-primary/5 transition-all duration-500 group"
           >
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500">
-              <BookOpen size={24} />
+              <Zap size={24} />
             </div>
             <div className="text-left">
-              <p className="font-black tracking-tight">{language === 'en' ? 'Restart Tutorial' : 'টিউটোরিয়াল পুনরায় চালু করুন'}</p>
+              <p className="font-black tracking-tight">{language === 'en' ? 'App Walkthrough' : 'অ্যাপ টিউটোরিয়াল'}</p>
               <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest">{language === 'en' ? 'Learn the basics' : 'নিয়মাবলী শিখুন'}</p>
             </div>
           </button>
@@ -461,19 +571,19 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
                   >
                     Portfolio <ExternalLink size={10} />
                   </a>
-                  <Tooltip content="Send Email">
+                  <AppTooltip content="Send Email">
                     <a 
                       href="mailto:asadullahweb1@gmail.com" 
                       className="w-8 h-8 bg-primary/10 text-primary border border-primary/20 rounded-xl flex items-center justify-center hover:scale-110 transition-transform"
                     >
                       <Mail size={14} />
                     </a>
-                  </Tooltip>
+                  </AppTooltip>
                 </div>
              </div>
              
              <div className="shrink-0 flex flex-col items-center gap-2">
-                <Tooltip content="Official GitHub Profile">
+                <AppTooltip content="Official GitHub Profile">
                   <a 
                     href="https://github.com/AsadullahAlMunib" 
                     target="_blank" 
@@ -483,12 +593,116 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, lang
                     <Github size={18} className="group-hover:rotate-12 transition-transform" />
                     <span>Follow on GitHub</span>
                   </a>
-                </Tooltip>
+                </AppTooltip>
                 <p className="text-[9px] font-black uppercase tracking-widest opacity-20">@AsadullahAlMunib</p>
              </div>
           </div>
         </div>
       </section>
+      {/* Modals and Overlays */}
+      <AnimatePresence>
+        {showApiTips && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowApiTips(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-surface w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl relative z-10 border border-white/10"
+            >
+              <div className="p-6 md:p-8 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
+                    <Zap size={24} className="text-indigo-500" />
+                    {language === 'en' ? 'API Key Tips' : 'এপিআই কি টিপ্স'}
+                  </h2>
+                  <button onClick={() => setShowApiTips(false)} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-black text-indigo-500 uppercase tracking-widest">
+                      {language === 'en' ? 'Why use a custom key?' : 'কেন কাস্টম কি ব্যবহার করবেন?'}
+                    </h4>
+                    <p className="text-xs font-medium opacity-70 leading-relaxed">
+                      {language === 'en' 
+                        ? "Our app provides a shared quota for everyone. When many users play at once, this quota can run out. Using your own key means you have your own dedicated limits."
+                        : "আমাদের অ্যাপটি সবার জন্য একটি কমন কোটা শেয়ার করে। যখন একসাথে অনেক ইউজার খেলে, তখন এই কোটা শেষ হয়ে যেতে পারে। নিজের কি ব্যবহার করলে আপনার নিজস্ব আলাদা লিমিট থাকবে।"
+                      }
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h4 className="text-sm font-black text-indigo-500 uppercase tracking-widest">
+                      {language === 'en' ? 'How to get it for free?' : 'কিভাবে ফ্রিতে পাবেন?'}
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 text-xs font-bold">1</div>
+                        <p className="text-xs font-medium opacity-70 italic">
+                          {language === 'en' ? "Visit Google AI Studio (link below)." : "নিচের লিঙ্কে ক্লিক করে গুগল এআই স্টুডিওতে যান।"}
+                        </p>
+                      </div>
+                      <div className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 text-xs font-bold">2</div>
+                        <p className="text-xs font-medium opacity-70 italic">
+                          {language === 'en' ? "Login with any Google account." : "যেকোনো একটি গুগল একাউন্ট দিয়ে লগইন করুন।"}
+                        </p>
+                      </div>
+                      <div className="flex gap-3">
+                        <div className="w-6 h-6 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 text-xs font-bold">3</div>
+                        <p className="text-xs font-medium opacity-70 italic">
+                          {language === 'en' ? "Click 'Get API key' then 'Create API key in new project'." : "'Get API key' এ ক্লিক করে 'Create API key' বাটনে চাপ দিন।"}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <a 
+                    href="https://aistudio.google.com/app/apikey" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-4 bg-indigo-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-500/20"
+                  >
+                    <ExternalLink size={14} />
+                    {language === 'en' ? 'Google AI Studio' : 'এআই স্টুডিও লিংক'}
+                  </a>
+
+                  <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex gap-3">
+                    <ShieldCheck size={20} className="text-amber-500 shrink-0" />
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1">
+                        {language === 'en' ? 'Security Note' : 'সিকিউরিটি নোট'}
+                      </p>
+                      <p className="text-[10px] font-medium opacity-60 leading-tight">
+                        {language === 'en' 
+                          ? "Your key is saved only in your browser's private storage (Local Storage). It is never sent to our server."
+                          : "আপনার কি শুধুমাত্র আপনার ব্রাউজারের প্রাইভেট স্টোরেজে সেভ থাকে। আমাদের সার্ভারে এটি পাঠানো হয় না।"
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setShowApiTips(false)}
+                  className="w-full py-4 bg-black/5 dark:bg-white/5 border border-theme/10 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-black/10 dark:hover:bg-white/10 transition-all"
+                >
+                  {language === 'en' ? 'Got it, thanks' : 'বুঝেছি, ধন্যবাদ'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
