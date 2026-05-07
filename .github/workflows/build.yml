@@ -1,6 +1,10 @@
 name: Build Android APK
 on: [push]
 
+env:
+  APP_VERSION_CODE: 2
+  APP_VERSION_NAME: "1.0.1"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,6 +30,7 @@ jobs:
             mkdir -p dist
             cp index.html dist/ 2>/dev/null || true
           fi
+
       - name: Setup Capacitor Config
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
@@ -43,6 +48,7 @@ jobs:
           EOF
           npx cap add android || true
           npx cap sync android
+
       - name: Set App Icon and Splash Screen
         run: |
           sudo apt-get install -y imagemagick
@@ -65,9 +71,12 @@ jobs:
           mkdir -p $RES_DIR/drawable-land-hdpi $RES_DIR/drawable-port-hdpi
           convert $ICON_SRC -resize 512x512 $RES_DIR/drawable-land-hdpi/splash.png
           convert $ICON_SRC -resize 512x512 $RES_DIR/drawable-port-hdpi/splash.png
+
       - name: Build Android APK
         run: |
           cd android
+          sed -i "s/versionCode [0-9]*/versionCode ${{ env.APP_VERSION_CODE }}/" app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${{ env.APP_VERSION_NAME }}\"/" app/build.gradle
           echo "configurations.all {
               resolutionStrategy.eachDependency { DependencyResolveDetails details ->
                   if (details.requested.group == 'org.jetbrains.kotlin') {
@@ -78,8 +87,9 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
           mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/MathMind.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: MathMind-APK
+          name: MathMind-v${{ env.APP_VERSION_NAME }}
           path: android/app/build/outputs/apk/debug/MathMind.apk
