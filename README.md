@@ -2,9 +2,9 @@
 
 <br/>
 
-<img width="120" src="./icon.png"/>
+<img width="130" src="./icon.png"/>
 
-<br/><br/>
+<br/>
 
 # MATH MIND
 
@@ -35,32 +35,50 @@
 
 ## 🧠 What is Math Mind?
 
-Math Mind is a **full-stack gamified math quiz app** where every session is powered by **Google Gemini AI** — generating fresh, unique questions each time you play. Earn points, level up, unlock premium themes, and track your performance with beautiful charts. No internet? No problem — a built-in **offline engine** kicks in automatically.
+**Math Mind** is a full-featured, gamified math quiz app powered by **Google Gemini AI** — generating fresh, unique questions every single session. Earn coins, level up, unlock premium themes, compete on the leaderboard, and track your progress with beautiful analytics.
 
-Supports both **English 🇬🇧** and **Bengali 🇧🇩** — including AI-generated questions in Bengali.
+No internet? No problem — a **built-in offline engine** kicks in automatically without any interruption.
+
+Fully supports **English 🇬🇧** and **Bengali 🇧🇩** — including AI-generated questions and explanations in Bengali.
 
 <br/>
 
 ---
 
-## ✨ Features at a Glance
+## ✨ Features
 
 <br/>
 
 | | Feature | Description |
 |---|---|---|
-| 🤖 | **AI Question Engine** | Google Gemini `gemini-3.1-flash-lite` generates 10 unique questions per session |
-| 📶 | **Offline Fallback** | No internet or API key? A local question engine takes over seamlessly |
-| 🌐 | **Bilingual** | Full English & Bengali support — switch with one tap |
-| 🎯 | **3 Question Types** | Multiple Choice, True/False, and Fill-in-the-Blank |
-| ⏱️ | **Countdown Timer** | Per-question timer with Pause / Resume functionality |
-| ⚡ | **Speed Bonus** | Answer faster to earn more points on top of base score |
+| 🤖 | **AI Question Engine** | Google Gemini AI generates 10 unique questions per session |
+| 📶 | **Offline Fallback** | No internet? A local engine takes over seamlessly |
+| 🌐 | **Bilingual Support** | Full English & Bengali — switch with one tap |
+| 🎯 | **5 Question Types** | MCQ, True/False, Fill-in-Blank, Calculation, Matching |
+| ⏱️ | **Countdown Timer** | Per-question timer with Pause / Resume |
+| ⚡ | **Speed Bonus** | Answer faster → earn more points |
 | 📊 | **Rich Analytics** | Pie chart, Radar chart, GitHub-style activity heatmap |
 | 🎨 | **10 Unlockable Themes** | Buy themes with earned coins — all with dark mode variants |
-| 🏆 | **6 Achievements** | Milestone-based rewards with toast notifications |
-| 🔁 | **Review Mode** | Revisit questions you got wrong to master weak areas |
-| 💾 | **Local Persistence** | All progress saved to browser storage — no account needed |
+| 🏆 | **Achievements System** | 6 milestone-based rewards with toast notifications |
+| 🔁 | **Review Mode** | Revisit your wrong answers to master weak areas |
+| 👥 | **AI Rivals** | Compete against 10 legendary math rival bots |
+| 🔢 | **KaTeX Rendering** | Beautiful LaTeX math formula display |
+| 🔊 | **Sound Effects** | Toggle game sounds on/off from settings |
+| 💾 | **Local Persistence** | All progress saved to device — no account needed |
 | 🌓 | **Dark Mode** | Toggle light/dark from the header at any time |
+| 📱 | **Android APK** | Installable as a native Android app |
+
+<br/>
+
+---
+
+## 📱 Android App
+
+Math Mind is available as an installable **Android APK** built with Capacitor.
+
+**[⬇️ Download Latest APK](https://github.com/AsadullahAlMunib/MathMind/raw/refs/heads/main/download/MathMind.apk)**
+
+The APK is automatically built via **GitHub Actions** on every push to `main`. No local Android Studio setup required.
 
 <br/>
 
@@ -68,145 +86,68 @@ Supports both **English 🇬🇧** and **Bengali 🇧🇩** — including AI-gen
 
 ## 🗺️ App Navigation
 
-The app has **5 tabs** — a sidebar on desktop, a bottom bar on mobile:
+The app has **5 tabs** — sidebar on desktop, bottom bar on mobile:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  📊  Dashboard    Stats, charts, and quick-start     │
-│  🎮  Quiz         Choose difficulty and play         │
-│  🏆  Leaderboard  Personal high score board          │
-│  🛍️  Store         Buy themes with your coins         │
-│  👤  Profile       Name, avatar, language settings   │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│  📊  Dashboard    Stats, charts, heatmap, quick-start │
+│  🎮  Quiz         Choose difficulty and play          │
+│  🏆  Leaderboard  Compete against rival bots          │
+│  🛍️  Store         Buy themes with your coins          │
+│  👤  Profile       Name, avatar, language, theme      │
+└──────────────────────────────────────────────────────┘
 ```
 
 <br/>
 
 ---
 
-## 🎮 How to Play — Step by Step
+## 🎮 How to Play
 
-<br/>
+### 1 · Choose Your Difficulty
 
-### Step 1 · Choose Your Difficulty
-
-Head to the **Quiz tab** and pick a mode:
-
-| Mode | Topics Covered | Timer | Base Points |
+| Mode | Topics | Timer | Base Points |
 |---|---|---|---|
-| 🟢 **Basic** | Addition, Subtraction, Multiplication, Division (up to 100) | 30 sec | 10 pts |
-| 🟡 **Normal** | Algebra, Percentages, Fractions, Squares, Basic Geometry | 30 sec | 25 pts |
-| 🔴 **Hard** | Exponents, Circle Geometry, Simultaneous Equations, Compound Word Problems | **20 sec** | 50 pts |
+| 🟢 **Basic** | Addition, Subtraction, Multiplication, Division | 30 sec | 10 pts |
+| 🟡 **Normal** | Algebra, Percentages, Fractions, Squares, Geometry | 30 sec | 25 pts |
+| 🔴 **Hard** | Exponents, Equations, Compound Word Problems | 30 sec | 50 pts |
 
-> You can also hit **"Start Quiz"** on the Dashboard to jump straight into Basic mode.
+### 2 · Answer Questions
 
-<br/>
+Five question formats appear throughout the quiz:
 
-### Step 2 · Wait for AI to Generate Questions
+**① Multiple Choice** — tap one of 4 options  
+**② True / False** — two buttons, one choice  
+**③ Fill in the Blank** — type your answer  
+**④ Calculation** — solve step by step  
+**⑤ Matching** — pair the correct items  
 
-Once a difficulty is selected, Gemini AI generates **10 fresh questions**. You'll see an animated loading screen:
-
-```
-  ⠿  Formulating Challenges...
-     Synthesizing math puzzles...
-```
-
-> If you're offline or missing an API key, the app silently switches to the **offline question engine** — no error, no interruption.
-
-<br/>
-
-### Step 3 · Answer the Question
-
-Three question formats can appear:
-
-**① Multiple Choice** — tap one of 4 options
+### 3 · Scoring Formula
 
 ```
-  What is 15% of 200?
+Total Points = Base Points + Speed Bonus
 
-  ┌──────────┐  ┌──────────┐
-  │    25    │  │   30 ✓   │
-  └──────────┘  └──────────┘
-  ┌──────────┐  ┌──────────┐
-  │    35    │  │    40    │
-  └──────────┘  └──────────┘
+Speed Bonus:
+  Basic / Normal  →  time remaining × 1.5
+  Hard            →  time remaining × 2.5
+
+Example (Hard, 15 sec remaining):
+  50 + (15 × 2.5) = 87.5 pts
 ```
 
-**② True / False** — two buttons, one choice
+### 4 · Read the Explanation
 
-```
-  Is it true that √144 = 12?
+After every answer, the **Logic Breakdown** panel reveals:
+- ✅ Correct → green highlight + how-to explanation
+- ❌ Wrong → correct answer + full solution walkthrough
 
-  ┌──────────────┐  ┌──────────────┐
-  │   True  ✓    │  │    False     │
-  └──────────────┘  └──────────────┘
-```
+### 5 · Results & Rewards
 
-**③ Fill in the Blank** — type your answer and submit
-
-```
-  Solve for x:  3x + 6 = 21
-
-  Answer: [ 5 ]   →  [ Submit Answer ]
-```
-
-<br/>
-
-### Step 4 · Understand the Timer & Scoring
-
-**Timer rules:**
-- Basic & Normal → **30 seconds** per question
-- Hard → **20 seconds** per question
-- Time runs out → question is marked wrong automatically
-- Hit **⏸ Pause** to freeze the timer (screen blurs, question hidden)
-- Hit **▶ Resume** to continue
-
-**How points are calculated:**
-
-```
-  Total Points = Base Points + Speed Bonus
-
-  Speed Bonus:
-    Basic / Normal  →  time remaining × 1.5
-    Hard            →  time remaining × 2.5
-
-  Example (Hard, 15 seconds remaining):
-    50  +  (15 × 2.5)  =  50 + 37.5  =  87.5 pts
-```
-
-<br/>
-
-### Step 5 · Read the Explanation
-
-After every answer, the app reveals a **"Logic Breakdown"** panel:
-
-- ✅ **Correct** → green highlight + explanation of how to solve it
-- ❌ **Wrong** → red highlight + the correct answer + solution walkthrough
-
-```
-  ┌─────────────────────────────────────────────┐
-  │ 📖 LOGIC BREAKDOWN                          │
-  │                                             │
-  │ To find 15% of 200: multiply 200 × 0.15     │
-  │ = 30                                        │
-  │                                             │
-  │ Correct Answer:  30                         │
-  └─────────────────────────────────────────────┘
-```
-
-Then tap **"Next Question →"** to continue.
-
-<br/>
-
-### Step 6 · See Your Results
-
-After question 10, tap **"See Results"**:
-
-- Total points are added to your **coin balance**
-- **High Score** is updated if you beat your previous best
-- Wrong answers are stored in your **Missed Questions** bank
-- Session **streak** is calculated and compared to your best
-- Any newly unlocked **Achievements** pop up as toast notifications 🎉
+After all 10 questions:
+- Points added to your **coin balance**
+- **High Score** updated if beaten
+- Wrong answers saved in **Missed Questions** bank
+- Newly unlocked **Achievements** pop as toast notifications 🎉
 
 <br/>
 
@@ -214,20 +155,7 @@ After question 10, tap **"See Results"**:
 
 ## 🔁 Review Mode
 
-If you've missed **5 or more** questions, the Dashboard shows a Review Banner:
-
-```
-  ┌──────────────────────────────────────────────────────────┐
-  │  ⚡  Challenge Yourself!                                  │
-  │                                                          │
-  │  You have 8 questions to review.                         │
-  │  Practice them to master these concepts!                 │
-  │                                                          │
-  │           [ Master These Questions → ]                   │
-  └──────────────────────────────────────────────────────────┘
-```
-
-Review Mode replays your saved wrong questions — no new AI generation needed. The app stores up to **50 missed questions** (oldest drop off as new ones come in).
+Once you've missed **5 or more** questions, the Dashboard shows a Review Banner to replay only your wrong answers — no new AI generation needed. Stores up to **50 missed questions**.
 
 <br/>
 
@@ -236,32 +164,48 @@ Review Mode replays your saved wrong questions — no new AI generation needed. 
 ## 📊 Dashboard Analytics
 
 ```
-  ┌─── QUICK STATS ────────────────────────────────────┐
-  │  💰 Balance   🎯 Level   ⚡ Quizzes   🔥 Streak    │
-  └────────────────────────────────────────────────────┘
+┌─── QUICK STATS ─────────────────────────────────────┐
+│  💰 Balance   🎯 Level   ⚡ Quizzes   🔥 Best Streak │
+└─────────────────────────────────────────────────────┘
 
-  ┌─── ANALYTICS (toggle between views) ──────────────┐
-  │  Accuracy View  →  Pie Chart (correct vs wrong %)  │
-  │  Mastery View   →  Radar Chart (score by mode)     │
-  └────────────────────────────────────────────────────┘
+┌─── CHARTS ──────────────────────────────────────────┐
+│  Accuracy View  →  Pie Chart (correct vs wrong %)   │
+│  Mastery View   →  Radar Chart (score by mode)      │
+└─────────────────────────────────────────────────────┘
 
-  ┌─── ACTIVITY HEATMAP ───────────────────────────────┐
-  │  GitHub-style grid showing last 50 days of quizzes │
-  └────────────────────────────────────────────────────┘
+┌─── ACTIVITY HEATMAP ────────────────────────────────┐
+│  GitHub-style grid showing last 50 days of quizzes  │
+└─────────────────────────────────────────────────────┘
 
-  ┌─── PERSONAL BESTS ─────────────────────────────────┐
-  │  Bar Chart — highest score per difficulty           │
-  └────────────────────────────────────────────────────┘
+┌─── PERSONAL BESTS ──────────────────────────────────┐
+│  Bar Chart — highest score per difficulty            │
+└─────────────────────────────────────────────────────┘
 ```
 
-**Level System:**
+**Level System** — each level requires ×1.2 more points than the previous:
 ```
-  Every 1,000 points  =  1 Level Up
-  Level 1: 0 – 999 pts
-  Level 2: 1,000 – 1,999 pts
-  Level 3: 2,000 – 2,999 pts
-  ... and so on
+Level 1 → 2  :   500 pts  (lifetime:   500)
+Level 2 → 3  :   600 pts  (lifetime: 1,100)
+Level 3 → 4  :   720 pts  (lifetime: 1,820)
+Level 4 → 5  :   864 pts  (lifetime: 2,684)
+Level 5 → 6  : 1,037 pts  (lifetime: 3,721)
+... and so on, multiplying by 1.2 each time
 ```
+
+<br/>
+
+---
+
+## 🏆 Achievements
+
+| Badge | Achievement | How to Unlock |
+|---|---|---|
+| 🎯 | **First Step** | Complete your very first quiz |
+| ⚡ | **Warm Up Master** | Score a perfect 1,000 pts in Basic mode |
+| 🔥 | **On Fire** | Reach a best streak of 10 or more |
+| 🪙 | **Point Hoarder** | Accumulate 10,000 total points |
+| 🎨 | **Fashionable** | Unlock any 5 themes from the Store |
+| 👑 | **Math Legend** | Score above 4,000 pts in a single Hard session |
 
 <br/>
 
@@ -269,9 +213,7 @@ Review Mode replays your saved wrong questions — no new AI generation needed. 
 
 ## 🎨 Theme Store
 
-Spend your earned coins in the **Store tab** to unlock new visual themes. Every theme includes a full dark mode variant.
-
-| # | Theme | Cost | Primary Color |
+| # | Theme | Cost | Palette |
 |---|---|---|---|
 | 1 | **Default** | 🆓 Free | Indigo / Violet |
 | 2 | **Emerald Forest** | 🪙 500 | Emerald Green |
@@ -283,25 +225,22 @@ Spend your earned coins in the **Store tab** to unlock new visual themes. Every 
 | 8 | **Monochrome Pro** | 🪙 15,000 | Pure Black & White |
 | 9 | **Nebula** | 🪙 20,000 | Deep Pink / Indigo |
 | 10 | **Crimson Fury** | 🪙 30,000 | Bold Red |
+| 🎨 | **Custom Theme** | 🪙 40,000 | Pick your own primary & secondary colors |
 
-> After purchasing a theme, tap **"Select"** to apply it. Purchased themes never expire.
+Every theme ships with a full **dark mode variant**. Purchased themes never expire.
 
 <br/>
 
 ---
 
-## 🏆 Achievements
+## 👥 Leaderboard Rivals
 
-Unlock all 6 achievements by hitting specific milestones. A toast notification appears the moment one is unlocked.
+Compete against **10 AI rival bots** inspired by history's greatest mathematicians:
 
-| Badge | Achievement | How to Unlock |
-|---|---|---|
-| 🎯 | **First Step** | Complete your very first quiz |
-| ⚡ | **Warm Up Master** | Score a perfect 1,000 pts in Basic mode |
-| 🔥 | **On Fire** | Reach a best streak of 10 or more |
-| 🪙 | **Point Hoarder** | Accumulate 10,000 total points |
-| 🎨 | **Fashionable** | Unlock any 5 themes from the Store |
-| 👑 | **Math Legend** | Score above 4,000 pts in a single Hard mode session |
+`Euler_Math` · `Pythagoras` · `Gauss_99` · `Hypatia_X` · `Newton_Apple`  
+`Ada_L` · `Ramanujan` · `Descartes` · `Fibonacci` · `Leibniz_DT`
+
+Each rival has a trend indicator (`↑ up`, `↓ down`, `→ stable`) based on their recent activity.
 
 <br/>
 
@@ -329,7 +268,7 @@ npm install
 cp .env.example .env.local
 ```
 
-Open `.env.local` and add your key:
+Add your API key to `.env.local`:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -340,9 +279,9 @@ GEMINI_API_KEY=your_gemini_api_key_here
 npm run dev
 ```
 
-Open your browser at **`http://localhost:3000`** — you're ready to play!
+Open **`http://localhost:3000`** — you're ready to play!
 
-> **No API key? Still works.** Without a key (or offline), the app automatically uses the built-in question engine. No setup required to try it out.
+> **No API key? Still works.** Without a key or when offline, the app automatically uses the built-in offline question engine.
 
 <br/>
 
@@ -367,14 +306,15 @@ Open your browser at **`http://localhost:3000`** — you're ready to play!
 | Layer | Technology | Purpose |
 |---|---|---|
 | **UI Framework** | React 19 + TypeScript | Component architecture & type safety |
-| **Build** | Vite 6 | Fast HMR dev server and bundler |
+| **Build Tool** | Vite 6 | Fast HMR dev server and bundler |
 | **Styling** | Tailwind CSS v4 | Utility-first CSS + theme variables |
-| **AI** | Google Gemini (`gemini-3.1-flash-lite`) | Real-time question generation |
-| **Animation** | Motion (Framer Motion) | Page transitions, micro-interactions |
+| **AI** | Google Gemini API | Real-time question generation |
+| **Animation** | Motion (Framer Motion) | Page transitions & micro-interactions |
 | **Charts** | Recharts | Pie, Radar, and Bar charts |
+| **Math Rendering** | KaTeX + react-katex | LaTeX formula display |
 | **Icons** | Lucide React | Consistent icon set |
-| **Backend** | Express.js | Server-side support layer |
 | **Dates** | date-fns | Activity heatmap date handling |
+| **Mobile** | Capacitor | Android APK packaging |
 | **Storage** | Browser `localStorage` | Persistent state without a database |
 
 <br/>
@@ -387,23 +327,33 @@ Open your browser at **`http://localhost:3000`** — you're ready to play!
 MathMind/
 ├── src/
 │   ├── components/
-│   │   ├── Quiz.tsx           # Core gameplay: timer, answers, scoring
-│   │   ├── Dashboard.tsx      # Stats, charts, heatmap, quick actions
-│   │   ├── Store.tsx          # Theme marketplace
-│   │   ├── Leaderboard.tsx    # Personal high score board
-│   │   ├── Profile.tsx        # User profile and settings
-│   │   ├── Tutorial.tsx       # First-time onboarding flow
-│   │   └── Tooltip.tsx        # Reusable tooltip wrapper
+│   │   ├── Quiz.tsx              # Core gameplay: timer, answers, scoring
+│   │   ├── Dashboard.tsx         # Stats, charts, heatmap, quick actions
+│   │   ├── Leaderboard.tsx       # Rival competition board
+│   │   ├── Store.tsx             # Theme marketplace
+│   │   ├── Profile.tsx           # User profile and settings
+│   │   ├── Achievements.tsx      # Achievement display and tracking
+│   │   ├── Tutorial.tsx          # First-time onboarding flow
+│   │   ├── Logo.tsx              # App logo component
+│   │   ├── QuotaModal.tsx        # API quota limit handler
+│   │   └── Tooltip.tsx           # Reusable tooltip wrapper
 │   ├── lib/
-│   │   ├── quizEngine.ts      # Gemini AI + offline question generator
-│   │   ├── types.ts           # THEMES, ACHIEVEMENTS, all TS interfaces
-│   │   ├── storage.ts         # localStorage read/write helpers
-│   │   └── translations.ts    # English & Bengali string maps
-│   ├── App.tsx                # Root: navigation, state, theme, toasts
-│   └── main.tsx               # Entry point
+│   │   ├── quizEngine.ts         # Gemini AI + offline question generator
+│   │   ├── types.ts              # THEMES, ACHIEVEMENTS, all TS interfaces
+│   │   ├── storage.ts            # localStorage read/write helpers
+│   │   ├── translations.ts       # English & Bengali string maps
+│   │   ├── levelUtils.ts         # XP and level calculation helpers
+│   │   └── sounds.ts             # Sound effect manager
+│   ├── App.tsx                   # Root: navigation, state, theme, toasts
+│   └── main.tsx                  # Entry point
+├── .github/
+│   └── workflows/
+│       └── build.yml             # Android APK auto-build workflow
+├── icon.png                      # Android launcher icon (1024×1024)
 ├── index.html
-├── .env.example               # API key template
-├── metadata.json              # App description and capabilities
+├── .env.example                  # API key template
+├── metadata.json                 # App description and capabilities
+├── capacitor.config.json         # Capacitor Android config
 ├── package.json
 ├── vite.config.ts
 └── tsconfig.json
