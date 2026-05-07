@@ -91,10 +91,10 @@ The app has **5 tabs** — sidebar on desktop, bottom bar on mobile:
 ```
 ┌──────────────────────────────────────────────────────┐
 │  📊  Dashboard    Stats, charts, heatmap, quick-start │
-│  🎮  Quiz         Choose difficulty and play          │
 │  🏆  Leaderboard  Compete against rival bots          │
+│  🎮  Quiz         Choose difficulty and play          │
 │  🛍️  Store         Buy themes with your coins          │
-│  👤  Profile       Name, avatar, language, theme      │
+│  👤  Profile       Name, avatar, API key, Sound effects      │
 └──────────────────────────────────────────────────────┘
 ```
 
