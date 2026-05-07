@@ -4,7 +4,7 @@
 
 <img width="130" src="./icon.png"/>
 
-<br/><br/>
+<br/>
 
 # MATH MIND
 
