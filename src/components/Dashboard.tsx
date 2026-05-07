@@ -45,6 +45,7 @@ import Logo from './Logo';
 
 import { UserStats, UserProfile, Difficulty } from '../lib/types';
 import { translations } from '../lib/translations';
+import { calculateLevelInfo } from '../lib/levelUtils';
 
 interface DashboardProps {
   stats: UserStats;
@@ -59,9 +60,9 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const t = translations[language];
 
-  // Level progress calculation (based on 1000 points per level)
-  const levelProgress = (stats.totalPoints % 1000) / 10; // Result is percentage (0-100)
-  const pointsToNextLevel = 1000 - (stats.totalPoints % 1000);
+  const levelInfo = calculateLevelInfo(stats.totalPoints);
+  const levelProgress = levelInfo.progress;
+  const pointsToNextLevel = levelInfo.pointsToNextLevel;
   const hasMissed = stats.missedQuestions && stats.missedQuestions.length > 0;
 
   // Prepare activity data (last 50 days)
@@ -112,20 +113,45 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
               </p>
             </div>
 
-            <div className="space-y-2 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20 inline-block w-full max-w-xs shadow-lg shadow-black/5">
-              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-white">
-                <span className="flex items-center gap-1">
-                  <Award size={12} className="text-amber-300" /> {t.level} {stats.level}
+            <div className="space-y-3 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 w-full shadow-lg shadow-black/5">
+              <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-widest text-white">
+                <span className="flex items-center gap-1.5">
+                  <div className="w-5 h-5 bg-amber-400/20 rounded-lg flex items-center justify-center border border-amber-400/30">
+                    <Award size={12} className="text-amber-300" />
+                  </div>
+                  {t.level} {stats.level}
                 </span>
-                <span className="text-white/70">{pointsToNextLevel} {language === 'en' ? 'PTS TO NEXT' : 'পয়েন্ট লেভেল আপ'}</span>
+                <span className="text-white/60 tabular-nums">
+                  {pointsToNextLevel} <span className="text-[9px] opacity-70">{language === 'en' ? 'PTS TO NEXT' : 'পয়েন্ট লেভেল আপ'}</span>
+                </span>
               </div>
-              <div className="h-2 w-full bg-black/20 rounded-full overflow-hidden border border-white/10">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${levelProgress}%` }}
+              
+              <div className="relative">
+                <div className="h-3 w-full bg-black/30 rounded-full overflow-hidden border border-white/10 relative shadow-inner">
+                  {/* Subtle track pattern */}
+                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,white_1px,transparent_1px)] bg-[size:4px_4px]"></div>
+                  
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${levelProgress}%` }}
+                    transition={{ duration: 1.5, ease: "circOut" }}
+                    className="h-full bg-gradient-to-r from-amber-500 via-amber-300 to-amber-400 relative z-10"
+                  >
+                    {/* Gloss effect */}
+                    <div className="absolute inset-x-0 top-0 h-1/2 bg-white/30 skew-x-12 opacity-50"></div>
+                  </motion.div>
+                </div>
+
+                {/* Sparkling indicator at the tip */}
+                <motion.div
+                  initial={{ left: 0, opacity: 0 }}
+                  animate={{ left: `${levelProgress}%`, opacity: 1 }}
                   transition={{ duration: 1.5, ease: "circOut" }}
-                  className="h-full bg-gradient-to-r from-amber-400 to-amber-200 rounded-full shadow-[0_0_15px_rgba(251,191,36,0.6)]"
-                />
+                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 pointer-events-none"
+                >
+                  <div className="w-5 h-5 bg-amber-200 rounded-full blur-[6px] opacity-50"></div>
+                  <div className="w-2.5 h-2.5 bg-white rounded-full shadow-[0_0_10px_#fff,0_0_20px_rgba(251,191,36,0.8)] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+                </motion.div>
               </div>
             </div>
 

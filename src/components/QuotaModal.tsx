@@ -78,12 +78,20 @@ export default function QuotaModal({ isOpen, onClose, onUseOffline, language }: 
               
               <div className="space-y-2">
                 <h2 className="text-2xl font-black tracking-tight">
-                  {language === 'en' ? 'AI Quota Limit' : 'AI লিমিট শেষ'}
+                  {!storage.getApiKey() 
+                    ? (language === 'en' ? 'Online AI Activation' : 'অনলাইন AI সক্রিয় করুন')
+                    : (language === 'en' ? 'AI Quota Limit' : 'AI লিমিট শেষ')
+                  }
                 </h2>
                 <p className="text-sm font-medium opacity-60">
-                  {language === 'en' 
-                    ? "Our free AI service has reached its daily limit. You can use your own API key to continue playing online." 
-                    : "আমাদের ফ্রি AI সার্ভিসের লিমিট শেষ হয়ে গেছে। আপনি কন্টিনিউ করতে নিজের API Key ব্যবহার করতে পারেন।"}
+                  {!storage.getApiKey() 
+                    ? (language === 'en' 
+                        ? "To generate premium math challenges with Gemini AI, please provide your own API key." 
+                        : "জেমিনি AI ব্যবহার করে উন্নত গণিত চ্যালেঞ্জ তৈরি করতে আপনার নিজস্ব API Key প্রদান করুন।")
+                    : (language === 'en' 
+                        ? "Our free AI service has reached its daily limit. You can use your own API key to continue playing online." 
+                        : "আমাদের ফ্রি AI সার্ভিসের লিমিট শেষ হয়ে গেছে। আপনি কন্টিনিউ করতে নিজের API Key ব্যবহার করতে পারেন।")
+                  }
                 </p>
               </div>
             </div>

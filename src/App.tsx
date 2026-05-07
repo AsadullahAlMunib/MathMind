@@ -31,6 +31,7 @@ import { storage } from './lib/storage';
 import { translations } from './lib/translations';
 import { THEMES, AppState, Difficulty, Question, ACHIEVEMENTS } from './lib/types';
 import { soundManager } from './lib/sounds';
+import { calculateLevelInfo } from './lib/levelUtils';
 
 // Components
 import Quiz from './components/Quiz';
@@ -75,14 +76,18 @@ export default function App() {
     let themeColors;
     
     if (state.user.currentTheme === 'custom' && state.user.customTheme) {
+      const p = state.user.customTheme.primary;
+      const s = state.user.customTheme.secondary;
+      
       themeColors = {
-        primary: state.user.customTheme.primary,
-        secondary: state.user.customTheme.secondary,
-        bg: isDark ? '#0f172a' : '#f8fafc',
+        primary: isDark ? `color-mix(in srgb, ${p}, white 15%)` : p,
+        secondary: isDark ? `color-mix(in srgb, ${s}, white 15%)` : s,
+        bg: isDark ? `color-mix(in srgb, ${p} 3%, #020617)` : `color-mix(in srgb, ${p} 2%, #f8fafc)`,
         text: isDark ? '#f1f5f9' : '#0f172a',
-        surface: isDark ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-        border: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-      };
+        surface: isDark ? `color-mix(in srgb, ${p} 8%, #0f172a)` : 'rgba(255, 255, 255, 0.9)',
+        border: isDark ? `color-mix(in srgb, ${p} 20%, rgba(255,255,255,0.1))` : `color-mix(in srgb, ${p} 15%, rgba(0,0,0,0.1))`,
+        textMuted: isDark ? `color-mix(in srgb, ${p} 30%, #94a3b8)` : `color-mix(in srgb, ${p} 30%, #475569)`,
+      } as any;
     } else {
       themeColors = isDark && (currentTheme as any).darkColors 
         ? (currentTheme as any).darkColors 
@@ -93,9 +98,9 @@ export default function App() {
     root.style.setProperty('--secondary', themeColors.secondary);
     root.style.setProperty('--bg', themeColors.bg);
     root.style.setProperty('--text', themeColors.text);
-    root.style.setProperty('--text-muted', (themeColors as any).textMuted || themeColors.text);
-    root.style.setProperty('--border', (themeColors as any).border || 'rgba(0,0,0,0.1)');
-    root.style.setProperty('--surface', (themeColors as any).surface || 'rgba(255,255,255,0.8)');
+    root.style.setProperty('--text-muted', themeColors.textMuted || themeColors.text);
+    root.style.setProperty('--border', themeColors.border || 'rgba(0,0,0,0.1)');
+    root.style.setProperty('--surface', themeColors.surface || 'rgba(255,255,255,0.8)');
   }, [currentTheme, isDark, state.user.currentTheme, state.user.customTheme]);
 
   const addToast = (title: string, subtitle: string, icon?: React.ReactNode) => {
@@ -171,7 +176,8 @@ export default function App() {
       
       newLifetimeLevelScores[diff] = (newLifetimeLevelScores[diff] || 0) + points;
       
-      const newLevel = Math.floor(newTotalPoints / 1000) + 1;
+      const { level: newLevel } = calculateLevelInfo(newTotalPoints);
+      
       if (newLevel > stats.level) {
         soundManager.play('levelUp');
         addToast(t.levelUp || "Level Up!", `${t.level} ${newLevel}`, <Award className="text-primary" />);
@@ -341,9 +347,9 @@ export default function App() {
               {/* Level Progress Bar in Header */}
               <div className="w-24 md:w-32 h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden hidden xs:block">
                 <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(state.stats.totalPoints % 1000) / 10}%` }}
-                  className="h-full bg-primary"
+                   initial={{ width: 0 }}
+                   animate={{ width: `${calculateLevelInfo(state.stats.totalPoints).progress}%` }}
+                   className="h-full bg-primary"
                 />
               </div>
             </div>
@@ -390,10 +396,10 @@ export default function App() {
               }}
               onQuotaExceeded={() => {
                 setShowQuotaModal(true);
-                setQuizDifficulty(null);
               }}
               language={state.user.language}
               initialQuestions={quizQuestions || undefined}
+              addToast={addToast}
             />
           ) : (
             <motion.div
@@ -528,6 +534,7 @@ export default function App() {
                   }}
                   onStartTutorial={() => setShowTutorial(true)}
                   language={state.user.language}
+                  addToast={addToast}
                 />
               )}
             </motion.div>
@@ -601,9 +608,7 @@ export default function App() {
         onClose={() => setShowQuotaModal(false)}
         onUseOffline={() => {
           setShowQuotaModal(false);
-          // Just start quiz with difficulty 'normal' as fallback if needed, 
-          // or user can just select a mode again which will now likely hit algorithmic path
-          setQuizDifficulty('normal');
+          if (!quizDifficulty) setQuizDifficulty('normal');
         }}
         language={state.user.language}
       />

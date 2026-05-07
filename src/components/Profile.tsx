@@ -28,6 +28,8 @@ import {
   Crown,
   Lock,
   CheckCircle,
+  CheckCircle2,
+  ShieldAlert,
   Volume2,
   VolumeX,
   Settings as SettingsIcon,
@@ -58,9 +60,10 @@ interface ProfileProps {
   onClearReview: () => void;
   onStartTutorial: () => void;
   language: 'en' | 'bn';
+  addToast: (title: string, subtitle: string, icon?: React.ReactNode) => void;
 }
 
-export default function Profile({ user, stats, onUpdateUser, onClearReview, onStartTutorial, language }: ProfileProps) {
+export default function Profile({ user, stats, onUpdateUser, onClearReview, onStartTutorial, language, addToast }: ProfileProps) {
   const [isChangingAvatar, setIsChangingAvatar] = useState(false);
   const [showApiTips, setShowApiTips] = useState(false);
   const [activeCustomTab, setActiveCustomTab] = useState<'style' | 'color' | 'text'>('style');
@@ -482,9 +485,21 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
               <button 
                 onClick={() => {
                   const input = document.getElementById('api-key-input') as HTMLInputElement;
-                  if (input.value.trim().startsWith('AIza')) {
-                    storage.saveApiKey(input.value.trim());
-                    window.location.reload();
+                  const key = input.value.trim();
+                  if (key.startsWith('AIza')) {
+                    storage.saveApiKey(key);
+                    addToast(
+                      language === 'en' ? "API Key Saved" : "API কী সংরক্ষিত হয়েছে",
+                      language === 'en' ? "Reloading to apply changes..." : "পরিবর্তনগুলো প্রয়োগ করতে রিলোড হচ্ছে...",
+                      <CheckCircle2 className="text-emerald-500" />
+                    );
+                    setTimeout(() => window.location.reload(), 1500);
+                  } else {
+                    addToast(
+                      language === 'en' ? "Invalid Key Format" : "ভুল কী ফরম্যাট",
+                      language === 'en' ? "Gemini API keys typically start with 'AIza'" : "জেমিনি API কী সাধারণত 'AIza' দিয়ে শুরু হয়",
+                      <ShieldAlert className="text-rose-500" />
+                    );
                   }
                 }}
                 className="px-4 bg-primary text-white text-xs font-black uppercase rounded-xl hover:bg-primary/90 transition-all"

@@ -9,28 +9,60 @@ import { storage } from './storage';
 
 function getAI() {
   const customKey = storage.getApiKey();
-  const apiKey = customKey || process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  const apiKey = (customKey || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined))?.trim();
+  
+  if (!apiKey || apiKey === '' || apiKey === 'undefined' || apiKey === 'null') return null;
   return new GoogleGenAI({ apiKey });
 }
 
+// Helper for timeout
+const withTimeout = (promise: Promise<any>, timeoutMs: number) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('AI_TIMEOUT')), timeoutMs))
+  ]);
+};
+
 export const quizEngine = {
+  getApiKey() {
+    return (storage.getApiKey() || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined))?.trim();
+  },
+
   async generateQuestions(difficulty: Difficulty, language: 'en' | 'bn', count: number = 10): Promise<{ questions: Question[]; source: 'ai' | 'algorithmic' | 'cache' }> {
     const ai = getAI();
-    const isOnline = navigator.onLine && !!ai;
+    
+    // Improved detection: If we have an AI client, we should try it regardless of navigator.onLine which is sometimes unreliable
+    const canTryAI = !!ai;
 
-    if (isOnline) {
-      const maxRetries = 2;
+    if (canTryAI) {
+      const maxRetries = 1;
       let attempt = 0;
 
       while (attempt <= maxRetries) {
         try {
           const modelName = difficulty === 'hard' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
-          // Increase request count to build 150-limit cache faster
-          const batchCount = Math.max(count, 15);
+          // Use exact requested count to avoid timeout on larger batches
+          const batchCount = count;
+          const randomSeed = Math.random().toString(36).substring(7);
+          const timestamp = new Date().getTime();
           
-          const prompt = `Generate ${batchCount} math questions for ${difficulty} difficulty in ${language === 'en' ? 'English' : 'Bengali'}. 
+          const prompt = `Generate ${batchCount} UNIQUE and diverse math questions for ${difficulty} difficulty in ${language === 'en' ? 'English' : 'Bengali'}. 
+          Randomization Context: ${randomSeed}-${timestamp} (Ensure no repetition from previous sessions).
+          
+          Topic Variety (Include a mix of these):
+          - Arithmetic (percentages, ratios, fractions)
+          - Algebra (equations, sequences, word problems)
+          - Geometry (area, perimeter, coordinates, property RELATIONSHIPS)
+          - Logic & Discovery (number patterns, puzzles, word-based math)
+          
           Format as JSON array with items matching this structure: { "id": "uuid", "question": "...", "options": ["...", "..."], "answer": "...", "type": "mcq" | "true-false" | "fill-blank" | "calculation" | "matching", "difficulty": "${difficulty}", "explanation": "...", "pairs": [{ "left": "...", "right": "..." }] }
+          
+          Constraints:
+          - QUESTIONS MUST BE UNIQUE. Do not repeat standard textbook questions exactly.
+          - CRITICAL: AVOID extremely simplistic factoid questions (e.g., "How many sides does a triangle have?", "How many angles in a square?", "What is 2+2?").
+          - DO NOT repeat the following question: "একটি ত্রিভুজের মোট কয়টি কোণ থাকে?" or its English equivalent.
+          - Avoid using the same constant values across multiple questions in the same batch.
+          - For matching questions, ensure the 4 pairs are distinct and not repetitive in logic.
           
           Types Guidance:
           - mcq: Multiple choice questions (4 options).
@@ -45,27 +77,67 @@ export const quizEngine = {
           - Hard: 9th-12th grade level. Trigonometry, log, quadratic, etc.
           
           Formatting Rules:
-          - For mathematical expressions (especially in 'hard' mode), wrap them in single dollar signs like $x^2$ or $\sin(x)$.
-          - Use standard LaTeX notation (e.g., \\sin(30^\\circ), \\frac{1}{2}, x^2, \\sqrt{x}, \\frac{dy}{dx}).
+          - CRITICAL: For mathematical expressions (fractions, roots, exponents, trigonometry, identities), ALWAYS wrap them in single dollar signs like $\frac{1}{2}$ or $\sin^2 \theta$.
+          - Use standard LaTeX notation (e.g., \\sin^2 \theta + \\cos^2 \theta = 1).
+          - MANDATORY: Use DOUBLE BACKSLASHES in the JSON string for all LaTeX commands. A single backslash like \f, \t, or \n will be interpreted as a JSON escape character (form feed, tab, newline) and break the math rendering. ALWAYS use "\\\\frac", "\\\\theta", "\\\\sin", etc.
+          - If you use a single backslash followed by an invalid character (like \s or \a), the JSON will FAIL to parse.
           - Do NOT wrap math in markdown code blocks (\` \` \`).
-          - Always use Bengali digits (০-৯) for Bengali questions, but English digits for mathematical formulas is acceptable if standard.
+          - Symbols: Use standard LaTeX symbols like \\theta, \\alpha, \\beta, \\pi, \\pm, \\times, \\div.
+          - Use Bengali digits (০-৯) for Bengali text, but LaTeX math formulas should preferably use English digits for better rendering ($ \frac{1}{2} $ instead of $ \frac{১}{২} $) unless specified otherwise.
           - Ensure EXACTLY ONE correct answer is in the "options" for MCQ.
           - Keep "explanation" field helpful and in ${language === 'en' ? 'English' : 'Bengali'}.`;
 
-          const result = await ai!.models.generateContent({
-            model: modelName,
-            contents: prompt,
-            config: {
-              responseMimeType: 'application/json'
-            }
-          });
+          // Apply 45 second timeout - Bengali math generation can be slow but we want success
+          const result = await withTimeout(
+            ai!.models.generateContent({
+              model: modelName,
+              contents: prompt,
+              config: {
+                responseMimeType: 'application/json'
+              }
+            }),
+            45000
+          );
 
           const text = result.text;
           if (!text) throw new Error('Empty AI response');
           
-          // Clean possible markdown artifacts
-          const cleanedText = text.replace(/```json|```/g, '').trim();
-          const parsedQuestions: any[] = JSON.parse(cleanedText);
+          // Robust JSON parsing
+          const jsonStart = text.indexOf('[');
+          const jsonEnd = text.lastIndexOf(']') + 1;
+          
+          if (jsonStart === -1 || jsonEnd === 0) {
+            console.error('No JSON array found in Gemini response. Full text:', text);
+            throw new Error('CORRUPT_AI_RESPONSE');
+          }
+          
+          const cleanedText = text.substring(jsonStart, jsonEnd);
+          let parsedQuestions: any[];
+          
+          try {
+            parsedQuestions = JSON.parse(cleanedText);
+          } catch (parseError) {
+            // Fix unescaped backslashes in LaTeX commands that AI often misses
+            // We want to double backslashes that are followed by a word character
+            // but are NOT already escaped. 
+            // We also specifically target cases like \t \n \f \r \b if they are followed by letters
+            // (meaning they were likely meant to be commands like \theta, \frac)
+            const fixedText = cleanedText
+              .replace(/(^|[^\\])\\(?=[a-zA-Z])/g, '$1\\\\') // Double single backslashes followed by letters
+              .replace(/\\([nrtfb])(?=[a-zA-Z])/g, '\\\\$1'); // Fix escaped sequences that are likely commands
+            
+            try {
+              parsedQuestions = JSON.parse(fixedText);
+            } catch (secondError) {
+              console.error('JSON Fix failed. Original text:', cleanedText);
+              console.error('Fixed text:', fixedText);
+              throw parseError; // Throw original error for debugging
+            }
+          }
+          
+          if (!Array.isArray(parsedQuestions)) {
+            throw new Error('INVALID_JSON_STRUCTURE');
+          }
           
           // Ensure IDs are unique and sync matching types
           const formattedQuestions = parsedQuestions.map(q => {
@@ -89,15 +161,18 @@ export const quizEngine = {
           const errorMsg = error?.message || '';
           const is429 = errorMsg.includes('429') || errorMsg.includes('Quota exceeded') || error?.status === 429;
           
-          if (is429) {
-            throw new Error('QUOTA_EXCEEDED');
+          console.error(`Gemini AI Attempt ${attempt} failed:`, error);
+
+          if (is429 || errorMsg === 'AI_TIMEOUT' || errorMsg === 'CORRUPT_AI_RESPONSE' || errorMsg === 'INVALID_JSON_STRUCTURE') {
+            // Don't retry on these specific structural/quota/timeout failures to save user time
+            break; 
           }
           
           if (attempt <= maxRetries) {
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            // Wait slightly longer for retry
+            await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
             continue;
           }
-          console.error('Gemini error:', error);
           break;
         }
       }
@@ -127,10 +202,19 @@ export const quizEngine = {
 
   createRandomQuestion(difficulty: Difficulty, language: 'en' | 'bn'): Question {
     const id = Math.random().toString(36).substr(2, 9);
-    const types: QuestionType[] = ['mcq', 'true-false', 'fill-blank', 'calculation'];
-    // Add matching occasionally
-    if (Math.random() > 0.7) types.push('matching');
-    const type = types[Math.floor(Math.random() * types.length)];
+    
+    // Choose type distribution based on difficulty
+    const typeProb = Math.random();
+    let type: QuestionType;
+    
+    if (difficulty === 'basic') {
+      type = typeProb > 0.9 ? 'matching' : typeProb > 0.6 ? 'true-false' : 'mcq';
+    } else if (difficulty === 'normal') {
+      type = typeProb > 0.9 ? 'matching' : typeProb > 0.7 ? 'true-false' : typeProb > 0.4 ? 'fill-blank' : 'mcq';
+    } else {
+      // Hard
+      type = typeProb > 0.9 ? 'matching' : typeProb > 0.7 ? 'calculation' : typeProb > 0.4 ? 'fill-blank' : 'mcq';
+    }
     
     if (type === 'matching') {
       return this.generateMatchingQuestion(id, difficulty, language);
@@ -271,55 +355,95 @@ export const quizEngine = {
       return this.formatOfflineQuestion(id, questionText, answer, type, difficulty, language, explanation);
     }
 
-    // Hard Mode - Sequence/Logic/Probability/Trig
-    const category = Math.floor(Math.random() * 5);
+    // Hard Mode - Sequence/Logic/Probability/Trig/Calculus/Logs/Sets
+    const category = Math.floor(Math.random() * 8);
     let questionText, answer, explanation;
     
     if (category === 0) { // Probability
       const total = 10 + Math.floor(Math.random() * 20);
       const target = 3 + Math.floor(Math.random() * 5);
       questionText = language === 'en' 
-        ? `Probability of drawing one of ${target} red balls from ${total} total balls? (as fraction)`
-        : `${total} টি বলের মধ্যে ${target} টি লাল বল থাকলে, একটি বল তুললে সেটি লাল হওয়ার সম্ভাবনা কত? (ভগ্নাংশে)`;
-      answer = `${target}/${total}`;
-      explanation = `Required outcomes / Total outcomes = ${target}/${total}`;
-    } else if (category === 1) { // Sequences
-      const start = Math.floor(Math.random() * 10);
-      const diff = Math.floor(Math.random() * 5) + 2;
+        ? `A bag contains ${total} balls: ${target} are red. If 2 balls are drawn without replacement, what is the probability both are red? (as fraction)`
+        : `একটি ব্যাগে ${total} টি বল আছে, যার মধ্যে ${target} টি লাল। প্রতিস্থাপন না করে ২টি বল তুললে উভয়ই লাল হওয়ার সম্ভাবনা কত? (ভগ্নাংশে)`;
+      
+      // P(A and B) = (target/total) * (target-1)/(total-1)
+      const num = target * (target - 1);
+      const den = total * (total - 1);
+      function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b); }
+      const common = gcd(num, den);
+      answer = `${num/common}/${den/common}`;
+      explanation = language === 'en'
+        ? `(${target}/${total}) × (${target-1}/${total-1}) = ${num}/${den} = ${answer}`
+        : `(${target}/${total}) × (${target-1}/${total-1}) = ${num}/${den} = ${answer}`;
+    } else if (category === 1) { // Arithmetic Progression sum
+      const a = Math.floor(Math.random() * 5) + 1;
+      const d = Math.floor(Math.random() * 4) + 2;
+      const n = 10 + Math.floor(Math.random() * 5);
+      const last = a + (n - 1) * d;
+      const sum = (n / 2) * (a + last);
+      questionText = language === 'en'
+        ? `Find the sum of first ${n} terms of AP: ${a}, ${a+d}, ${a+2*d}, ...`
+        : `সমান্তর ধারাটির প্রথম ${n}টি পদের সমষ্টি কত: ${a}, ${a+d}, ${a+2*d}, ...`;
+      answer = sum.toString();
+      explanation = `Sₙ = n/2[2a + (n-1)d] = ${n}/2[2(${a}) + (${n}-1)${d}] = ${sum}`;
+    } else if (category === 2) { // Quadratic Roots (Complex simple)
+      // x^2 + kx + 16 = 0 has equal roots. find positive k
+      const root = [4, 6, 8, 10, 12][Math.floor(Math.random() * 5)];
+      const prod = root * root;
+      const k = 2 * root;
+      questionText = language === 'en'
+        ? `The equation $x^2 + kx + ${prod} = 0$ has equal roots. What is the positive value of k?`
+        : `$x^2 + kx + ${prod} = 0$ সমীকরণের মূলদ্বয় সমান হলে k এর ধনাত্মক মান কত?`;
+      answer = k.toString();
+      explanation = `For equal roots, Discriminant D = 0. k² - 4(1)(${prod}) = 0. k² = ${4*prod} = ${k}²`;
+    } else if (category === 3) { // Trigonometry (Pythagorean)
+      const pairs = [[3, 4, 5], [5, 12, 13], [8, 15, 17], [7, 24, 25]];
+      const pair = pairs[Math.floor(Math.random() * pairs.length)];
+      const [opp, adj, hyp] = pair.sort(() => Math.random() - 0.5 < 0.5 ? 1 : -1); // Scramble except hyp
+      const realHyp = Math.sqrt(opp*opp + adj*adj);
+      
+      questionText = language === 'en'
+        ? `If $\\sin(\\theta) = ${opp}/${realHyp}$, find $\\cos(\\theta)$ in fraction.`
+        : `$\\sin(\\theta) = ${opp}/${realHyp}$ হলে, $\\cos(\\theta)$ এর মান ভগ্নাংশে কত?`;
+      answer = `${adj}/${realHyp}`;
+      explanation = `$\\sin^2 + \\cos^2 = 1$. $\\cos(\\theta) = \\sqrt{1 - (${opp}/${realHyp})^2} = ${adj}/${realHyp}`;
+    } else if (category === 4) { // Logarithms
+      const base = [2, 3, 5, 10][Math.floor(Math.random() * 4)];
+      const x = Math.floor(Math.random() * 4) + 2;
+      const val = Math.pow(base, x);
+      questionText = language === 'en'
+        ? `Solve for x: $\\log_{${base}}(${val}) = x$`
+        : `মান বের করো: $\\log_{${base}}(${val}) = x$`;
+      answer = x.toString();
+      explanation = `${base} to the power of ${x} is ${val}.`;
+    } else if (category === 5) { // Sets
+      const nA = 15 + Math.floor(Math.random() * 10);
+      const nB = 20 + Math.floor(Math.random() * 10);
+      const inter = 5 + Math.floor(Math.random() * 5);
+      const union = nA + nB - inter;
+      questionText = language === 'en'
+        ? `In a set, n(A)=${nA}, n(B)=${nB}, and n(A ∩ B)=${inter}. Find n(A ∪ B).`
+        : `সেট তত্ত্বে n(A)=${nA}, n(B)=${nB} এবং n(A ∩ B)=${inter} হলে, n(A ∪ B) এর মান কত?`;
+      answer = union.toString();
+      explanation = `n(A ∪ B) = n(A) + n(B) - n(A ∩ B) = ${nA} + ${nB} - ${inter} = ${union}`;
+    } else if (category === 6) { // Calculus (Power Rule)
+      const pow = Math.floor(Math.random() * 4) + 2;
+      const coeff = Math.floor(Math.random() * 5) + 2;
+      questionText = language === 'en'
+        ? `Find the derivative of $f(x) = ${coeff}x^{${pow}}$ at $x=1$.`
+        : `$f(x) = ${coeff}x^{${pow}}$ হলে, $x=1$ বিন্দুতে অন্তরক (derivative) কত?`;
+      answer = (coeff * pow).toString();
+      explanation = `f'(x) = ${coeff} * ${pow} * x^{${pow-1}} = ${coeff*pow}x^{${pow-1}}. At x=1, value is ${coeff*pow}`;
+    } else { // Permutations simple
       const n = 5 + Math.floor(Math.random() * 3);
-      answer = (start + (n - 1) * diff).toString();
+      const r = 2;
+      // nPr = n! / (n-r)! = n * (n-1)
+      const res = n * (n - 1);
       questionText = language === 'en'
-        ? `What is the ${n}th term of the sequence: ${start}, ${start+diff}, ${start+diff*2}, ...?`
-        : `ধারাটির ${n}তম পদ কত: ${start}, ${start+diff}, ${start+diff*2}, ...?`;
-      explanation = `a + (n-1)d = ${start} + (${n}-1)${diff} = ${answer}`;
-    } else if (category === 2) { // Quadratic simple
-      // (x - a)(x - b) = x^2 - (a+b)x + ab
-      const a = Math.floor(Math.random() * 6) + 1;
-      const b = Math.floor(Math.random() * 6) + 1;
-      const sum = a + b;
-      const prod = a * b;
-      questionText = language === 'en'
-        ? `Find the positive root of x² - ${sum}x + ${prod} = 0`
-        : `x² - ${sum}x + ${prod} = 0 সমীকরণের ধনাত্মক মূল কি?`;
-      answer = Math.max(a, b).toString();
-      explanation = `Factors: (x - ${a})(x - ${b}) = 0. Roots are ${a} and ${b}.`;
-    } else if (category === 3) { // Trig
-      const angles = [30, 45, 60];
-      const angle = angles[Math.floor(Math.random() * 3)];
-      const side = 10 * (Math.floor(Math.random() * 5) + 1);
-      if (angle === 30) {
-        questionText = language === 'en' ? `Hypotenuse of triangle with angle 30° and opposite side ${side}?` : `একটি ত্রিভুজের কোণ ৩০° এবং বিপরীত বাহু ${side} হলে অতিভুজ কত?`;
-        answer = (side * 2).toString();
-        explanation = `sin(30°) = 0.5 = ${side} / H. So H = ${side} / 0.5 = ${side * 2}`;
-      } else {
-        questionText = language === 'en' ? `Solve: log₂(${Math.pow(2, 5)}) = ?` : `মান বের করো: log₂(${Math.pow(2, 5)}) = ?`;
-        answer = "5";
-        explanation = `2^5 = 32, so log₂(32) = 5`;
-      }
-    } else {
-      questionText = language === 'en' ? "What is the next prime after 13?" : "১৩ এর পরবর্তী মৌলিক সংখ্যা কোনটি?";
-      answer = "17";
-      explanation = "Primes: 2, 3, 5, 7, 11, 13, 17...";
+        ? `How many ways can ${r} students be seated in a row of ${n} chairs? (${n}P${r})`
+        : `${n}টি চেয়ারে ${r}জন ছাত্র কত উপায়ে বিন্যস্ত হতে পারে? (${n}P${r})`;
+      answer = res.toString();
+      explanation = `${n}P${r} = ${n}! / (${n}-${r})! = ${n} × ${n-1} = ${res}`;
     }
 
     return this.formatOfflineQuestion(id, questionText, answer, type, difficulty, language, explanation);
@@ -355,11 +479,13 @@ export const quizEngine = {
         }
       } else { // Shape names vs Sides
         const items = [
-          { en: 'Triangle', bn: 'ত্রিভুজ', val: language === 'en' ? '3 Sides' : '৩টি বাহু' },
-          { en: 'Square', bn: 'বর্গক্ষেত্র', val: language === 'en' ? '4 equal Sides' : '৪টি সমান বাহু' },
-          { en: 'Pentagon', bn: 'পঞ্চভুজ', val: language === 'en' ? '5 Sides' : '৫টি বাহু' },
-          { en: 'Circle', bn: 'বৃত্ত', val: language === 'en' ? 'No Sides' : 'কোন বাহু নেই' },
-          { en: 'Rectangle', bn: 'আয়তক্ষেত্র', val: language === 'en' ? '4 Sides' : '৪টি বাহু' }
+          { en: 'Triangle', bn: 'ত্রিভুজ', val: language === 'en' ? '3 Angles' : '৩টি কোণ' },
+          { en: 'Square', bn: 'বর্গক্ষেত্র', val: language === 'en' ? '4 Right Angles' : '৪টি সমকোণ' },
+          { en: 'Pentagon', bn: 'পঞ্চভুজ', val: language === 'en' ? '5 Vertices' : '৫টি শীর্ষবিন্দু' },
+          { en: 'Circle', bn: 'বৃত্ত', val: language === 'en' ? '0 Corners' : '০টি কোণা' },
+          { en: 'Hexagon', bn: 'ষড়ভুজ', val: language === 'en' ? '6 Sides' : '৬টি বাহু' },
+          { en: 'Octagon', bn: 'অষ্টভুজ', val: language === 'en' ? '8 Sides' : '৮টি বাহু' },
+          { en: 'Oval', bn: 'ডিম্বাকৃতি', val: language === 'en' ? 'No Corners' : 'কোন কোণা নেই' }
         ].sort(() => Math.random() - 0.5).slice(0, 4);
         
         items.forEach(item => {
@@ -414,14 +540,36 @@ export const quizEngine = {
 
   formatOfflineQuestion(id: string, question: string, answer: string, type: QuestionType, difficulty: Difficulty, language: 'en' | 'bn', explanation?: string): Question {
     if (type === 'mcq') {
-      const ansNum = parseFloat(answer);
-      const options = [
-        answer,
-        isNaN(ansNum) ? "10" : (ansNum + Math.floor(Math.random() * 5) + 1).toString(),
-        isNaN(ansNum) ? "20" : (ansNum - Math.floor(Math.random() * 3) - 1).toString(),
-        isNaN(ansNum) ? "30" : (ansNum * 2).toString(),
-      ].sort(() => Math.random() - 0.5);
-      return { id, question, options, answer, type, difficulty, explanation };
+      const options = [answer];
+      
+      // Handle fractions
+      if (answer.includes('/') && answer.split('/').length === 2) {
+        const [numStr, denStr] = answer.split('/');
+        const n = parseInt(numStr);
+        const d = parseInt(denStr);
+        options.push(`${n+1}/${d}`, `${n}/${d+1}`, `${n+2}/${d+2}`);
+      } else {
+        const ansNum = parseFloat(answer);
+        if (!isNaN(ansNum)) {
+          const step = difficulty === 'basic' ? 1 : 10;
+          options.push(
+            (ansNum + Math.floor(Math.random() * step) + 1).toString(),
+            (ansNum - Math.floor(Math.random() * step) - 1).toString(),
+            (ansNum + (Math.random() > 0.5 ? 5 : -5)).toString()
+          );
+        } else {
+          // Strings or symbols
+          options.push("10", "20", "None");
+        }
+      }
+      
+      const uniqueOptions = Array.from(new Set(options)).sort(() => Math.random() - 0.5);
+      // Ensure we have 4 options
+      while (uniqueOptions.length < 4) {
+        uniqueOptions.push((Math.random() * 100).toFixed(0));
+      }
+      
+      return { id, question, options: uniqueOptions.slice(0, 4), answer, type, difficulty, explanation };
     } else if (type === 'true-false') {
       const isTrue = Math.random() > 0.5;
       const displayAns = isTrue ? answer : (parseFloat(answer) + Math.floor(Math.random() * 5) + 1).toString();

@@ -49,7 +49,7 @@ const INITIAL_USER: UserProfile = {
 };
 
 const STORAGE_KEY = 'math_mind_v1';
-const QUESTION_CACHE_KEY = 'math_mind_questions_cache';
+const QUESTION_CACHE_KEY = 'math_mind_questions_cache_v2';
 
 export const storage = {
   save: (data: AppState) => {

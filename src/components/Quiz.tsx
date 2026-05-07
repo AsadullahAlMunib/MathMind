@@ -18,6 +18,7 @@ import {
   Pause,
   Play,
   BrainCircuit,
+  Zap,
   Plus,
   Minus,
   Divide,
@@ -40,6 +41,7 @@ interface QuizProps {
   onQuotaExceeded?: () => void;
   language: 'en' | 'bn';
   initialQuestions?: Question[];
+  addToast?: (title: string, subtitle: string, icon?: React.ReactNode) => void;
 }
 
 // Normalize strings for comparison (converts Bengali digits, strips labels, extra spaces)
@@ -64,6 +66,9 @@ const normalizeStr = (str: string) => {
 
   let text = str.trim().toLowerCase();
   
+  // Remove LaTeX wrappers if present
+  text = text.replace(/^\$/, '').replace(/\$$/, '');
+  
   // If it matches a boolean synonym, return standardized value
   if (boolMap[text]) return boolMap[text];
 
@@ -78,6 +83,11 @@ const normalizeStr = (str: string) => {
     return index !== -1 ? index.toString() : char;
   }).join('');
   
+  // Convert LaTeX \frac{a}{b} to a/b for parsing
+  normalized = normalized.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '$1/$2');
+  // Convert \sqrt{a} to √a
+  normalized = normalized.replace(/\\sqrt\{([^{}]+)\}/g, '√$1');
+  
   return normalized.replace(/\s+/g, ' ').trim();
 };
 
@@ -87,18 +97,31 @@ const isAnswerCorrect = (user: string, correct: string) => {
   
   if (u === c) return true;
   
-  // Try numerical comparison for fractions/decimals
-  const parseVal = (s: string) => {
-    if (s.includes('/')) {
-      const parts = s.split('/');
-      if (parts.length === 2) {
-        const num = parseFloat(parts[0]);
-        const den = parseFloat(parts[1]);
-        if (!isNaN(num) && !isNaN(den) && den !== 0) return num / den;
+  // Try numerical comparison for fractions/decimals/roots
+  const parseVal = (s: string): number => {
+    let clean = s.trim();
+    
+    // Handle Square Root √
+    if (clean.includes('√')) {
+      const parts = clean.split('√');
+      if (parts[0] === '' && parts[1]) {
+        return Math.sqrt(parseFloat(parts[1]));
+      }
+      if (parts[0] && parts[1]) {
+        return parseFloat(parts[0]) * Math.sqrt(parseFloat(parts[1]));
       }
     }
-    if (s.endsWith('%')) return parseFloat(s) / 100;
-    return parseFloat(s);
+
+    // Handle Ratio/Fraction (only if exactly 2 parts)
+    const mathParts = clean.split(/[:\/]/);
+    if (mathParts.length === 2) {
+      const num = parseFloat(mathParts[0]);
+      const den = parseFloat(mathParts[1]);
+      if (!isNaN(num) && !isNaN(den) && den !== 0) return num / den;
+    }
+    
+    if (clean.endsWith('%')) return parseFloat(clean) / 100;
+    return parseFloat(clean);
   };
   
   const vU = parseVal(u);
@@ -107,36 +130,76 @@ const isAnswerCorrect = (user: string, correct: string) => {
   if (!isNaN(vU) && !isNaN(vC)) {
     // Check with tolerance for rounding (e.g. 1/6 vs 0.16)
     const diff = Math.abs(vU - vC);
-    // Allow 1% relative error or 0.01 absolute error
-    return diff < 0.011 || (vC !== 0 && diff / Math.abs(vC) < 0.05);
+    // Allow 0.001 absolute error or 1% relative error
+    return diff < 0.001 || (vC !== 0 && diff / Math.abs(vC) < 0.01);
   }
   
   return false;
 };
 
-const renderMathContent = (text: string) => {
+const renderMathContent = (text: string | undefined | null) => {
   if (!text) return '';
 
+  // Fix interpreting control characters from improper JSON handling or AI quirks
+  let sanitized = String(text)
+    .replace(/\u000c/g, '\\\\f')  
+    .replace(/\u0008/g, '\\\\b')  
+    .replace(/\n\r/g, ' ')
+    .replace(/\n/g, ' ');
+
+  // Robustly handle dollar signs - sometimes AI adds spaces like "$ sin(x) $" 
+  // or misses closing signs. We'll try to normalize them.
+  sanitized = sanitized.replace(/\$\s+/g, '$').replace(/\s+\$/g, '$');
+
+  // Auto-wrap segments that look like LaTeX but missed the $ delimiters
+  // We split by existing $...$ to avoid double wrapping
+  let tempSegments = sanitized.split(/(\$.*?\$)/g);
+  const complexMathPattern = /((?:\d+[.,]?\d*\s*)?\\(?:frac|sqrt|sin|cos|tan|theta|alpha|beta|deg|circ|pi|times|div|pm|angle|triangle|approx|neq|leq|geq|times|div)(?:\{[^{}]*\}|\[[^\]]*\]|(?:\^|_)\d+|(?:\^|_)\{[^{}]*\}|\d|(?:\d+[\s]*[=><][\s]*\d+)|[\s]*[a-zA-Z0-9])*)/g;
+
+  sanitized = tempSegments.map(seg => {
+    if (seg.startsWith('$') && seg.endsWith('$')) return seg;
+    return seg.replace(complexMathPattern, (match) => {
+      if (!match || match.length < 2) return match;
+      return `$${match.trim()}$`;
+    });
+  }).join('');
+
+  // Handle remaining exponents like x^2 or y_1 that aren't wrapped
+  sanitized = sanitized.replace(/(?<!\$)([a-zA-Z0-9](\^|_)\d+)(?!\$)/g, '$$$1$$');
+
   // Use a regex to split text by $...$ delimiters
-  const segments = text.split(/(\$.*?\$)/g);
+  const segments = sanitized.split(/(\$.*?\$)/g);
   
-  if (segments.length === 1 && !/\\|[\^_]|\{|\}|deg|^\d+\/\d+$|sin|cos|tan|log|pi/.test(text)) {
-    return text;
+  if (segments.length === 1 && !/\\|[\^_]|\{|\}|deg|^\d+\/\d+$|sin|cos|tan|log|pi/.test(sanitized)) {
+    return sanitized;
   }
 
   return (
     <>
       {segments.map((segment, i) => {
         if (segment.startsWith('$') && segment.endsWith('$')) {
-          const content = segment.slice(1, -1); // Remove the $ signs
+          let content = segment.slice(1, -1); 
+          if (!content.trim()) return null;
+
           try {
+            // Convert Bengali digits inside math formulas to English digits 
+            const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+            content = content.split('').map(char => {
+              const idx = bengaliDigits.indexOf(char);
+              return idx !== -1 ? idx.toString() : char;
+            }).join('');
+
             // Clean up common things that might break simple latex
             const cleaned = content
               .replace(/(\d+)°/g, '$1^\\circ')
-              .replace(/deg/g, '^\\circ');
+              .replace(/deg/g, '^\\circ')
+              .replace(/(\d+)\/(\d+)/g, '\\\\frac{$1}{$2}') // Auto-fraction for simple numbers
+              .trim();
+            
+            if (!cleaned) return null;
             return <InlineMath key={i} math={cleaned} />;
           } catch (e) {
-            return <span key={i}>{segment}</span>;
+            return <span key={i} className="font-mono text-amber-600">{segment}</span>;
           }
         }
         return <span key={i}>{segment}</span>;
@@ -145,13 +208,13 @@ const renderMathContent = (text: string) => {
   );
 };
 
-export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded, language, initialQuestions }: QuizProps) {
+export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded, language, initialQuestions, addToast }: QuizProps) {
   const [questions, setQuestions] = useState<Question[]>(initialQuestions || []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(!initialQuestions);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [source, setSource] = useState<'ai' | 'algorithmic' | 'cache' | null>(null);
-  const [isOffline, setIsOffline] = useState(!navigator.onLine || !process.env.GEMINI_API_KEY);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine || !quizEngine.getApiKey());
   const [showResult, setShowResult] = useState<'correct' | 'incorrect' | null>(null);
   const [results, setResults] = useState<{ id: string; correct: boolean }[]>([]);
   const [timeLeft, setTimeLeft] = useState(30);
@@ -172,11 +235,20 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
       const result = await quizEngine.generateQuestions(difficulty, language, 10);
       setQuestions(result.questions);
       setSource(result.source);
-      setIsOffline(!navigator.onLine || !process.env.GEMINI_API_KEY);
+      setIsOffline(result.source !== 'ai');
       setLoading(false);
       startTimer();
     } catch (e: any) {
       console.error('Quiz generation error:', e);
+      
+      if (addToast) {
+        addToast(
+          language === 'en' ? "AI Connection Error" : "AI সংযোগ ত্রুটি",
+          language === 'en' ? `Gemini Error: ${e.message || 'Unknown'}` : `জেমিনি ত্রুটি: ${e.message || 'অজানা'}`,
+          <ShieldAlert className="text-amber-500" />
+        );
+      }
+
       if (e.message === 'QUOTA_EXCEEDED') {
         if (onQuotaExceeded) {
           onQuotaExceeded();
@@ -416,7 +488,11 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
           </button>
         </AppTooltip>
         <div className="flex items-center gap-2">
-          {source === 'ai' ? (
+          {loading ? (
+            <div className="px-2 py-1 bg-muted/10 text-muted rounded-lg text-[10px] font-black uppercase tracking-wider border border-muted/20 animate-pulse">
+              {language === 'en' ? 'Checking...' : 'চেক করা হচ্ছে...'}
+            </div>
+          ) : source === 'ai' ? (
             <AppTooltip content={language === 'en' ? 'Questions generated by Gemini AI' : 'প্রশ্নগুলো জেমিনি AI দ্বারা তৈরি'}>
               <div className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/10 text-indigo-500 rounded-lg text-xs font-black uppercase tracking-wider border border-indigo-500/20">
                 <Dna size={14} className="animate-pulse" />
@@ -424,14 +500,20 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
               </div>
             </AppTooltip>
           ) : (
-            <AppTooltip content={language === 'en' ? 'Offline algorithmic questions' : 'অফলাইন অ্যালগরিদমিক প্রশ্ন'}>
+            <AppTooltip content={language === 'en' ? 'Switch to AI mode for enhanced questions' : 'উন্নত প্রশ্নের জন্য AI মোড চালু করুন'}>
               <button 
-                onClick={fetchQuestions}
+                onClick={() => {
+                  if (!quizEngine.getApiKey()) {
+                    if (onQuotaExceeded) onQuotaExceeded();
+                  } else {
+                    fetchQuestions();
+                  }
+                }}
                 className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[9px] font-black uppercase tracking-wider border border-amber-500/20 hover:bg-amber-500/20 transition-colors"
                 disabled={loading}
               >
-                <ShieldAlert size={12} />
-                {loading ? '...' : (language === 'en' ? 'Go Online AI' : 'অনলাইন AI ব্যবহার করুন')}
+                <Zap size={10} className="fill-current" />
+                Use AI
               </button>
             </AppTooltip>
           )}
@@ -498,17 +580,35 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
       </div>
 
       {/* Progress Bar */}
-      <div className="h-2.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden relative shadow-inner">
-        <motion.div 
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ type: "spring", stiffness: 50, damping: 20 }}
-          className="h-full relative bg-gradient-to-r from-primary via-primary/90 to-emerald-400 rounded-full"
+      <div className="relative pt-1 px-1">
+        <div className="h-3 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden relative shadow-inner p-[1px] border border-black/5 dark:border-white/5">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+            className="h-full relative bg-gradient-to-r from-primary via-indigo-500 to-emerald-400 rounded-full"
+          >
+            {/* Glossy top layer */}
+            <div className="absolute inset-x-0 top-0 h-[40%] bg-white/20 rounded-full mx-1" />
+            
+            {/* Animated pulse at the leading edge */}
+            <motion.div 
+              animate={{ opacity: [0.4, 0.8, 0.4] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/30 to-transparent"
+            />
+          </motion.div>
+        </div>
+        
+        {/* Subtle sparkle indicator at the tip */}
+        <motion.div
+          initial={{ left: 0 }}
+          animate={{ left: `${progress}%` }}
+          transition={{ type: "spring", stiffness: 100, damping: 20 }}
+          className="absolute top-0 -translate-x-1/2 z-10 pointer-events-none"
         >
-          {/* Shine effect */}
-          <div className="absolute inset-0 bg-white/20 blur-[1px] h-[30%] top-0 rounded-full mx-1 opacity-50" />
-          {/* Subtle glow at the tip */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-full bg-white/40 blur-md rounded-full" />
+          <div className="w-5 h-5 bg-primary/20 rounded-full blur-[8px]"></div>
+          <div className="w-1.5 h-6 bg-white/40 blur-[1px] -translate-y-1"></div>
         </motion.div>
       </div>
 
@@ -811,39 +911,39 @@ function MatchingQuestion({ pairs, onComplete, disabled, language }: {
   disabled: boolean;
   language: 'en' | 'bn';
 }) {
-  const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
-  const [matches, setMatches] = useState<Record<string, string>>({});
-  const [incorrectFlash, setIncorrectFlash] = useState<string | null>(null);
-  const [lives, setLives] = useState(5); // Increased for better UX
+  const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
+  const [matches, setMatches] = useState<Record<number, number>>({});
+  const [incorrectFlash, setIncorrectFlash] = useState<number | null>(null);
+  const [lives, setLives] = useState(5); 
   const [isEvaluating, setIsEvaluating] = useState(false);
 
-  // Shuffle items once
+  // Shuffle items once and keep track of original indices
   const [shuffledLeft] = useState(() => 
-    [...pairs].sort(() => Math.random() - 0.5)
+    [...pairs.map((p, i) => ({ ...p, originalIndex: i }))].sort(() => Math.random() - 0.5)
   );
   const [shuffledRight] = useState(() => 
-    [...pairs].map(p => p.right).sort(() => Math.random() - 0.5)
+    [...pairs.map((p, i) => ({ value: p.right, originalIndex: i }))].sort(() => Math.random() - 0.5)
   );
 
-  const handlePairSelection = (side: 'left' | 'right', value: string) => {
+  const handlePairSelection = (side: 'left' | 'right', index: number) => {
     if (disabled || isEvaluating || lives <= 0) return;
 
     // Check if item is already matched
     const alreadyMatched = side === 'left' 
-      ? !!matches[value] 
-      : Object.values(matches).includes(value);
+      ? !!matches[index] 
+      : Object.values(matches).includes(index);
     
     if (alreadyMatched) return;
 
     if (side === 'left') {
-      setSelectedLeft(value === selectedLeft ? null : value);
+      setSelectedLeft(index === selectedLeft ? null : index);
     } else {
-      if (selectedLeft) {
+      if (selectedLeft !== null) {
         setIsEvaluating(true);
-        const correctPair = pairs.find(p => normalizeStr(p.left) === normalizeStr(selectedLeft));
         
-        if (correctPair && normalizeStr(correctPair.right) === normalizeStr(value)) {
-          const newMatches = { ...matches, [selectedLeft]: value };
+        // Match is correct if original indices match
+        if (selectedLeft === index) {
+          const newMatches = { ...matches, [selectedLeft]: index };
           setMatches(newMatches);
           setSelectedLeft(null);
           soundManager.play('click');
@@ -853,7 +953,7 @@ function MatchingQuestion({ pairs, onComplete, disabled, language }: {
             onComplete(true);
           }
         } else {
-          setIncorrectFlash(value);
+          setIncorrectFlash(index);
           const newLives = lives - 1;
           setLives(newLives);
           soundManager.play('incorrect');
@@ -890,23 +990,23 @@ function MatchingQuestion({ pairs, onComplete, disabled, language }: {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 md:gap-8 w-full max-w-lg mx-auto py-2">
+      <div className="grid grid-cols-2 gap-4 md:gap-8 w-full mx-auto py-2">
         <div className="space-y-3">
           <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-2 truncate">
             {language === 'en' ? 'Match' : 'মিল করো'}
           </p>
           {shuffledLeft.map((p, i) => {
-            const isMatched = matches[p.left];
+            const isMatched = !!matches[p.originalIndex];
             return (
               <motion.button
                 key={i}
                 whileTap={!disabled && !isMatched ? { scale: 0.95 } : {}}
-                onClick={() => handlePairSelection('left', p.left)}
-                disabled={disabled || !!isMatched || isEvaluating}
+                onClick={() => handlePairSelection('left', p.originalIndex)}
+                disabled={disabled || isMatched || isEvaluating}
                 className={`w-full p-3 md:p-4 rounded-xl border-2 font-bold text-xs md:text-sm transition-all text-center h-14 md:h-16 flex items-center justify-center ${
                   isMatched 
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600' 
-                    : selectedLeft === p.left
+                    : selectedLeft === p.originalIndex
                       ? 'border-primary bg-primary text-white shadow-lg'
                       : 'bg-surface border-theme/10 hover:border-primary/30'
                 } ${disabled ? 'opacity-50' : ''}`}
@@ -923,26 +1023,26 @@ function MatchingQuestion({ pairs, onComplete, disabled, language }: {
             {language === 'en' ? 'With' : 'সাথে'}
           </p>
           {shuffledRight.map((r, i) => {
-            const matchedByLeft = Object.keys(matches).find(k => matches[k] === r);
-            const isIncorrect = incorrectFlash === r;
+            const isMatched = Object.values(matches).includes(r.originalIndex);
+            const isIncorrect = incorrectFlash === r.originalIndex;
             
             return (
               <motion.button
                 key={i}
-                whileTap={!disabled && !matchedByLeft ? { scale: 0.95 } : {}}
+                whileTap={!disabled && !isMatched ? { scale: 0.95 } : {}}
                 animate={isIncorrect ? { x: [0, -5, 5, -5, 5, 0] } : {}}
-                onClick={() => handlePairSelection('right', r)}
-                disabled={disabled || !!matchedByLeft || isEvaluating}
+                onClick={() => handlePairSelection('right', r.originalIndex)}
+                disabled={disabled || isMatched || isEvaluating}
                 className={`w-full p-3 md:p-4 rounded-xl border-2 font-bold text-xs md:text-sm transition-all text-center h-14 md:h-16 flex items-center justify-center ${
-                  matchedByLeft 
+                  isMatched 
                     ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600' 
                     : isIncorrect
                       ? 'border-rose-500 bg-rose-500/10 text-rose-600'
                       : 'bg-surface border-theme/10 hover:border-primary/30'
                 } ${disabled ? 'opacity-50' : ''}`}
               >
-                {renderMathContent(r)}
-                {matchedByLeft && <CheckCircle2 size={14} className="ml-2" />}
+                {renderMathContent(r.value)}
+                {isMatched && <CheckCircle2 size={14} className="ml-2" />}
               </motion.button>
             );
           })}
@@ -987,62 +1087,54 @@ function NumericKeyboard({ onInput, onDelete, onSubmit, language }: {
   onSubmit: () => void;
   language: 'en' | 'bn';
 }) {
-  const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
-  const bengaliDigits = ['১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-  const zero = language === 'bn' ? '০' : '0';
+  const digitsMap: Record<string, string> = {
+    '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'
+  };
+
+  const layout = [
+    '1', '2', '3', '√',
+    '4', '5', '6', '/',
+    '7', '8', '9', '-',
+    '.', '0', ':', 'backspace'
+  ];
 
   return (
-    <div className="grid grid-cols-3 gap-2 w-full max-w-[280px] mx-auto mt-4 quiz-keypad">
-      {digits.map((digit, i) => (
-        <motion.button
-          key={digit}
-          type="button"
-          whileTap={{ scale: 0.95 }}
-          onClick={() => onInput(language === 'bn' ? bengaliDigits[i] : digit)}
-          className="h-14 bg-surface/50 border border-theme/10 rounded-xl font-black text-xl flex items-center justify-center hover:bg-primary/5 hover:border-primary/20 transition-all shadow-sm"
-        >
-          {language === 'bn' ? bengaliDigits[i] : digit}
-        </motion.button>
-      ))}
-      
-      {/* Last Row: Minus, Dot, 0, Backspace */}
-      <div className="col-span-3 grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-2">
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.95 }}
-          onClick={() => onInput('-')}
-          className="h-14 bg-surface/50 border border-theme/10 rounded-xl font-black text-xl flex items-center justify-center hover:bg-primary/5 hover:border-primary/20 transition-all shadow-sm"
-        >
-          <Minus size={22} strokeWidth={3} />
-        </motion.button>
+    <div className="grid grid-cols-4 gap-2 w-full max-w-[320px] mx-auto mt-4 quiz-keypad">
+      {layout.map((key) => {
+        if (key === 'backspace') {
+          return (
+            <motion.button
+              key="backspace"
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={onDelete}
+              className="h-14 bg-rose-500/5 border border-rose-500/10 text-rose-500 rounded-xl font-black flex items-center justify-center hover:bg-rose-500/10 transition-all shadow-sm"
+            >
+              <Delete size={22} strokeWidth={3} />
+            </motion.button>
+          );
+        }
 
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.95 }}
-          onClick={() => onInput('.')}
-          className="h-14 bg-surface/50 border border-theme/10 rounded-xl font-black text-xl flex items-center justify-center hover:bg-primary/5 hover:border-primary/20 transition-all shadow-sm"
-        >
-          .
-        </motion.button>
+        let display: React.ReactNode = language === 'bn' && digitsMap[key] ? digitsMap[key] : key;
+        
+        if (key === '-') {
+          display = <Minus size={22} strokeWidth={3} />;
+        } else if (key === '/') {
+          display = <Divide size={22} strokeWidth={3} />;
+        }
 
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.95 }}
-          onClick={() => onInput(zero)}
-          className="h-14 bg-surface/50 border border-theme/10 rounded-xl font-black text-xl flex items-center justify-center hover:bg-primary/5 hover:border-primary/20 transition-all shadow-sm"
-        >
-          {zero}
-        </motion.button>
-
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.95 }}
-          onClick={onDelete}
-          className="h-14 bg-rose-500/5 border border-rose-500/10 text-rose-500 rounded-xl font-black flex items-center justify-center hover:bg-rose-500/10 transition-all shadow-sm"
-        >
-          <Delete size={22} strokeWidth={3} />
-        </motion.button>
-      </div>
+        return (
+          <motion.button
+            key={key}
+            type="button"
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onInput(language === 'bn' && digitsMap[key] ? digitsMap[key] : key)}
+            className="h-14 bg-surface/50 border border-theme/10 rounded-xl font-black text-xl flex items-center justify-center hover:bg-primary/5 hover:border-primary/20 transition-all shadow-sm"
+          >
+            {display}
+          </motion.button>
+        );
+      })}
     </div>
   );
 }
