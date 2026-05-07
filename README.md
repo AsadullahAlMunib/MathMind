@@ -4,7 +4,7 @@
 
 <img width="130" src="./icon.png"/>
 
-<br/>
+<br/><br/>
 
 # MATH MIND
 
@@ -141,7 +141,27 @@ After every answer, the **Logic Breakdown** panel reveals:
 - ✅ Correct → green highlight + how-to explanation
 - ❌ Wrong → correct answer + full solution walkthrough
 
-### 5 · Results & Rewards
+### 5 · API Key & Question Source
+
+The app works in two modes depending on whether an API key is set:
+
+| | No API Key | With API Key |
+|---|---|---|
+| **Question Source** | Built-in offline engine (algorithmically generated) | Google Gemini AI (fresh, creative questions every session) |
+| **Question Quality** | Good — covers all difficulty levels | Excellent — varied, context-rich, word problems included |
+| **Works Offline** | ✅ Yes | ❌ Requires internet |
+| **Setup Required** | None — works out of the box | Paste your key once in Profile |
+
+**How to get a free Gemini API key:**
+
+1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Log in with any Google account
+3. Click **"Get API key"** → **"Create API key in new project"**
+4. Copy the key and paste it into the app's **API Key** field in Settings
+
+> 🔒 **Security:** Your key is saved only in your browser's local storage. It is never sent to any server.
+
+### 6 · Results & Rewards
 
 After all 10 questions:
 - Points added to your **coin balance**
