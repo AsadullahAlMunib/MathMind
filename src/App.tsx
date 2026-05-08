@@ -47,7 +47,7 @@ import QuotaModal from './components/QuotaModal';
 export default function App() {
   const [state, setState] = useState<AppState>(storage.load());
   const [activeTab, setActiveTab] = useState<'quiz' | 'dashboard' | 'leaderboard' | 'store' | 'profile'>('dashboard');
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(state.user.isDarkMode);
   const [quizDifficulty, setQuizDifficulty] = useState<Difficulty | null>(null);
   const [quizQuestions, setQuizQuestions] = useState<Question[] | null>(null);
   const [toasts, setToasts] = useState<{ id: string; title: string; subtitle: string; icon?: React.ReactNode }[]>([]);
@@ -68,6 +68,13 @@ export default function App() {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
+    }
+    
+    // Persist dark mode preference if it changed
+    if (state.user.isDarkMode !== isDark) {
+      handleUpdateState({
+        user: { ...state.user, isDarkMode: isDark }
+      });
     }
   }, [isDark]);
 
@@ -161,7 +168,7 @@ export default function App() {
     return allScores.indexOf(score) + 1;
   };
 
-  const handleQuizComplete = (points: number, correct: number, diff: Difficulty, missed: Question[], sessionStreak: number) => {
+  const handleQuizComplete = (points: number, correct: number, diff: Difficulty, missed: Question[], sessionStreak: number, timeSpent: number, bestLightSpeedStreak: number) => {
     const oldLifetimeScore = (state.stats.lifetimeLevelScores?.[diff] || state.stats.highScores[diff]) || 0;
     const oldRank = calculateRank(oldLifetimeScore, diff, state.stats.rivals || [], 'lifetime');
 
@@ -183,7 +190,19 @@ export default function App() {
         addToast(t.levelUp || "Level Up!", `${t.level} ${newLevel}`, <Award className="text-primary" />);
       }
       const newBestStreak = Math.max(stats.bestStreak || 0, sessionStreak);
+      const newBestLightSpeedStreak = Math.max(stats.bestLightSpeedStreak || 0, bestLightSpeedStreak);
       
+      const newLifetimeCorrectByDifficulty = { ...(stats.lifetimeCorrectByDifficulty || { basic: 0, normal: 0, hard: 0 }) };
+      newLifetimeCorrectByDifficulty[diff] += correct;
+
+      const newLifetimeQuizzesByDifficulty = { ...(stats.lifetimeQuizzesByDifficulty || { basic: 0, normal: 0, hard: 0 }) };
+      newLifetimeQuizzesByDifficulty[diff] += 1;
+
+      const newAchievementCounts = { ...(stats.achievementCounts || {}) };
+      if (correct === 10) {
+        newAchievementCounts['unstoppable'] = (newAchievementCounts['unstoppable'] || 0) + 1;
+      }
+
       // Merge missed questions, avoiding duplicates
       const currentMissed = stats.missedQuestions || [];
       const newMissed = [...currentMissed];
@@ -199,7 +218,8 @@ export default function App() {
         difficulty: diff,
         score: points,
         correctCount: correct,
-        totalQuestions: 10
+        totalQuestions: 10,
+        timeSpent: timeSpent
       };
 
       const finalStats = {
@@ -210,6 +230,10 @@ export default function App() {
         correctAnswers: stats.correctAnswers + correct,
         highScores: newHighScores,
         lifetimeLevelScores: newLifetimeLevelScores,
+        lifetimeCorrectByDifficulty: newLifetimeCorrectByDifficulty,
+        lifetimeQuizzesByDifficulty: newLifetimeQuizzesByDifficulty,
+        achievementCounts: newAchievementCounts,
+        bestLightSpeedStreak: newBestLightSpeedStreak,
         level: newLevel,
         bestStreak: newBestStreak,
         missedQuestions: newMissed.slice(-50), // Keep last 50 only
@@ -562,6 +586,9 @@ export default function App() {
               setShowTutorial(false);
             }} 
             language={state.user.language}
+            onLanguageToggle={toggleLanguage}
+            isDark={isDark}
+            onThemeToggle={() => setIsDark(!isDark)}
           />
         )}
       </AnimatePresence>

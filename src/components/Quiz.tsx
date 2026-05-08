@@ -32,11 +32,11 @@ import { translations } from '../lib/translations';
 import { soundManager } from '../lib/sounds';
 import AppTooltip from './Tooltip';
 import 'katex/dist/katex.min.css';
-import { InlineMath } from 'react-katex';
+import MathRenderer from './MathRenderer';
 
 interface QuizProps {
   difficulty: Difficulty;
-  onComplete: (points: number, correct: number, diff: Difficulty, missed: Question[], streak: number) => void;
+  onComplete: (points: number, correct: number, diff: Difficulty, missed: Question[], streak: number, timeSpent: number, bestLightSpeedStreak: number) => void;
   onCancel: () => void;
   onQuotaExceeded?: () => void;
   language: 'en' | 'bn';
@@ -139,73 +139,7 @@ const isAnswerCorrect = (user: string, correct: string) => {
 
 const renderMathContent = (text: string | undefined | null) => {
   if (!text) return '';
-
-  // Fix interpreting control characters from improper JSON handling or AI quirks
-  let sanitized = String(text)
-    .replace(/\u000c/g, '\\\\f')  
-    .replace(/\u0008/g, '\\\\b')  
-    .replace(/\n\r/g, ' ')
-    .replace(/\n/g, ' ');
-
-  // Robustly handle dollar signs - sometimes AI adds spaces like "$ sin(x) $" 
-  // or misses closing signs. We'll try to normalize them.
-  sanitized = sanitized.replace(/\$\s+/g, '$').replace(/\s+\$/g, '$');
-
-  // Auto-wrap segments that look like LaTeX but missed the $ delimiters
-  // We split by existing $...$ to avoid double wrapping
-  let tempSegments = sanitized.split(/(\$.*?\$)/g);
-  const complexMathPattern = /((?:\d+[.,]?\d*\s*)?\\(?:frac|sqrt|sin|cos|tan|theta|alpha|beta|deg|circ|pi|times|div|pm|angle|triangle|approx|neq|leq|geq|times|div)(?:\{[^{}]*\}|\[[^\]]*\]|(?:\^|_)\d+|(?:\^|_)\{[^{}]*\}|\d|(?:\d+[\s]*[=><][\s]*\d+)|[\s]*[a-zA-Z0-9])*)/g;
-
-  sanitized = tempSegments.map(seg => {
-    if (seg.startsWith('$') && seg.endsWith('$')) return seg;
-    return seg.replace(complexMathPattern, (match) => {
-      if (!match || match.length < 2) return match;
-      return `$${match.trim()}$`;
-    });
-  }).join('');
-
-  // Handle remaining exponents like x^2 or y_1 that aren't wrapped
-  sanitized = sanitized.replace(/(?<!\$)([a-zA-Z0-9](\^|_)\d+)(?!\$)/g, '$$$1$$');
-
-  // Use a regex to split text by $...$ delimiters
-  const segments = sanitized.split(/(\$.*?\$)/g);
-  
-  if (segments.length === 1 && !/\\|[\^_]|\{|\}|deg|^\d+\/\d+$|sin|cos|tan|log|pi/.test(sanitized)) {
-    return sanitized;
-  }
-
-  return (
-    <>
-      {segments.map((segment, i) => {
-        if (segment.startsWith('$') && segment.endsWith('$')) {
-          let content = segment.slice(1, -1); 
-          if (!content.trim()) return null;
-
-          try {
-            // Convert Bengali digits inside math formulas to English digits 
-            const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-            content = content.split('').map(char => {
-              const idx = bengaliDigits.indexOf(char);
-              return idx !== -1 ? idx.toString() : char;
-            }).join('');
-
-            // Clean up common things that might break simple latex
-            const cleaned = content
-              .replace(/(\d+)°/g, '$1^\\circ')
-              .replace(/deg/g, '^\\circ')
-              .replace(/(\d+)\/(\d+)/g, '\\\\frac{$1}{$2}') // Auto-fraction for simple numbers
-              .trim();
-            
-            if (!cleaned) return null;
-            return <InlineMath key={i} math={cleaned} />;
-          } catch (e) {
-            return <span key={i} className="font-mono text-amber-600">{segment}</span>;
-          }
-        }
-        return <span key={i}>{segment}</span>;
-      })}
-    </>
-  );
+  return <MathRenderer content={text} />;
 };
 
 export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded, language, initialQuestions, addToast }: QuizProps) {
@@ -223,6 +157,9 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
   const [scoreAnimate, setScoreAnimate] = useState(false);
   const [floatingPoints, setFloatingPoints] = useState<{ id: number; value: number }[]>([]);
   const [missedQuestions, setMissedQuestions] = useState<Question[]>([]);
+  const [totalTimeSpent, setTotalTimeSpent] = useState(0);
+  const [currentLightSpeedStreak, setCurrentLightSpeedStreak] = useState(0);
+  const [maxLightSpeedStreak, setMaxLightSpeedStreak] = useState(0);
   const [inputValue, setInputValue] = useState('');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -298,8 +235,8 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
           clearInterval(timerRef.current!);
           return 0;
         }
-        // Play countdown sound in final 3 seconds
-        if (prev <= 3 && prev > 0) {
+        // Play countdown sound in final 5 seconds
+        if (prev <= 5 && prev > 0) {
           soundManager.play('countdown');
         }
         return prev - 1;
@@ -341,6 +278,20 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
     
     if (isCorrect) {
       soundManager.play('correct');
+      const timeUsed = 30 - timeLeft;
+      setTotalTimeSpent(prev => prev + timeUsed);
+      
+      // Light Speed Streak logic: answer under 5 seconds
+      if (timeUsed <= 5) {
+        setCurrentLightSpeedStreak(prev => {
+          const next = prev + 1;
+          if (next > maxLightSpeedStreak) setMaxLightSpeedStreak(next);
+          return next;
+        });
+      } else {
+        setCurrentLightSpeedStreak(0);
+      }
+
       const basePoints = difficulty === 'basic' ? 10 : difficulty === 'normal' ? 25 : 50;
       const speedBonus = Math.floor(timeLeft * (difficulty === 'hard' ? 2.5 : 1.5));
       const totalAwarded = basePoints + speedBonus;
@@ -356,6 +307,9 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
       }, 1000);
     } else {
       soundManager.play('incorrect');
+      const timeUsed = 30 - timeLeft;
+      setTotalTimeSpent(prev => prev + timeUsed);
+      setCurrentLightSpeedStreak(0);
       setMissedQuestions(prev => [...prev, currentQ]);
     }
 
@@ -395,7 +349,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
       }
     });
 
-    onComplete(points, correctCount, difficulty, missedQuestions, maxStreak);
+    onComplete(points, correctCount, difficulty, missedQuestions, maxStreak, totalTimeSpent, maxLightSpeedStreak);
   };
 
   if (loading) {
@@ -798,14 +752,15 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
                   )}
 
                   {showResult === 'incorrect' && (
-                    <motion.p 
+                    <motion.div 
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       className="text-rose-500 font-black text-xl flex items-center justify-center gap-2"
                     >
                       <XCircle size={20} />
-                      {language === 'en' ? 'Correct Ans:' : 'সঠিক উত্তর:'} {currentQ.answer}
-                    </motion.p>
+                      <span>{language === 'en' ? 'Correct Ans:' : 'সঠিক উত্তর:'}</span>
+                      {renderMathContent(String(currentQ.answer))}
+                    </motion.div>
                   )}
                 </form>
               </div>
@@ -838,9 +793,9 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
                         return (
                           <div key={idx} className="flex items-center gap-2 py-0.5 border-b border-rose-500/10 last:border-0">
                             <span className="shrink-0 w-4 h-4 rounded-full bg-rose-500/20 flex items-center justify-center text-[10px] font-bold">{idx + 1}</span>
-                            <span className="truncate">{l?.trim()}</span>
+                            <span className="truncate">{renderMathContent(l?.trim() || '')}</span>
                             <ArrowRight size={10} className="shrink-0 opacity-50" />
-                            <span className="truncate text-rose-700 dark:text-rose-400 font-black">{r?.trim()}</span>
+                            <span className="truncate text-rose-700 dark:text-rose-400 font-black">{renderMathContent(r?.trim() || '')}</span>
                           </div>
                         );
                       })}

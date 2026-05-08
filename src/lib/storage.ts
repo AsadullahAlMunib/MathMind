@@ -46,6 +46,7 @@ const INITIAL_USER: UserProfile = {
   language: 'bn',
   currentTheme: 'default',
   soundsEnabled: true,
+  isDarkMode: false,
 };
 
 const STORAGE_KEY = 'math_mind_v1';
@@ -73,7 +74,17 @@ export const storage = {
   getQuestionCache: (): Question[] => {
     try {
       const data = localStorage.getItem(QUESTION_CACHE_KEY);
-      return data ? JSON.parse(data) : [];
+      if (!data) return [];
+      const questions: Question[] = JSON.parse(data);
+      
+      // Migration/Cleanup: Strip unwanted formatting instructions from cached questions
+      const instructionRegex = /\s*\((?:উত্তর|answer).*?\)\s*$/i;
+      return questions.map(q => {
+        if (q.question && instructionRegex.test(q.question)) {
+          return { ...q, question: q.question.replace(instructionRegex, '').trim() };
+        }
+        return q;
+      });
     } catch (e) {
       return [];
     }
@@ -123,6 +134,9 @@ export const storage = {
     }
     if (parsed.user.soundsEnabled === undefined) {
       parsed.user.soundsEnabled = true;
+    }
+    if (parsed.user.isDarkMode === undefined) {
+      parsed.user.isDarkMode = false;
     }
 
     // Force update rivals if they are using the old scoring scale (less than 10k for top rank)

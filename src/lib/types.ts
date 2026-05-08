@@ -34,12 +34,17 @@ export interface QuizHistory {
   score: number;
   correctCount: number;
   totalQuestions: number;
+  timeSpent: number; // Final time spent in seconds
 }
 
 export interface Achievement {
   id: string;
   title: string;
+  titleBn: string;
   description: string;
+  descriptionBn: string;
+  longDescription?: string;
+  longDescriptionBn?: string;
   icon: string; // Lucide icon name or emoji
   requirement: (stats: UserStats) => boolean;
   targetValue?: number;
@@ -50,7 +55,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'first_quiz',
     title: 'First Step',
+    titleBn: 'প্রথম পদক্ষেপ',
     description: 'Complete your first math quiz',
+    descriptionBn: 'আপনার প্রথম গণিত কুইজ সম্পন্ন করুন',
+    longDescription: 'You have started your journey to master mathematics. Every great mathematician began with their first step.',
+    longDescriptionBn: 'আপনি গণিতে দক্ষতা অর্জনের যাত্রা শুরু করেছেন। প্রত্যেক মহান গণিতবিদ তাদের প্রথম পদক্ষেপের মাধ্যমেই যাত্রা শুরু করেছিলেন।',
     icon: 'target',
     requirement: (stats) => stats.totalQuizzes >= 1,
     targetValue: 1,
@@ -59,16 +68,24 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'perfect_basic',
     title: 'Warm Up Master',
-    description: 'Get a perfect score in Basic difficulty',
+    titleBn: 'ওয়ার্ম আপ মাস্টার',
+    description: 'Get a score of 600 in Basic difficulty',
+    descriptionBn: 'প্রাথমিক লেভেলে ৬০০ স্কোর অর্জন করুন',
+    longDescription: 'Solving basic problems quickly is the foundation of speed. You\'ve proven you\'re ready for bigger challenges.',
+    longDescriptionBn: 'প্রাথমিক সমস্যাগুলো দ্রুত সমাধান করা হলো গতির ভিত্তি। আপনি প্রমাণ করেছেন যে আপনি বড় চ্যালেঞ্জের জন্য প্রস্তুত।',
     icon: 'zap',
-    requirement: (stats) => stats.highScores.basic >= 1000,
-    targetValue: 1000,
+    requirement: (stats) => stats.highScores.basic >= 600,
+    targetValue: 600,
     getValue: (stats) => stats.highScores.basic
   },
   {
     id: 'streak_10',
     title: 'On Fire',
+    titleBn: 'অন ফায়ার',
     description: 'Achieve a best streak of 10 or more',
+    descriptionBn: '১০ বা তার বেশি টানা সঠিক উত্তর দিন',
+    longDescription: 'Your focus is incredible! Getting many answers right in a row shows deep concentration and skill.',
+    longDescriptionBn: 'আপনার একাগ্রতা অবিশ্বাস্য! পর পর অনেকগুলো সঠিক উত্তর দেওয়া গভীর মনোযোগ এবং দক্ষতার প্রতীক।',
     icon: 'flame',
     requirement: (stats) => stats.bestStreak >= 10,
     targetValue: 10,
@@ -77,7 +94,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'point_collector_10k',
     title: 'Point Hoarder',
+    titleBn: 'পয়েন্ট সংগ্রাহক',
     description: 'Earn a total of 10,000 points',
+    descriptionBn: 'মোট ১০,০০০ পয়েন্ট অর্জন করুন',
+    longDescription: 'Persistence pays off. Collecting points consistently shows your long-term dedication to practice.',
+    longDescriptionBn: 'অধ্যবসায়ের ফল মিষ্টি হয়। ধারাবাহিকভাবে পয়েন্ট সংগ্রহ করা আপনার দীর্ঘমেয়াদী অনুশীলনের একাগ্রতা প্রকাশ করে।',
     icon: 'coins',
     requirement: (stats) => stats.totalPoints >= 10000,
     targetValue: 10000,
@@ -86,7 +107,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'theme_fanatic',
     title: 'Fashionable',
+    titleBn: 'ফ্যাশনেবল',
     description: 'Unlock 5 different themes',
+    descriptionBn: '৫টি আলাদা থিম আনলক করুন',
+    longDescription: 'Math is beautiful, and so is your interface. You appreciate style and performance equally.',
+    longDescriptionBn: 'গণিত যেমন সুন্দর, আপনার ইন্টারফেসও তেমন। আপনি শৈলী এবং পারফরম্যান্স উভয়কেই সমানভাবে গুরুত্ব দেন।',
     icon: 'palette',
     requirement: (stats) => stats.unlockedThemes.length >= 5,
     targetValue: 5,
@@ -95,11 +120,77 @@ export const ACHIEVEMENTS: Achievement[] = [
   {
     id: 'hard_core',
     title: 'Math Legend',
-    description: 'Complete a Hard mode quiz with score > 4000',
+    titleBn: 'ম্যাথ লিজেন্ড',
+    description: 'Complete a Hard mode quiz with score > 1250',
+    descriptionBn: 'হার্ড মোডে ১২৫০ এর বেশি স্কোর অর্জন করুন',
+    longDescription: 'Only the best can handle the pressure of hard equations and intense time limits. You are truly a legend.',
+    longDescriptionBn: 'কেবল সেরারাই কঠিন সমীকরণ এবং তীব্র সময়ের চাপের মোকাবিলা করতে পারে। আপনি সত্যিই একজন কিংবদন্তি।',
     icon: 'crown',
-    requirement: (stats) => stats.highScores.hard >= 4000,
-    targetValue: 4000,
+    requirement: (stats) => stats.highScores.hard >= 1250,
+    targetValue: 1250,
     getValue: (stats) => stats.highScores.hard
+  },
+  {
+    id: 'marathoner',
+    title: 'Math Marathoner',
+    titleBn: 'ম্যাথ ম্যারাথোনার',
+    description: 'Active for 10 distinct days',
+    descriptionBn: '১০টি ভিন্ন দিন সক্রিয় থাকুন',
+    longDescription: 'Consistency is the key to learning. By visiting for 10 days, you\'ve made math a part of your life.',
+    longDescriptionBn: 'শেখবার চাবিকাঠি হলো ধারাবাহিকতা। ১০ দিন আসার মাধ্যমে আপনি গণিতকে আপনার জীবনের অংশ করে নিয়েছেন।',
+    icon: 'calendar',
+    requirement: (stats) => (stats.activity?.length || 0) >= 10,
+    targetValue: 10,
+    getValue: (stats) => stats.activity?.length || 0
+  },
+  {
+    id: 'unstoppable',
+    title: 'Unstoppable Force',
+    titleBn: 'আনস্টপেবল ফোর্স',
+    description: 'Complete 10 perfect quizzes (10/10 correct)',
+    descriptionBn: '১০টি নিখুঁত কুইজ সম্পন্ন করুন (১০/১০ সঠিক)',
+    longDescription: 'Perfection is rare. Completing 10 full quizzes without a single error is a mark of true excellence.',
+    longDescriptionBn: 'নিখুঁত হওয়া বিরল। একটিও ভুল ছাড়া ১০টি পূর্ণ কুইজ সম্পন্ন করা সত্যিকারের শ্রেষ্ঠত্বের পরিচয়।',
+    icon: 'shield-check',
+    requirement: (stats) => (stats.achievementCounts?.['unstoppable'] || 0) >= 10,
+    targetValue: 10,
+    getValue: (stats) => stats.achievementCounts?.['unstoppable'] || 0
+  },
+  {
+    id: 'elite_calculator',
+    title: 'Elite Calculator',
+    titleBn: 'এলিট ক্যালকুলেটর',
+    description: '100 quizzes total (min 25 per difficulty)',
+    descriptionBn: 'মোট ১০০টি কুইজ সম্পন্ন করুন (প্রতিটি লেভেলে কমপক্ষে ২৫টি)',
+    longDescription: 'You have explored all levels of mathematics. Your versatility across difficulties makes you an elite solver.',
+    longDescriptionBn: 'আপনি গণিতের সকল স্তর অন্বেষণ করেছেন। বিভিন্ন অসুবিধার স্তরে আপনার বহুমুখী দক্ষতা আপনাকে একজন এলিট সমাধানকারীতে পরিণত করেছে।',
+    icon: 'calculator',
+    requirement: (stats) => {
+      const basic = stats.lifetimeQuizzesByDifficulty?.basic || 0;
+      const normal = stats.lifetimeQuizzesByDifficulty?.normal || 0;
+      const hard = stats.lifetimeQuizzesByDifficulty?.hard || 0;
+      return (basic + normal + hard) >= 100 && basic >= 25 && normal >= 25 && hard >= 25;
+    },
+    targetValue: 100,
+    getValue: (stats) => {
+      const basic = stats.lifetimeQuizzesByDifficulty?.basic || 0;
+      const normal = stats.lifetimeQuizzesByDifficulty?.normal || 0;
+      const hard = stats.lifetimeQuizzesByDifficulty?.hard || 0;
+      return basic + normal + hard;
+    }
+  },
+  {
+    id: 'light_speed',
+    title: 'Light Speed',
+    titleBn: 'লাইট স্পিড',
+    description: 'Answer questions within 5 seconds consecutively',
+    descriptionBn: '৫ সেকেন্ডের মধ্যে পর পর উত্তর দিন',
+    longDescription: 'Your brain processes numbers faster than light! Your rapid-fire answers are truly breathtaking.',
+    longDescriptionBn: 'আপনার মস্তিষ্ক আলোর চেয়েও দ্রুত সংখ্যা প্রসেস করতে পারে! আপনার দ্রুতগতির উত্তরগুলো সত্যিই চমৎকার।',
+    icon: 'zap',
+    requirement: (stats) => (stats.bestLightSpeedStreak || 0) >= 5,
+    targetValue: 5,
+    getValue: (stats) => stats.bestLightSpeedStreak || 0
   }
 ];
 
@@ -124,6 +215,10 @@ export interface UserStats {
   unlockedThemes: string[];
   unlockedAchievements?: string[];
   achievementUnlocks?: Record<string, string>;
+  achievementCounts?: Record<string, number>; // For multipliers like 2x, 3x
+  bestLightSpeedStreak?: number; // Best streak of answers < 5s
+  lifetimeCorrectByDifficulty?: Record<Difficulty, number>;
+  lifetimeQuizzesByDifficulty?: Record<Difficulty, number>; // For Elite Calculator
   activity: ActivityDay[];
   highScores: Record<Difficulty, number>;
   lifetimeLevelScores?: Record<Difficulty, number>;
@@ -146,6 +241,7 @@ export interface UserProfile {
   language: 'en' | 'bn';
   currentTheme: string;
   soundsEnabled: boolean;
+  isDarkMode: boolean;
 }
 
 export interface AppState {

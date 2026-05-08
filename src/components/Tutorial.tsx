@@ -20,7 +20,11 @@ import {
   Target,
   LineChart,
   Award,
-  Crown
+  Crown,
+  Languages,
+  Sun,
+  Moon,
+  Key
 } from 'lucide-react';
 import { translations } from '../lib/translations';
 import AppTooltip from './Tooltip';
@@ -30,9 +34,12 @@ import Logo from './Logo';
 interface TutorialProps {
   onComplete: () => void;
   language: 'en' | 'bn';
+  onLanguageToggle: () => void;
+  isDark: boolean;
+  onThemeToggle: () => void;
 }
 
-export default function Tutorial({ onComplete, language }: TutorialProps) {
+export default function Tutorial({ onComplete, language, onLanguageToggle, isDark, onThemeToggle }: TutorialProps) {
   const [step, setStep] = useState(0);
   const t = translations[language];
 
@@ -44,7 +51,65 @@ export default function Tutorial({ onComplete, language }: TutorialProps) {
         : 'সেরা ইন্টারঅ্যাক্টিভ ম্যাথ কুইজ প্ল্যাটফর্ম। মজার মাধ্যমে আপনার যুক্তিশক্তি বাড়ান!',
       icon: <Logo size={120} />,
       color: 'bg-primary/20',
-      tip: language === 'en' ? 'Pro Tip: Tap the logo anytime to see your stats!' : 'টিপ: আপনার স্ট্যাটাস দেখতে যেকোনো সময় লোগোতে ট্যাপ করুন!'
+      tip: language === 'en' ? 'Pro Tip: Tap the logo anytime to see your stats!' : 'টিপ: আপনার স্ট্যাটাস দেখতে যেকোনো সময় লোগোতে ট্যাপ করুন!',
+      customUI: (
+        <div className="flex flex-col gap-4 mt-4 w-full max-w-[280px]">
+          <div className="flex flex-col gap-2 p-3 bg-black/5 dark:bg-white/5 rounded-2xl border border-white/5">
+             <div className="flex items-center gap-2 mb-1">
+               <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                 <Languages size={14} />
+               </div>
+               <span className="text-[10px] font-black uppercase tracking-wider opacity-60">
+                 {language === 'en' ? 'Choose Language' : 'ভাষা নির্বাচন করুন'}
+               </span>
+             </div>
+             <div className="flex gap-2">
+               <button 
+                 onClick={() => language !== 'en' && onLanguageToggle()}
+                 className={`flex-1 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                   language === 'en' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-white/5 text-muted hover:bg-black/10'
+                 }`}
+               >
+                 🇺🇸 English
+               </button>
+               <button 
+                 onClick={() => language !== 'bn' && onLanguageToggle()}
+                 className={`flex-1 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                   language === 'bn' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-black/5 dark:bg-white/5 text-muted hover:bg-black/10'
+                 }`}
+               >
+                 🇧🇩 বাংলা
+               </button>
+             </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-black/5 dark:bg-white/5 rounded-2xl border border-white/5">
+             <div className="flex items-center gap-2">
+               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                 {isDark ? <Moon size={16} /> : <Sun size={16} />}
+               </div>
+               <span className="text-[11px] font-black uppercase tracking-wider opacity-60">
+                 {language === 'en' ? 'Theme' : 'থিম'}
+               </span>
+             </div>
+             <button 
+                onClick={onThemeToggle}
+                className="w-14 h-8 rounded-full bg-black/10 dark:bg-white/10 relative p-1 transition-colors flex items-center"
+             >
+                <div className="absolute inset-0 flex items-center justify-between px-2.5 text-muted/30">
+                  <Sun size={12} />
+                  <Moon size={12} />
+                </div>
+                <motion.div 
+                  animate={{ x: isDark ? 24 : 0 }}
+                  className="w-6 h-6 rounded-full bg-primary shadow-lg z-10 flex items-center justify-center text-white"
+                >
+                   {isDark ? <Moon size={12} /> : <Sun size={12} />}
+                </motion.div>
+             </button>
+          </div>
+        </div>
+      )
     },
     {
       title: language === 'en' ? 'AI Powered Quizzes' : 'AI চালিত কুইজ',
@@ -90,6 +155,37 @@ export default function Tutorial({ onComplete, language }: TutorialProps) {
       icon: <Crown className="text-yellow-500" size={80} />,
       color: 'bg-yellow-500/10',
       tip: language === 'en' ? 'Can you beat our current top-ranked player?' : 'আপনি কি আমাদের বর্তমান সেরা খেলোয়াড়কে হারাতে পারবেন?'
+    },
+    {
+      title: language === 'en' ? 'AI Setup Required' : 'AI সেটআপ প্রয়োজন',
+      desc: language === 'en' 
+        ? 'To enable AI-powered math generation, you must provide your own Gemini API Key.' 
+        : 'AI-চালিত গণিত কুইজ চালু করতে আপনাকে আপনার নিজস্ব Gemini API কী প্রদান করতে হবে।',
+      icon: <div className="relative">
+              <Zap size={60} className="text-primary animate-pulse" />
+              <div className="absolute -bottom-2 -right-2 bg-amber-500 text-white p-1.5 rounded-lg shadow-xl">
+                <Key size={16} strokeWidth={3} />
+              </div>
+            </div>,
+      color: 'bg-amber-500/10',
+      tip: language === 'en' 
+        ? 'Check your Profile to see how to input your GEMINI_API_KEY!' 
+        : 'আপনার প্রোফাইলে গিয়ে দেখুন কীভাবে GEMINI_API_KEY ইনপুট করবেন!',
+      customUI: (
+        <div className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/10 flex flex-col items-center gap-3 w-full max-w-[280px]">
+           <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-600 rounded-full border border-amber-500/20">
+             <Key size={12} className="animate-bounce" />
+             <span className="text-[10px] font-black uppercase tracking-tighter">
+               {language === 'en' ? 'Key Needed' : 'কী প্রয়োজন'}
+             </span>
+           </div>
+           <p className="text-[10px] text-center opacity-70 font-bold leading-relaxed">
+             {language === 'en' 
+               ? 'This app uses Gemini AI. Click on your Profile icon after this tutorial to learn how to unlock all features.' 
+               : 'এই অ্যাপটি Gemini AI ব্যবহার করে। সব ফিচার আনলক করতে টিউটোরিয়াল শেষে আপনার প্রোফাইল আইকনে ক্লিক করে বিস্তারিত জানুন।'}
+           </p>
+        </div>
+      )
     }
   ];
 
@@ -138,6 +234,8 @@ export default function Tutorial({ onComplete, language }: TutorialProps) {
                 <h2 className="text-xl md:text-2xl font-black tracking-tight">{steps[step].title}</h2>
                 <p className="opacity-70 text-sm md:text-base leading-relaxed max-w-sm mx-auto font-medium">{steps[step].desc}</p>
                 
+                {(steps[step] as any).customUI}
+
                 {steps[step].tip && (
                   <motion.div 
                     initial={{ opacity: 0, y: 5 }}

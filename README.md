@@ -10,16 +10,13 @@
 
 **AI-Powered Gamified Math Quiz App**
 
-<br/>
-
+[![Version](https://img.shields.io/badge/version-v1.1.0-7c3aed?style=for-the-badge)](https://github.com/AsadullahAlMunib/MathMind/releases)
 [![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript_5.8-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![Gemini AI](https://img.shields.io/badge/Gemini_AI-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev)
 [![Vite](https://img.shields.io/badge/Vite_6-646CFF?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vitejs.dev)
 [![Tailwind](https://img.shields.io/badge/Tailwind_v4-0EA5E9?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![License](https://img.shields.io/badge/Apache_2.0-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](LICENSE)
-
-<br/>
 
 *Solve. Earn. Unlock. Repeat.*
 
@@ -32,6 +29,58 @@
 ---
 
 </div>
+
+## 🚀 What's New — `v1.1.0` *(May 8, 2026)*
+
+> Upgrading from `v1.0.1` — this release improves math precision, expands offline content, and makes onboarding smarter.
+
+<br/>
+
+<table>
+<thead>
+<tr>
+<th width="44px">​</th>
+<th>Update</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">🧮</td>
+<td><strong>Advanced Math Formatting</strong></td>
+<td>Fixed <strong>KaTeX</strong> rendering for complex equations — fractions, square roots, and algebraic expressions now display with perfect precision via the new <code>MathRenderer</code> component.</td>
+</tr>
+<tr>
+<td align="center">📦</td>
+<td><strong>Upgraded Offline Engine</strong></td>
+<td>Added <strong>60+ unique question templates</strong> across Basic, Normal, and Hard levels. Richer offline content — no internet needed.</td>
+</tr>
+<tr>
+<td align="center">🎓</td>
+<td><strong>Smart Tutorial Integration</strong></td>
+<td><strong>Theme (Dark/Light)</strong> and <strong>Language (BN/EN)</strong> toggles now appear directly inside the onboarding flow — personalize before playing.</td>
+</tr>
+<tr>
+<td align="center">🔑</td>
+<td><strong>AI Configuration Guide</strong></td>
+<td>New dedicated tutorial slide walks users through entering their <strong>GEMINI_API_KEY</strong> in the Profile section to unlock private AI question generation.</td>
+</tr>
+<tr>
+<td align="center">🎨</td>
+<td><strong>UI/UX Polishing</strong></td>
+<td>Redesigned theme switch with <strong>interactive icons</strong>; improved math engine status clarity throughout the app.</td>
+</tr>
+<tr>
+<td align="center">🏆</td>
+<td><strong>Expanded Achievements</strong></td>
+<td>Achievement system grown from <strong>6 → 10 milestones</strong>. Four new challenges added: <strong>Math Marathoner</strong>, <strong>Unstoppable Force</strong>, <strong>Elite Calculator</strong>, and <strong>Light Speed</strong>. Existing thresholds also rebalanced.</td>
+</tr>
+</tbody>
+</table>
+
+<br/>
+
+---
 
 ## 🧠 What is Math Mind?
 
@@ -59,7 +108,7 @@ Fully supports **English 🇬🇧** and **Bengali 🇧🇩** — including AI-ge
 | ⚡ | **Speed Bonus** | Answer faster → earn more points |
 | 📊 | **Rich Analytics** | Pie chart, Radar chart, GitHub-style activity heatmap |
 | 🎨 | **10 Unlockable Themes** | Buy themes with earned coins — all with dark mode variants |
-| 🏆 | **Achievements System** | 6 milestone-based rewards with toast notifications |
+| 🏆 | **Achievements System** | 10 milestone-based rewards with toast notifications |
 | 🔁 | **Review Mode** | Revisit your wrong answers to master weak areas |
 | 👥 | **AI Rivals** | Compete against 10 legendary math rival bots |
 | 🔢 | **KaTeX Rendering** | Beautiful LaTeX math formula display |
@@ -89,13 +138,13 @@ The APK is automatically built via **GitHub Actions** on every push to `main`. N
 The app has **5 tabs** — sidebar on desktop, bottom bar on mobile:
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  📊  Dashboard    Stats, charts, heatmap, quick-start │
-│  🏆  Leaderboard  Compete against rival bots          │
-│  🎮  Quiz         Choose difficulty and play          │
-│  🛍️  Store         Buy themes with your coins          │
-│  👤  Profile       Name, avatar, API key, Sound effects      │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│  📊  Dashboard    Stats, charts, heatmap, quick-start     │
+│  🏆  Leaderboard  Compete against rival bots              │
+│  🎮  Quiz         Choose difficulty and play              │
+│  🛍️  Store         Buy themes with your coins             │
+│  👤  Profile       Name, avatar, API key, Sound effects   │
+└──────────────────────────────────────────────────┘
 ```
 
 <br/>
@@ -147,8 +196,8 @@ The app works in two modes depending on whether an API key is set:
 
 | | No API Key | With API Key |
 |---|---|---|
-| **Question Source** | Built-in offline engine (algorithmically generated) | Google Gemini AI (fresh, creative questions every session) |
-| **Question Quality** | Good — covers all difficulty levels | Excellent — varied, context-rich, word problems included |
+| **Question Source** | Built-in offline engine (algorithmically generated) | Google Gemini AI (fresh, **creative questions** every session) |
+| **Question Quality** | Good — covers all difficulty levels | Excellent — varied, **context-rich**, word problems included |
 | **Works Offline** | ✅ Yes | ❌ Requires internet |
 | **Setup Required** | None — works out of the box | Paste your key once in Profile |
 
@@ -184,22 +233,22 @@ Once you've missed **5 or more** questions, the Dashboard shows a Review Banner 
 ## 📊 Dashboard Analytics
 
 ```
-┌─── QUICK STATS ─────────────────────────────────────┐
-│  💰 Balance   🎯 Level   ⚡ Quizzes   🔥 Best Streak │
-└─────────────────────────────────────────────────────┘
+┌─── QUICK STATS ──────────────────────────────────┐
+│  💰 Balance   🎯 Level   ⚡ Quizzes   🔥 Best Streak   │
+└────────────────────────────────────────────────┘
 
-┌─── CHARTS ──────────────────────────────────────────┐
-│  Accuracy View  →  Pie Chart (correct vs wrong %)   │
-│  Mastery View   →  Radar Chart (score by mode)      │
-└─────────────────────────────────────────────────────┘
+┌─── CHARTS ──────────────────────────────────────┐
+│  Accuracy View  →  Pie Chart (correct vs wrong %)     │
+│  Mastery View   →  Radar Chart (score by mode)        │
+└────────────────────────────────────────────────┘
 
-┌─── ACTIVITY HEATMAP ────────────────────────────────┐
-│  GitHub-style grid showing last 50 days of quizzes  │
-└─────────────────────────────────────────────────────┘
+┌─── ACTIVITY HEATMAP ──────────────────────────────┐
+│  GitHub-style grid showing last 50 days of quizzes     │
+└────────────────────────────────────────────────┘
 
-┌─── PERSONAL BESTS ──────────────────────────────────┐
-│  Bar Chart — highest score per difficulty            │
-└─────────────────────────────────────────────────────┘
+┌─── PERSONAL BESTS ───────────────────────────────┐
+│  Bar Chart — highest score per difficulty              │
+└────────────────────────────────────────────────┘
 ```
 
 **Level System** — each level requires ×1.2 more points than the previous:
@@ -221,11 +270,15 @@ Level 5 → 6  : 1,037 pts  (lifetime: 3,721)
 | Badge | Achievement | How to Unlock |
 |---|---|---|
 | 🎯 | **First Step** | Complete your very first quiz |
-| ⚡ | **Warm Up Master** | Score a perfect 1,000 pts in Basic mode |
+| ⚡ | **Warm Up Master** | Score a perfect 600 pts in Basic mode |
 | 🔥 | **On Fire** | Reach a best streak of 10 or more |
-| 🪙 | **Point Hoarder** | Accumulate 10,000 total points |
-| 🎨 | **Fashionable** | Unlock any 5 themes from the Store |
-| 👑 | **Math Legend** | Score above 4,000 pts in a single Hard session |
+| 💰 | **Point Hoarder** | Earn a lifetime total of 10,000 points |
+| 🎨 | **Fashionable** | Unlock 5 different adaptive themes from the shop |
+| 👑 | **Math Legend** | Score above 1,250 in a Hard mode quiz |
+| 📅 | **Math Marathoner** | Stay active and play for 10 distinct days |
+| 🛡️ | **Unstoppable Force** | Complete 10 perfect quizzes (10/10 correct) |
+| 🧮 | **Elite Calculator** | Complete 100 quizzes total (min 25 per difficulty) |
+| 🚀 | **Light Speed** | Answer 5 questions consecutively in under 5 seconds each |
 
 <br/>
 
@@ -347,37 +400,63 @@ Open **`http://localhost:3000`** — you're ready to play!
 MathMind/
 ├── src/
 │   ├── components/
-│   │   ├── Quiz.tsx              # Core gameplay: timer, answers, scoring
-│   │   ├── Dashboard.tsx         # Stats, charts, heatmap, quick actions
-│   │   ├── Leaderboard.tsx       # Rival competition board
-│   │   ├── Store.tsx             # Theme marketplace
-│   │   ├── Profile.tsx           # User profile and settings
-│   │   ├── Achievements.tsx      # Achievement display and tracking
-│   │   ├── Tutorial.tsx          # First-time onboarding flow
-│   │   ├── Logo.tsx              # App logo component
-│   │   ├── QuotaModal.tsx        # API quota limit handler
-│   │   └── Tooltip.tsx           # Reusable tooltip wrapper
+│   │   ├── Achievements.tsx          # Achievement display and tracking
+│   │   ├── Dashboard.tsx             # Stats, charts, heatmap, quick actions
+│   │   ├── Leaderboard.tsx           # Rival competition board
+│   │   ├── Logo.tsx                  # App logo component
+│   │   ├── MathRenderer.tsx          # KaTeX math expression renderer  ✨ v1.1.0
+│   │   ├── Profile.tsx               # User profile, API key, settings
+│   │   ├── Quiz.tsx                  # Core gameplay: timer, answers, scoring
+│   │   ├── QuotaModal.tsx            # API quota limit handler
+│   │   ├── Store.tsx                 # Theme marketplace
+│   │   ├── Tooltip.tsx               # Reusable tooltip wrapper
+│   │   └── Tutorial.tsx              # First-time onboarding flow
 │   ├── lib/
-│   │   ├── quizEngine.ts         # Gemini AI + offline question generator
-│   │   ├── types.ts              # THEMES, ACHIEVEMENTS, all TS interfaces
-│   │   ├── storage.ts            # localStorage read/write helpers
-│   │   ├── translations.ts       # English & Bengali string maps
-│   │   ├── levelUtils.ts         # XP and level calculation helpers
-│   │   └── sounds.ts             # Sound effect manager
-│   ├── App.tsx                   # Root: navigation, state, theme, toasts
-│   └── main.tsx                  # Entry point
+│   │   ├── quizEngine.ts             # Gemini AI + offline question generator
+│   │   ├── types.ts                  # THEMES, ACHIEVEMENTS, all TS interfaces
+│   │   ├── storage.ts                # localStorage read/write helpers
+│   │   ├── translations.ts           # English & Bengali string maps
+│   │   ├── levelUtils.ts             # XP and level calculation helpers
+│   │   └── sounds.ts                 # Sound effect manager
+│   ├── App.tsx                       # Root: navigation, state, theme, toasts
+│   ├── index.css                     # Global styles and CSS variables
+│   ├── main.tsx                      # Entry point
+│   └── vite-env-override.d.ts        # Vite environment type declarations
 ├── .github/
 │   └── workflows/
-│       └── build.yml             # Android APK auto-build workflow
-├── icon.png                      # Android launcher icon (1024×1024)
+│       └── build.yml                 # Android APK auto-build workflow
+├── .env.example                      # API key template
+├── .gitignore
+├── capacitor.config.json             # Capacitor Android config
+├── icon.png                          # Android launcher icon (1024×1024)
 ├── index.html
-├── .env.example                  # API key template
-├── metadata.json                 # App description and capabilities
-├── capacitor.config.json         # Capacitor Android config
+├── metadata.json                     # App description and capabilities
 ├── package.json
-├── vite.config.ts
-└── tsconfig.json
+├── package-lock.json
+├── README.md
+├── tsconfig.json
+└── vite.config.ts
 ```
+
+<br/>
+
+---
+
+## 📋 Changelog
+
+### `v1.1.0` — May 8, 2026
+- 🧮 Fixed KaTeX rendering for fractions, square roots, and algebraic expressions
+- 🆕 Added `MathRenderer.tsx` component for dedicated math display
+- 📦 Upgraded offline engine with 60+ new question templates across all difficulty levels
+- 🎓 Added Dark/Light theme and BN/EN language toggles inside the onboarding tutorial
+- 🔑 New tutorial slide for GEMINI_API_KEY setup guidance in Profile
+- 🎨 Redesigned theme switch with interactive icons; improved math engine status UI
+
+### `v1.0.1` — May 7, 2026
+- 🐛 Fixed API key implementation 
+
+### `v1.0.0` — Initial Release
+- 🚀 First public release with full AI quiz engine, offline fallback, and Android APK
 
 <br/>
 

@@ -11,7 +11,7 @@ import {
   Palette,
   Crown
 } from 'lucide-react';
-import { ACHIEVEMENTS, UserStats } from '../lib/types';
+import { ACHIEVEMENTS, UserStats, Achievement } from '../lib/types';
 import AppTooltip from './Tooltip';
 
 interface AchievementIconProps {
@@ -20,7 +20,7 @@ interface AchievementIconProps {
   className?: string;
 }
 
-const AchievementIcon = ({ name, size = 24, className = "" }: AchievementIconProps) => {
+export const AchievementIcon = ({ name, size = 24, className = "" }: AchievementIconProps) => {
   const iconProps = { size, className };
   switch (name) {
     case 'target': return <Target {...iconProps} />;
@@ -36,9 +36,10 @@ const AchievementIcon = ({ name, size = 24, className = "" }: AchievementIconPro
 interface AchievementsProps {
   stats: UserStats;
   language: 'en' | 'bn';
+  onSelectAchievement: (achievement: Achievement) => void;
 }
 
-export default function Achievements({ stats, language }: AchievementsProps) {
+export default function Achievements({ stats, language, onSelectAchievement }: AchievementsProps) {
   const unlockedAchievements = stats.unlockedAchievements || [];
 
   return (
@@ -88,7 +89,7 @@ export default function Achievements({ stats, language }: AchievementsProps) {
                   <AchievementIcon name={achievement.icon} size={14} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-black text-[11px] leading-tight text-white">{achievement.title}</span>
+                  <span className="font-black text-[11px] leading-tight text-white">{language === 'bn' ? achievement.titleBn : achievement.title}</span>
                   <span className={`text-[8px] font-bold uppercase tracking-widest ${isUnlocked ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {isUnlocked 
                       ? (language === 'en' ? 'Unlocked' : 'অর্জিত') 
@@ -103,7 +104,7 @@ export default function Achievements({ stats, language }: AchievementsProps) {
                     {language === 'en' ? 'Requirement' : 'প্রয়োজনীয়তা'}
                   </span>
                   <span className="text-[10px] font-medium leading-relaxed text-white/90">
-                    {achievement.description}
+                    {language === 'bn' ? achievement.descriptionBn : achievement.description}
                   </span>
                 </div>
 
@@ -157,7 +158,8 @@ export default function Achievements({ stats, language }: AchievementsProps) {
                 delay: 0.02 * idx,
                 ease: [0.34, 1.56, 0.64, 1]
               }}
-              className="flex flex-col items-center group"
+              onClick={() => onSelectAchievement(achievement)}
+              className="flex flex-col items-center group cursor-pointer"
             >
               <AppTooltip content={tooltipContent} delay={0.1}>
                 <div className="relative flex flex-col items-center">
@@ -203,6 +205,33 @@ export default function Achievements({ stats, language }: AchievementsProps) {
                       </motion.div>
                     )}
 
+                    {/* Multipliers */}
+                    {isUnlocked && (() => {
+                      let multiplier = 0;
+                      if (achievement.id === 'unstoppable') {
+                        multiplier = Math.floor((stats.achievementCounts?.['unstoppable'] || 0) / 10);
+                      } else if (achievement.id === 'marathoner') {
+                        multiplier = Math.floor((stats.activity?.length || 0) / 10);
+                      } else if (achievement.id === 'light_speed') {
+                        multiplier = Math.floor((stats.bestLightSpeedStreak || 0) / 5);
+                      } else if (achievement.id === 'perfect_basic') {
+                        multiplier = Math.floor((stats.highScores.basic || 0) / 600);
+                      }
+
+                      if (multiplier > 1) {
+                        return (
+                          <motion.div 
+                            initial={{ scale: 0, x: -10 }}
+                            animate={{ scale: 1, x: 0 }}
+                            className="absolute -top-1 -left-1 px-2 py-0.5 bg-primary text-white rounded-full border-2 border-surface flex items-center justify-center shadow-xl z-20 text-[8px] font-black"
+                          >
+                            {multiplier}x
+                          </motion.div>
+                        );
+                      }
+                      return null;
+                    })()}
+
                     {/* Atmospheric Underglow */}
                     {isUnlocked && (
                       <div className="absolute inset-0 rounded-full bg-amber-500/20 blur-2xl -z-10 group-hover:bg-amber-500/40 transition-all duration-700"></div>
@@ -214,7 +243,7 @@ export default function Achievements({ stats, language }: AchievementsProps) {
                     <h4 className={`text-[11px] font-black uppercase tracking-tight leading-tight transition-all duration-500 ${
                       isUnlocked ? 'text-foreground' : 'text-muted'
                     }`}>
-                      {achievement.title}
+                      {language === 'bn' ? achievement.titleBn : achievement.title}
                     </h4>
                     
                     {isUnlocked ? (

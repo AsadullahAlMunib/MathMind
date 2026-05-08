@@ -6,6 +6,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { Difficulty, Question, QuestionType } from './types';
 import { storage } from './storage';
+import { OFFLINE_TEMPLATES } from './offlineQuestions';
 
 function getAI() {
   const customKey = storage.getApiKey();
@@ -59,6 +60,7 @@ export const quizEngine = {
           
           Constraints:
           - QUESTIONS MUST BE UNIQUE. Do not repeat standard textbook questions exactly.
+          - DO NOT include instructions in the question text about how to format the answer (e.g., do not say "write as fraction", "(answer in 5/3 format)", or Bengali versions like "(উত্তর ভগ্নাংশ আকারে লিখুন)").
           - CRITICAL: AVOID extremely simplistic factoid questions (e.g., "How many sides does a triangle have?", "How many angles in a square?", "What is 2+2?").
           - DO NOT repeat the following question: "একটি ত্রিভুজের মোট কয়টি কোণ থাকে?" or its English equivalent.
           - Avoid using the same constant values across multiple questions in the same batch.
@@ -87,7 +89,7 @@ export const quizEngine = {
           - Ensure EXACTLY ONE correct answer is in the "options" for MCQ.
           - Keep "explanation" field helpful and in ${language === 'en' ? 'English' : 'Bengali'}.`;
 
-          // Apply 45 second timeout - Bengali math generation can be slow but we want success
+          // Apply 60 second timeout - Bengali math generation can be slow but we want success
           const result = await withTimeout(
             ai!.models.generateContent({
               model: modelName,
@@ -96,7 +98,7 @@ export const quizEngine = {
                 responseMimeType: 'application/json'
               }
             }),
-            45000
+            60000
           );
 
           const text = result.text;
@@ -141,8 +143,14 @@ export const quizEngine = {
           
           // Ensure IDs are unique and sync matching types
           const formattedQuestions = parsedQuestions.map(q => {
+             // Strip unwanted formatting instructions the AI sometimes includes
+             let question = q.question || '';
+             const instructionRegex = /\s*\((?:উত্তর|answer).*?\)\s*$/i;
+             question = question.replace(instructionRegex, '').trim();
+
              const formatted = {
                 ...q,
+                question,
                 id: q.id || Math.random().toString(36).substring(2, 11)
               };
 
@@ -193,9 +201,21 @@ export const quizEngine = {
   },
 
   generateOffline(difficulty: Difficulty, count: number, language: 'en' | 'bn'): Question[] {
+    const templates = OFFLINE_TEMPLATES[difficulty as keyof typeof OFFLINE_TEMPLATES];
     const questions: Question[] = [];
-    for (let i = 0; i < count; i++) {
-      questions.push(this.createRandomQuestion(difficulty, language));
+    
+    if (templates && templates.length > 0) {
+      // Shuffle templates and take 'count' unique ones (or repeat if count > templates.length)
+      const shuffled = [...templates].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < count; i++) {
+        const template = shuffled[i % shuffled.length];
+        questions.push(template(language));
+      }
+    } else {
+      // Fallback
+      for (let i = 0; i < count; i++) {
+        questions.push(this.createRandomQuestion(difficulty, language));
+      }
     }
     return questions;
   },

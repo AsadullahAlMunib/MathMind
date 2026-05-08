@@ -83,3 +83,38 @@ body {
 .contribution-cell {
   @apply w-3 h-3 rounded-sm;
 }
+
+/* Math Renderer Styles */
+.math-container {
+  @apply max-w-full inline-block;
+  vertical-align: middle;
+}
+
+.math-container.block {
+  @apply block my-4 overflow-x-auto overflow-y-hidden text-center;
+  scrollbar-width: thin;
+}
+
+.math-container.block::-webkit-scrollbar {
+  height: 4px;
+}
+
+.math-container.block::-webkit-scrollbar-thumb {
+  @apply bg-primary/20 rounded-full;
+}
+
+/* Responsive scaling for math */
+@media (max-width: 640px) {
+  .math-renderer {
+    font-size: 0.95em;
+  }
+  .katex {
+    font-size: 1.05em !important;
+  }
+  .katex-display {
+    margin: 0.5em 0 !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+}
+

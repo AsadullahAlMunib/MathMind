@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Github, 
@@ -36,6 +36,7 @@ import {
   HelpCircle,
   ShieldCheck,
   X,
+  ArrowRight,
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -47,11 +48,11 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-import { UserStats, UserProfile, ACHIEVEMENTS } from '../lib/types';
+import { UserStats, UserProfile, ACHIEVEMENTS, Achievement } from '../lib/types';
 import { translations } from '../lib/translations';
 import { storage } from '../lib/storage';
 import AppTooltip from './Tooltip';
-import Achievements from './Achievements';
+import Achievements, { AchievementIcon } from './Achievements';
 
 interface ProfileProps {
   user: UserProfile;
@@ -67,6 +68,11 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
   const [isChangingAvatar, setIsChangingAvatar] = useState(false);
   const [showApiTips, setShowApiTips] = useState(false);
   const [activeCustomTab, setActiveCustomTab] = useState<'style' | 'color' | 'text'>('style');
+  const [showResetScroll, setShowResetScroll] = useState(false);
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   const t = (translations[language] as any);
   const coreT = translations[language];
 
@@ -112,10 +118,91 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
   };
 
   // Prepare chart data from history
-  const chartData = [...(stats.history || [])].reverse().map(item => ({
-    score: item.score,
-    date: new Date(item.date).toLocaleDateString()
-  }));
+  const chartData = [...(stats.history || [])].reverse().map(item => {
+    const d = new Date(item.date);
+    return {
+      score: item.score,
+      date: d.toLocaleDateString(),
+      time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      difficulty: item.difficulty,
+      timeSpent: item.timeSpent,
+      correctCount: item.correctCount,
+      totalQuestions: item.totalQuestions
+    };
+  });
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-surface/90 border border-white/10 p-3 rounded-2xl shadow-2xl backdrop-blur-md">
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <p className="text-[9px] font-black uppercase opacity-40 tracking-widest">{data.date}</p>
+            <p className="text-[9px] font-black opacity-40 tracking-widest">{data.time}</p>
+          </div>
+          <div className="space-y-1.5 min-w-[120px]">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">
+                {language === 'en' ? 'Score' : 'স্কোর'}
+              </span>
+              <span className="text-xs font-black text-primary">{data.score}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">
+                {language === 'en' ? 'Level' : 'লেভেল'}
+              </span>
+              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                data.difficulty === 'basic' ? 'bg-emerald-500/10 text-emerald-500' :
+                data.difficulty === 'normal' ? 'bg-amber-500/10 text-amber-500' : 'bg-rose-500/10 text-rose-500'
+              }`}>
+                {t[data.difficulty]}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/5">
+              <span className="text-[9px] font-bold opacity-40 uppercase tracking-widest">
+                {language === 'en' ? 'Correct' : 'সঠিক'}
+              </span>
+              <span className="text-[9px] font-black opacity-60">
+                {data.correctCount}/{data.totalQuestions}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Scroll to the end of the chart (latest records) on mount and data change
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+    }
+  }, [chartData.length]);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+    const distanceToRight = scrollWidth - (scrollLeft + clientWidth);
+    
+    // Roughly estimate points hidden on the right. 
+    // If we assume exactly 20 points fit in clientWidth, then width per point is clientWidth / 20.
+    const pointWidth = clientWidth / 20;
+    const pointsHiddenOnRight = distanceToRight / pointWidth;
+    
+    // Show arrow if at least 15 points are hidden on the right
+    setShowResetScroll(pointsHiddenOnRight >= 15);
+  };
+
+  const resetScroll = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        left: scrollContainerRef.current.scrollWidth,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2">
@@ -131,6 +218,13 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
           background: var(--primary);
           border-radius: 10px;
           opacity: 0.5;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}} />
       {/* User Info Section */}
@@ -298,11 +392,11 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
               {language === 'en' ? 'Recent Quiz History' : 'সাম্প্রতিক কুইজ ইতিহাস'}
             </h3>
             <div className="text-[10px] font-black text-primary px-2 py-0.5 bg-primary/10 rounded-md">
-              {language === 'en' ? 'Last 10' : 'শেষ ১০ টি'}
+              {language === 'en' ? `Last ${stats.history?.length || 0}` : `শেষ ${stats.history?.length || 0} টি`}
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2 custom-scrollbar">
             {stats.history && stats.history.length > 0 ? (
               stats.history.map((item, idx) => (
                 <motion.div 
@@ -354,34 +448,69 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
 
           <div className="flex-1 min-h-[150px] relative">
             {chartData.length > 1 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <Line 
-                    type="monotone" 
-                    dataKey="score" 
-                    stroke="var(--primary)" 
-                    strokeWidth={4} 
-                    dot={{ fill: 'var(--primary)', r: 4 }} 
-                    activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
-                    animationDuration={1500}
-                  />
-                  <RechartsTooltip 
-                    contentStyle={{ 
-                      borderRadius: '12px', 
-                      border: 'none', 
-                      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                      fontSize: '10px',
-                      fontWeight: 'bold'
-                    }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <div 
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+                className="w-full h-full overflow-x-auto hide-scrollbar"
+              >
+                <div 
+                  style={{ 
+                    // Calculate width if more than 20 records.
+                    // This ensures the view window always accommodates 20 records.
+                    width: chartData.length > 20 
+                      ? `${(chartData.length / 20) * 100}%` 
+                      : '100%',
+                    height: '100%'
+                  }}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <XAxis 
+                        dataKey="date" 
+                        hide 
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis 
+                        hide 
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="score" 
+                        stroke="var(--primary)" 
+                        strokeWidth={4} 
+                        dot={{ fill: 'var(--primary)', r: 4 }} 
+                        activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+                        animationDuration={1500}
+                      />
+                      <RechartsTooltip content={<CustomTooltip />} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center opacity-20 transform -rotate-12">
                  <TrendingUp size={64} />
                  <p className="text-[10px] font-black uppercase tracking-widest mt-2">{language === 'en' ? 'Need more data' : 'আরো তথ্য প্রয়োজন'}</p>
               </div>
             )}
+
+            {/* Reset Scroll Button */}
+            <AnimatePresence>
+              {showResetScroll && (
+                <motion.button
+                  initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 20, scale: 0.8 }}
+                  onClick={resetScroll}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:shadow-primary/50 transition-all mr-1"
+                >
+                  <ArrowRight size={16} />
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
 
           <div className="pt-4 border-t border-white/10 space-y-3">
@@ -402,7 +531,7 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
         </div>
       </section>
 
-      <Achievements stats={stats} language={language} />
+      <Achievements stats={stats} language={language} onSelectAchievement={setSelectedAchievement} />
 
       {/* App Settings Section */}
       <section className="space-y-4">
@@ -616,6 +745,188 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
       </section>
       {/* Modals and Overlays */}
       <AnimatePresence>
+        {selectedAchievement && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedAchievement(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-surface w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl relative z-10 border border-white/10"
+            >
+              <div className="p-8 space-y-6">
+                <div className="flex justify-end">
+                   <button onClick={() => setSelectedAchievement(null)} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-700 relative ${
+                    stats.unlockedAchievements?.includes(selectedAchievement.id)
+                      ? 'bg-gradient-to-br from-amber-300 via-amber-500 to-amber-800 shadow-[0_20px_50px_-15px_rgba(245,158,11,0.4)] ring-[6px] ring-amber-500/10'
+                      : 'bg-black/5 dark:bg-white/5 border-2 border-dashed border-theme opacity-30'
+                  }`}>
+                    <AchievementIcon 
+                      name={selectedAchievement.icon} 
+                      size={48} 
+                      className={stats.unlockedAchievements?.includes(selectedAchievement.id) ? 'text-white' : 'text-muted/50'} 
+                    />
+                    {stats.unlockedAchievements?.includes(selectedAchievement.id) && (
+                      <div className="absolute -top-1 -right-1 w-8 h-8 bg-emerald-500 rounded-full border-[4px] border-surface flex items-center justify-center shadow-xl">
+                        <CheckCircle size={14} className="text-white" strokeWidth={4} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <h2 className="text-2xl font-black tracking-tight">{language === 'bn' ? selectedAchievement.titleBn : selectedAchievement.title}</h2>
+                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-full ${
+                      stats.unlockedAchievements?.includes(selectedAchievement.id)
+                        ? 'bg-emerald-500/10 text-emerald-500'
+                        : 'bg-amber-500/10 text-amber-500'
+                    }`}>
+                      {stats.unlockedAchievements?.includes(selectedAchievement.id) 
+                        ? (language === 'en' ? 'Achievement Unlocked' : 'অ্যাচিভমেন্ট আনলকড')
+                        : (language === 'en' ? 'Locked' : 'লকড')}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3 flex flex-col items-center">
+                    <p className="text-sm font-medium opacity-70 leading-relaxed italic">
+                      "{language === 'bn' ? selectedAchievement.descriptionBn : selectedAchievement.description}"
+                    </p>
+                    
+                    {/* Detailed Explanation */}
+                    <div className="p-4 bg-black/5 dark:bg-white/5 rounded-2xl border border-white/5 w-full text-center">
+                      <p className="text-[11px] leading-relaxed opacity-60 font-medium">
+                        {language === 'bn' ? selectedAchievement.longDescriptionBn : selectedAchievement.longDescription}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Multiplier for specific achievements */}
+                  {(selectedAchievement.id === 'unstoppable' || selectedAchievement.id === 'marathoner' || selectedAchievement.id === 'light_speed' || selectedAchievement.id === 'perfect_basic') && stats.unlockedAchievements?.includes(selectedAchievement.id) && (() => {
+                    let multiplier = 0;
+                    if (selectedAchievement.id === 'unstoppable') multiplier = Math.floor((stats.achievementCounts?.['unstoppable'] || 0) / 10);
+                    else if (selectedAchievement.id === 'marathoner') multiplier = Math.floor((stats.activity?.length || 0) / 10);
+                    else if (selectedAchievement.id === 'light_speed') multiplier = Math.floor((stats.bestLightSpeedStreak || 0) / 5);
+                    else if (selectedAchievement.id === 'perfect_basic') multiplier = Math.floor((stats.highScores.basic || 0) / 600);
+                    
+                    if (multiplier > 1) {
+                      return (
+                        <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary rounded-full border border-primary/20">
+                          <Zap size={14} fill="currentColor" />
+                          <span className="text-[11px] font-black uppercase tracking-widest">
+                            {multiplier}x Multiplier
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+
+                <div className="space-y-4 pt-6 border-t border-white/10">
+                  {selectedAchievement.id === 'light_speed' ? (
+                     <div className="space-y-3">
+                        <div className="flex justify-between items-end">
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                            {language === 'en' ? 'Best Consecutive Fast Answers' : 'পরপর দ্রুত উত্তরের সর্বোচ্চ সংখ্যা'}
+                          </span>
+                          <span className="text-xs font-black">
+                            {stats.bestLightSpeedStreak || 0} / {selectedAchievement.targetValue}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.min(100, ((stats.bestLightSpeedStreak || 0) / (selectedAchievement.targetValue || 1)) * 100)}%` }}
+                            className="h-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+                          />
+                        </div>
+                     </div>
+                  ) : selectedAchievement.id === 'elite_calculator' ? (
+                    <div className="space-y-4">
+                      <div className="flex flex-col gap-2">
+                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                            {language === 'en' ? 'Core Quiz Challenge Progress' : 'প্রধান কুইজ চ্যালেঞ্জের অগ্রগতি'}
+                          </span>
+                          <div className="grid grid-cols-3 gap-2">
+                             {(['basic', 'normal', 'hard'] as const).map(d => (
+                               <div key={d} className="flex flex-col items-center p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-white/5">
+                                 <span className="text-[8px] font-black uppercase opacity-40">{language === 'en' ? d : (d === 'basic' ? 'সহজ' : d === 'normal' ? 'মধ্যম' : 'কঠিন')}</span>
+                                 <span className={`text-[10px] font-black ${ (stats.lifetimeQuizzesByDifficulty?.[d] || 0) >= 25 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                   {stats.lifetimeQuizzesByDifficulty?.[d] || 0} / 25
+                                 </span>
+                               </div>
+                             ))}
+                          </div>
+                      </div>
+                      <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, ((stats.totalQuizzes || 0) / 100) * 100)}%` }}
+                          className="h-full bg-primary"
+                        />
+                      </div>
+                    </div>
+                  ) : !stats.unlockedAchievements?.includes(selectedAchievement.id) ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-end">
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                          {language === 'en' ? 'Next Goal' : 'পরবর্তী লক্ষ্য'}
+                        </span>
+                        <span className="text-xs font-black">
+                          {(selectedAchievement.getValue ? selectedAchievement.getValue(stats) : 0).toLocaleString()} / {(selectedAchievement.targetValue || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, ((selectedAchievement.getValue ? selectedAchievement.getValue(stats) : 0) / (selectedAchievement.targetValue || 1)) * 100)}%` }}
+                          className="h-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+                        />
+                      </div>
+                      <p className="text-[10px] font-bold text-center opacity-40 uppercase tracking-widest">
+                        {language === 'en' ? 'Keep playing to unlock!' : 'আনলক করতে খেলতে থাকুন!'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-emerald-500/5 rounded-2xl p-4 border border-emerald-500/10 flex flex-col items-center gap-2">
+                       <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                        {language === 'en' ? 'Achieved On' : 'অর্জিত হয়েছে'}
+                      </span>
+                      <span className="text-xs font-black text-emerald-500">
+                        {stats.achievementUnlocks?.[selectedAchievement.id] ? new Date(stats.achievementUnlocks[selectedAchievement.id]).toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : '---'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <button 
+                  onClick={() => setSelectedAchievement(null)}
+                  className="w-full py-4 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20"
+                >
+                  {language === 'en' ? 'Close' : 'বন্ধ করুন'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {showApiTips && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <motion.div 
