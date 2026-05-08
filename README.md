@@ -444,7 +444,7 @@ MathMind/
 
 ## 📋 Changelog
 
-### `v1.1.0` — May 8, 2026
+### [`v1.1.0`](https://github.com/AsadullahAlMunib/MathMind/releases/tag/v1.1.0) — May 8, 2026
 - 🧮 Fixed KaTeX rendering for fractions, square roots, and algebraic expressions
 - 🆕 Added `MathRenderer.tsx` component for dedicated math display
 - 📦 Upgraded offline engine with 60+ new question templates across all difficulty levels
@@ -452,10 +452,10 @@ MathMind/
 - 🔑 New tutorial slide for GEMINI_API_KEY setup guidance in Profile
 - 🎨 Redesigned theme switch with interactive icons; improved math engine status UI
 
-### `v1.0.1` — May 7, 2026
+### [`v1.0.1`](https://github.com/AsadullahAlMunib/MathMind/releases/tag/v1.0.1) — May 7, 2026
 - 🐛 Fixed API key implementation 
 
-### `v1.0.0` — Initial Release
+### [`v1.0.0`](https://github.com/AsadullahAlMunib/MathMind/releases/tag/v1.0.0) — Initial Release
 - 🚀 First public release with full AI quiz engine, offline fallback, and Android APK
 
 <br/>
