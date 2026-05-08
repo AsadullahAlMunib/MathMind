@@ -426,14 +426,14 @@ MathMind/
 │   └── workflows/
 │       └── build.yml                 # Android APK auto-build workflow
 ├── .env.example                      # API key template
-├── .gitignore
-├── capacitor.config.json             # Capacitor Android config
+├── .gitignore 
 ├── icon.png                          # Android launcher icon (1024×1024)
 ├── index.html
 ├── metadata.json                     # App description and capabilities
 ├── package.json
 ├── package-lock.json
 ├── README.md
+├── SECURITY.md
 ├── tsconfig.json
 └── vite.config.ts
 ```
