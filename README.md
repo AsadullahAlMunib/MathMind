@@ -10,23 +10,22 @@
 
 **AI-Powered Gamified Math Quiz App**
 
-[![Version](https://img.shields.io/badge/version-v1.1.0-7c3aed?style=for-the-badge)](https://github.com/AsadullahAlMunib/MathMind/releases)
-[![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript_5.8-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
-[![Gemini AI](https://img.shields.io/badge/Gemini_AI-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev)
-[![Vite](https://img.shields.io/badge/Vite_6-646CFF?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vitejs.dev)
-[![Tailwind](https://img.shields.io/badge/Tailwind_v4-0EA5E9?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
-[![License](https://img.shields.io/badge/Apache_2.0-22C55E?style=for-the-badge&logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/AsadullahAlMunib/MathMind?style=plastic&logo=github&color=fbbf24&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind)
+[![Issues](https://img.shields.io/github/issues/AsadullahAlMunib/MathMind?style=plastic&logo=github&color=f444f4&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind/issues)
+[![Commits](https://img.shields.io/github/commit-activity/t/AsadullahAlMunib/MathMind?style=plastic&logo=git&color=f05032&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind/commits)
+[![Latest Release](https://img.shields.io/github/v/release/AsadullahAlMunib/MathMind?style=plastic&logo=github&color=7c3aed&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind/releases)
+[![APK Size](https://img.shields.io/badge/APK_Size-5.74_MB-06b6d4?style=plastic&logo=android&logoColor=white&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind/raw/refs/heads/main/download/MathMind.apk)
+
+[![React](https://img.shields.io/badge/React_19-20232A?style=flat&logo=react&logoColor=61DAFB)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript_5.8-007ACC?style=flat&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Gemini AI](https://img.shields.io/badge/Gemini_AI-4285F4?style=flat&logo=google&logoColor=white)](https://ai.google.dev)
+[![Vite](https://img.shields.io/badge/Vite_6-646CFF?style=flat&logo=vite&logoColor=FFD62E)](https://vitejs.dev)
+[![Tailwind](https://img.shields.io/badge/Tailwind_v4-0EA5E9?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![License](https://img.shields.io/badge/Apache_2.0-22C55E?style=flat&logo=opensourceinitiative&logoColor=white)](LICENSE)
 
 *Solve. Earn. Unlock. Repeat.*
 
 <br/>
-
-[![Stars](https://img.shields.io/github/stars/AsadullahAlMunib/MathMind?style=flat-square&logo=github&color=yellow)](https://github.com/AsadullahAlMunib/MathMind)
-[![Forks](https://img.shields.io/github/forks/AsadullahAlMunib/MathMind?style=flat-square&logo=github&color=blue)](https://github.com/AsadullahAlMunib/MathMind)
-[![Issues](https://img.shields.io/github/issues/AsadullahAlMunib/MathMind?style=flat-square&logo=github&color=red)](https://github.com/AsadullahAlMunib/MathMind)
-[![Pull Requests](https://img.shields.io/github/issues-pr/AsadullahAlMunib/MathMind?style=flat-square&logo=github&color=green)](https://github.com/AsadullahAlMunib/MathMind)
-[![Commits](https://img.shields.io/github/commit-activity/m/AsadullahAlMunib/MathMind?style=flat-square&logo=git&color=orange)](https://github.com/AsadullahAlMunib/MathMind)
 
 [📱 Download Android APK](https://github.com/AsadullahAlMunib/MathMind/raw/refs/heads/main/download/MathMind.apk) · [⭐ Star on GitHub](https://github.com/AsadullahAlMunib/MathMind) · [🐛 Report a Bug](https://github.com/AsadullahAlMunib/MathMind/issues)
 
