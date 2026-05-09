@@ -22,6 +22,12 @@
 
 <br/>
 
+[![Stars](https://img.shields.io/github/stars/AsadullahAlMunib/MathMind?style=flat-square&logo=github&color=yellow)](https://github.com/AsadullahAlMunib/MathMind)
+[![Forks](https://img.shields.io/github/forks/AsadullahAlMunib/MathMind?style=flat-square&logo=github&color=blue)](https://github.com/AsadullahAlMunib/MathMind)
+[![Issues](https://img.shields.io/github/issues/AsadullahAlMunib/MathMind?style=flat-square&logo=github&color=red)](https://github.com/AsadullahAlMunib/MathMind)
+[![Pull Requests](https://img.shields.io/github/issues-pr/AsadullahAlMunib/MathMind?style=flat-square&logo=github&color=green)](https://github.com/AsadullahAlMunib/MathMind)
+[![Commits](https://img.shields.io/github/commit-activity/m/AsadullahAlMunib/MathMind?style=flat-square&logo=git&color=orange)](https://github.com/AsadullahAlMunib/MathMind)
+
 [📱 Download Android APK](https://github.com/AsadullahAlMunib/MathMind/raw/refs/heads/main/download/MathMind.apk) · [⭐ Star on GitHub](https://github.com/AsadullahAlMunib/MathMind) · [🐛 Report a Bug](https://github.com/AsadullahAlMunib/MathMind/issues)
 
 <br/>
