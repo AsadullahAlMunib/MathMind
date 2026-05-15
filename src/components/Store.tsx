@@ -10,10 +10,11 @@ import {
   Check, 
   Coins, 
   Palette,
-  Sparkles
+  Sparkles,
+  Wand2
 } from 'lucide-react';
 
-import { THEMES, UserProfile } from '../lib/types';
+import { THEMES, UserProfile, suggestDarkEquivalent } from '../lib/types';
 import { translations } from '../lib/translations';
 import AppTooltip from './Tooltip';
 
@@ -36,16 +37,62 @@ export default function Store({ user, unlockedThemes, balance, currentTheme, onU
   const isCustomUnlocked = unlockedThemes.includes('custom');
   const isCustomSelected = currentTheme === 'custom';
 
-  const updateCustomColor = (type: 'primary' | 'secondary', color: string) => {
+  const updateCustomColor = (key: string, color: string) => {
     const currentCustom = user.customTheme || { primary: '#6366f1', secondary: '#4f46e5' };
     onUpdateUser({
       ...user,
       customTheme: {
         ...currentCustom,
-        [type]: color
+        [key]: color
       }
     });
   };
+
+  const autoSuggestAllDark = () => {
+    const current = user.customTheme || { primary: '#6366f1', secondary: '#4f46e5' };
+    const suggestions = {
+      darkPrimary: suggestDarkEquivalent(current.primary, 'primary'),
+      darkSecondary: suggestDarkEquivalent(current.secondary, 'secondary'),
+      darkBg: suggestDarkEquivalent(current.bg || '#f8fafc', 'bg'),
+      darkText: suggestDarkEquivalent(current.text || '#0f172a', 'text'),
+    };
+    
+    onUpdateUser({
+      ...user,
+      customTheme: {
+        ...current,
+        ...suggestions
+      }
+    });
+  };
+
+  const ColorPicker = ({ label, value, onChange, onSuggest }: { label: string, value: string, onChange: (val: string) => void, onSuggest?: () => void }) => (
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-center px-1">
+        <label className="text-[9px] font-black uppercase tracking-widest opacity-60">{label}</label>
+        {onSuggest && (
+          <button 
+            onClick={(e) => { e.preventDefault(); onSuggest(); }}
+            className="text-primary hover:text-primary/70 transition-colors p-0.5 rounded hover:bg-primary/10"
+            title={language === 'en' ? 'Suggest from Light Mode' : 'লাইট মোড থেকে সাজেশন নিন'}
+          >
+            <Wand2 size={10} />
+          </button>
+        )}
+      </div>
+      <div className="relative group">
+        <input 
+          type="color" 
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full h-10 rounded-xl cursor-pointer bg-black/5 dark:bg-white/5 border-2 border-transparent hover:border-primary/30 transition-all p-1"
+        />
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-40 text-[10px] font-mono">
+          {value.toUpperCase()}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
@@ -188,35 +235,85 @@ export default function Store({ user, unlockedThemes, balance, currentTheme, onU
               <Sparkles size={20} className="text-amber-500" />
               {t.customThemeCreator}
             </h3>
-            {!isCustomUnlocked ? (
+            {isCustomUnlocked ? (
+              <div className="mt-4 space-y-6">
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
+                    <span className="w-4 h-px bg-primary/20"></span>
+                    Light Mode
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <ColorPicker 
+                      label={t.primaryColor} 
+                      value={user.customTheme?.primary || '#6366f1'} 
+                      onChange={(val) => updateCustomColor('primary', val)} 
+                    />
+                    <ColorPicker 
+                      label={t.secondaryColor} 
+                      value={user.customTheme?.secondary || '#4f46e5'} 
+                      onChange={(val) => updateCustomColor('secondary', val)} 
+                    />
+                    <ColorPicker 
+                      label={t.lightBackground} 
+                      value={user.customTheme?.bg || '#f8fafc'} 
+                      onChange={(val) => updateCustomColor('bg', val)} 
+                    />
+                    <ColorPicker 
+                      label={t.lightText} 
+                      value={user.customTheme?.text || '#0f172a'} 
+                      onChange={(val) => updateCustomColor('text', val)} 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center pr-1">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center gap-2">
+                      <span className="w-4 h-px bg-indigo-400/20"></span>
+                      Dark Mode
+                    </h4>
+                    <button 
+                      onClick={autoSuggestAllDark}
+                      className="text-[9px] font-black uppercase tracking-widest text-primary flex items-center gap-1.5 bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded transition-all"
+                    >
+                      <Wand2 size={10} />
+                      {language === 'en' ? 'Magic Sync' : 'ম্যাজিক সিঙ্ক'}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <ColorPicker 
+                      label={t.primaryColor} 
+                      value={user.customTheme?.darkPrimary || user.customTheme?.primary || '#818cf8'} 
+                      onChange={(val) => updateCustomColor('darkPrimary', val)} 
+                      onSuggest={() => updateCustomColor('darkPrimary', suggestDarkEquivalent(user.customTheme?.primary || '#6366f1', 'primary'))}
+                    />
+                    <ColorPicker 
+                      label={t.secondaryColor} 
+                      value={user.customTheme?.darkSecondary || user.customTheme?.secondary || '#6366f1'} 
+                      onChange={(val) => updateCustomColor('darkSecondary', val)} 
+                      onSuggest={() => updateCustomColor('darkSecondary', suggestDarkEquivalent(user.customTheme?.secondary || '#4f46e5', 'secondary'))}
+                    />
+                    <ColorPicker 
+                      label={t.darkBackground} 
+                      value={user.customTheme?.darkBg || '#020617'} 
+                      onChange={(val) => updateCustomColor('darkBg', val)} 
+                      onSuggest={() => updateCustomColor('darkBg', suggestDarkEquivalent(user.customTheme?.bg || '#f8fafc', 'bg'))}
+                    />
+                    <ColorPicker 
+                      label={t.darkText} 
+                      value={user.customTheme?.darkText || '#f1f5f9'} 
+                      onChange={(val) => updateCustomColor('darkText', val)} 
+                      onSuggest={() => updateCustomColor('darkText', suggestDarkEquivalent(user.customTheme?.text || '#0f172a', 'text'))}
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
               <div className="flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-amber-500/10 w-fit border border-amber-500/20">
                 <Coins size={12} className="text-amber-500" />
                 <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">
                   {CUSTOM_THEME_COST} {coreT.points}
                 </span>
-              </div>
-            ) : (
-              <div className="mt-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black uppercase tracking-widest opacity-60">{t.primaryColor}</label>
-                    <input 
-                      type="color" 
-                      value={user.customTheme?.primary || '#6366f1'}
-                      onChange={(e) => updateCustomColor('primary', e.target.value)}
-                      className="w-full h-8 rounded-lg cursor-pointer bg-transparent"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black uppercase tracking-widest opacity-60">{t.secondaryColor}</label>
-                    <input 
-                      type="color" 
-                      value={user.customTheme?.secondary || '#4f46e5'}
-                      onChange={(e) => updateCustomColor('secondary', e.target.value)}
-                      className="w-full h-8 rounded-lg cursor-pointer bg-transparent"
-                    />
-                  </div>
-                </div>
               </div>
             )}
           </div>

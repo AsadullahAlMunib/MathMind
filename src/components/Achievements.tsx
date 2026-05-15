@@ -20,7 +20,7 @@ interface AchievementIconProps {
   className?: string;
 }
 
-export const AchievementIcon = ({ name, size = 24, className = "" }: AchievementIconProps) => {
+export const AchievementIcon = React.memo(({ name, size = 24, className = "" }: AchievementIconProps) => {
   const iconProps = { size, className };
   switch (name) {
     case 'target': return <Target {...iconProps} />;
@@ -31,7 +31,7 @@ export const AchievementIcon = ({ name, size = 24, className = "" }: Achievement
     case 'crown': return <Crown {...iconProps} />;
     default: return <Trophy {...iconProps} />;
   }
-};
+});
 
 interface AchievementsProps {
   stats: UserStats;
@@ -39,7 +39,7 @@ interface AchievementsProps {
   onSelectAchievement: (achievement: Achievement) => void;
 }
 
-export default function Achievements({ stats, language, onSelectAchievement }: AchievementsProps) {
+const Achievements = React.memo(({ stats, language, onSelectAchievement }: AchievementsProps) => {
   const unlockedAchievements = stats.unlockedAchievements || [];
 
   return (
@@ -80,7 +80,18 @@ export default function Achievements({ stats, language, onSelectAchievement }: A
           const unlockDate = stats.achievementUnlocks?.[achievement.id];
           const currentValue = achievement.getValue ? achievement.getValue(stats) : 0;
           const targetValue = achievement.targetValue || 0;
-          const progress = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+          
+          let multiplier = 0;
+          let progressValue = currentValue;
+          let showProgressWhileUnlocked = false;
+
+          if (achievement.isRecurring && targetValue > 0) {
+            multiplier = Math.floor(currentValue / targetValue);
+            progressValue = currentValue % targetValue;
+            showProgressWhileUnlocked = true;
+          }
+
+          const progress = targetValue > 0 ? Math.min(100, (progressValue / targetValue) * 100) : 0;
           
           const tooltipContent = (
             <div className="flex flex-col gap-2 p-1 min-w-[180px]">
@@ -108,14 +119,14 @@ export default function Achievements({ stats, language, onSelectAchievement }: A
                   </span>
                 </div>
 
-                {!isUnlocked && targetValue > 0 && (
+                 {( !isUnlocked || showProgressWhileUnlocked) && targetValue > 0 && (
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-end">
                       <span className="text-[7px] font-black uppercase tracking-widest opacity-40 text-white/60">
-                        {language === 'en' ? 'Progress' : 'অগ্রগতি'}
+                        {language === 'en' ? (multiplier > 0 ? `To ${multiplier + 1}x` : 'Progress') : (multiplier > 0 ? `${multiplier + 1}x এর জন্য` : 'অগ্রগতি')}
                       </span>
                       <span className="text-[9px] font-bold text-white/80">
-                        {currentValue.toLocaleString()} / {targetValue.toLocaleString()}
+                        {progressValue.toLocaleString()} / {targetValue.toLocaleString()}
                       </span>
                     </div>
                     <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
@@ -206,31 +217,15 @@ export default function Achievements({ stats, language, onSelectAchievement }: A
                     )}
 
                     {/* Multipliers */}
-                    {isUnlocked && (() => {
-                      let multiplier = 0;
-                      if (achievement.id === 'unstoppable') {
-                        multiplier = Math.floor((stats.achievementCounts?.['unstoppable'] || 0) / 10);
-                      } else if (achievement.id === 'marathoner') {
-                        multiplier = Math.floor((stats.activity?.length || 0) / 10);
-                      } else if (achievement.id === 'light_speed') {
-                        multiplier = Math.floor((stats.bestLightSpeedStreak || 0) / 5);
-                      } else if (achievement.id === 'perfect_basic') {
-                        multiplier = Math.floor((stats.highScores.basic || 0) / 600);
-                      }
-
-                      if (multiplier > 1) {
-                        return (
-                          <motion.div 
-                            initial={{ scale: 0, x: -10 }}
-                            animate={{ scale: 1, x: 0 }}
-                            className="absolute -top-1 -left-1 px-2 py-0.5 bg-primary text-white rounded-full border-2 border-surface flex items-center justify-center shadow-xl z-20 text-[8px] font-black"
-                          >
-                            {multiplier}x
-                          </motion.div>
-                        );
-                      }
-                      return null;
-                    })()}
+                    {isUnlocked && multiplier > 1 && (
+                      <motion.div 
+                        initial={{ scale: 0, x: -10 }}
+                        animate={{ scale: 1, x: 0 }}
+                        className="absolute -top-1 -left-1 px-2 py-0.5 bg-primary text-white rounded-full border-2 border-surface flex items-center justify-center shadow-xl z-20 text-[8px] font-black"
+                      >
+                        {multiplier}x
+                      </motion.div>
+                    )}
 
                     {/* Atmospheric Underglow */}
                     {isUnlocked && (
@@ -269,4 +264,6 @@ export default function Achievements({ stats, language, onSelectAchievement }: A
       </div>
     </section>
   );
-}
+});
+
+export default Achievements;

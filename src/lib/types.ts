@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type Difficulty = 'basic' | 'normal' | 'hard';
+export type Difficulty = 'basic' | 'normal' | 'hard' | 'review';
 export type QuestionType = 'mcq' | 'true-false' | 'fill-blank' | 'calculation' | 'matching';
 
 export interface MatchingPair {
@@ -49,6 +49,7 @@ export interface Achievement {
   requirement: (stats: UserStats) => boolean;
   targetValue?: number;
   getValue?: (stats: UserStats) => number;
+  isRecurring?: boolean;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -69,14 +70,15 @@ export const ACHIEVEMENTS: Achievement[] = [
     id: 'perfect_basic',
     title: 'Warm Up Master',
     titleBn: 'ওয়ার্ম আপ মাস্টার',
-    description: 'Get a score of 600 in Basic difficulty',
-    descriptionBn: 'প্রাথমিক লেভেলে ৬০০ স্কোর অর্জন করুন',
+    description: 'Get a score of 500 in Basic difficulty',
+    descriptionBn: 'প্রাথমিক লেভেলে ৫০০ স্কোর অর্জন করুন',
     longDescription: 'Solving basic problems quickly is the foundation of speed. You\'ve proven you\'re ready for bigger challenges.',
     longDescriptionBn: 'প্রাথমিক সমস্যাগুলো দ্রুত সমাধান করা হলো গতির ভিত্তি। আপনি প্রমাণ করেছেন যে আপনি বড় চ্যালেঞ্জের জন্য প্রস্তুত।',
     icon: 'zap',
-    requirement: (stats) => stats.highScores.basic >= 600,
-    targetValue: 600,
-    getValue: (stats) => stats.highScores.basic
+    requirement: (stats) => stats.highScores.basic >= 500,
+    targetValue: 500,
+    getValue: (stats) => stats.highScores.basic,
+    isRecurring: true
   },
   {
     id: 'streak_10',
@@ -121,14 +123,15 @@ export const ACHIEVEMENTS: Achievement[] = [
     id: 'hard_core',
     title: 'Math Legend',
     titleBn: 'ম্যাথ লিজেন্ড',
-    description: 'Complete a Hard mode quiz with score > 1250',
-    descriptionBn: 'হার্ড মোডে ১২৫০ এর বেশি স্কোর অর্জন করুন',
+    description: 'Complete a Hard mode quiz with score > 1200',
+    descriptionBn: 'হার্ড মোডে ১২০০ এর বেশি স্কোর অর্জন করুন',
     longDescription: 'Only the best can handle the pressure of hard equations and intense time limits. You are truly a legend.',
     longDescriptionBn: 'কেবল সেরারাই কঠিন সমীকরণ এবং তীব্র সময়ের চাপের মোকাবিলা করতে পারে। আপনি সত্যিই একজন কিংবদন্তি।',
     icon: 'crown',
-    requirement: (stats) => stats.highScores.hard >= 1250,
-    targetValue: 1250,
-    getValue: (stats) => stats.highScores.hard
+    requirement: (stats) => stats.highScores.hard >= 1200,
+    targetValue: 1200,
+    getValue: (stats) => stats.highScores.hard,
+    isRecurring: true
   },
   {
     id: 'marathoner',
@@ -141,7 +144,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: 'calendar',
     requirement: (stats) => (stats.activity?.length || 0) >= 10,
     targetValue: 10,
-    getValue: (stats) => stats.activity?.length || 0
+    getValue: (stats) => stats.activity?.length || 0,
+    isRecurring: true
   },
   {
     id: 'unstoppable',
@@ -154,7 +158,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: 'shield-check',
     requirement: (stats) => (stats.achievementCounts?.['unstoppable'] || 0) >= 10,
     targetValue: 10,
-    getValue: (stats) => stats.achievementCounts?.['unstoppable'] || 0
+    getValue: (stats) => stats.achievementCounts?.['unstoppable'] || 0,
+    isRecurring: true
   },
   {
     id: 'elite_calculator',
@@ -190,7 +195,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: 'zap',
     requirement: (stats) => (stats.bestLightSpeedStreak || 0) >= 5,
     targetValue: 5,
-    getValue: (stats) => stats.bestLightSpeedStreak || 0
+    getValue: (stats) => stats.bestLightSpeedStreak || 0,
+    isRecurring: true
   }
 ];
 
@@ -209,6 +215,7 @@ export interface UserStats {
   totalPoints: number;
   balance: number;
   totalQuizzes: number;
+  totalQuestionsAttempted?: number; // Cumulative total of all questions seen
   correctAnswers: number;
   bestStreak: number;
   level: number;
@@ -223,6 +230,7 @@ export interface UserStats {
   highScores: Record<Difficulty, number>;
   lifetimeLevelScores?: Record<Difficulty, number>;
   missedQuestions?: Question[];
+  missedCorrectCounts?: Record<string, number>;
   history?: QuizHistory[];
   rivals?: LeaderboardRival[];
 }
@@ -236,6 +244,12 @@ export interface UserProfile {
   customTheme?: {
     primary: string;
     secondary: string;
+    bg?: string;
+    text?: string;
+    darkPrimary?: string;
+    darkSecondary?: string;
+    darkBg?: string;
+    darkText?: string;
   };
   joinedAt: string;
   language: 'en' | 'bn';
@@ -500,3 +514,85 @@ export const THEMES: Theme[] = [
     cost: 30000 
   },
 ];
+
+/**
+ * Utility functions for color manipulation (Hex/HSL)
+ */
+
+export interface HSL {
+  h: number;
+  s: number;
+  l: number;
+}
+
+export const hexToHSL = (hex: string): HSL => {
+  let r = 0, g = 0, b = 0;
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else if (hex.length === 7) {
+    r = parseInt(hex.substring(1, 3), 16);
+    g = parseInt(hex.substring(3, 5), 16);
+    b = parseInt(hex.substring(5, 7), 16);
+  }
+
+  r /= 255;
+  g /= 255;
+  b /= 255;
+
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  return { h: h * 360, s: s * 100, l: l * 100 };
+};
+
+export const hslToHex = (h: number, s: number, l: number): string => {
+  l /= 100;
+  const a = s * Math.min(l, 1 - l) / 100;
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+};
+
+/**
+ * Suggests a dark mode equivalent for a given light mode color
+ */
+export const suggestDarkEquivalent = (hex: string, type: 'primary' | 'secondary' | 'bg' | 'text'): string => {
+  const hsl = hexToHSL(hex);
+  
+  switch (type) {
+    case 'primary':
+    case 'secondary':
+      // For primary/secondary button colors:
+      // Typically we want it slightly lighter (higher L) and more saturated (higher S) for OLED/Dark screens
+      return hslToHex(hsl.h, Math.min(100, hsl.s + 10), Math.min(90, Math.max(45, hsl.l + 15)));
+    
+    case 'bg':
+      // For background:
+      // We want a very dark version of the same hue (low L, lowish S)
+      return hslToHex(hsl.h, Math.min(30, hsl.s * 0.5), 2);
+      
+    case 'text':
+      // For text:
+      // Usually near white, maybe 95% lightness
+      return hslToHex(hsl.h, Math.min(10, hsl.s), 95);
+      
+    default:
+      return hex;
+  }
+};

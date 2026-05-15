@@ -41,14 +41,16 @@ export const quizEngine = {
 
       while (attempt <= maxRetries) {
         try {
-          const modelName = difficulty === 'hard' ? 'gemini-3.1-pro-preview' : 'gemini-3-flash-preview';
+          // Always use gemini-3-flash-preview for consistency and speed across all difficulties
+          const modelName = 'gemini-3-flash-preview';
+          
           // Use exact requested count to avoid timeout on larger batches
           const batchCount = count;
           const randomSeed = Math.random().toString(36).substring(7);
           const timestamp = new Date().getTime();
           
-          const prompt = `Generate ${batchCount} UNIQUE and diverse math questions for ${difficulty} difficulty in ${language === 'en' ? 'English' : 'Bengali'}. 
-          Randomization Context: ${randomSeed}-${timestamp} (Ensure no repetition from previous sessions).
+          const systemInstruction = `You are an expert Math content creator specializing in educational pedagogy.
+          Your task is to generate high-quality, diverse, and unique math questions in ${language === 'en' ? 'English' : 'Bengali'}.
           
           Topic Variety (Include a mix of these):
           - Arithmetic (percentages, ratios, fractions)
@@ -56,45 +58,50 @@ export const quizEngine = {
           - Geometry (area, perimeter, coordinates, property RELATIONSHIPS)
           - Logic & Discovery (number patterns, puzzles, word-based math)
           
-          Format as JSON array with items matching this structure: { "id": "uuid", "question": "...", "options": ["...", "..."], "answer": "...", "type": "mcq" | "true-false" | "fill-blank" | "calculation" | "matching", "difficulty": "${difficulty}", "explanation": "...", "pairs": [{ "left": "...", "right": "..." }] }
+          RESTRICTED TOPICS (MUST EXCLUDE for Basic and Normal):
+          - Counting, Permutations, and Combinations (word arrangements, combinations of items). Note: These are ONLY allowed in Hard difficulty.
+          - Complex calculus
+          - Number systems conversion
           
-          Constraints:
-          - QUESTIONS MUST BE UNIQUE. Do not repeat standard textbook questions exactly.
-          - DO NOT include instructions in the question text about how to format the answer (e.g., do not say "write as fraction", "(answer in 5/3 format)", or Bengali versions like "(উত্তর ভগ্নাংশ আকারে লিখুন)").
-          - CRITICAL: AVOID extremely simplistic factoid questions (e.g., "How many sides does a triangle have?", "How many angles in a square?", "What is 2+2?").
-          - DO NOT repeat the following question: "একটি ত্রিভুজের মোট কয়টি কোণ থাকে?" or its English equivalent.
-          - Avoid using the same constant values across multiple questions in the same batch.
-          - For matching questions, ensure the 4 pairs are distinct and not repetitive in logic.
-          
-          Types Guidance:
-          - mcq: Multiple choice questions (4 options).
-          - true-false: True or False answer. The "answer" MUST be exactly "True" or "False".
-          - fill-blank: User types the exact answer.
-          - calculation: Multi-step arithmetic or complex calculation where the user must provide the numeric result.
-          - matching: Provide EXACTLY 4 "pairs" where "left" and "right" are mathematically EQUIVALENT.
-          
-          Difficulty Details:
-          - Basic: 1st-4th grade level. Arithmetic fluency.
-          - Normal: 5th-8th grade level. Algebra, fractions, percentages.
-          - Hard: 9th-12th grade level. Trigonometry, log, quadratic, etc.
+          Difficulty Levels:
+          - Basic: 1st-4th grade level. Arithmetic fluency, simple comparisons.
+          - Normal: 5th-8th grade level. Primary algebra, fractions, percentages, basic geometry.
+          - Hard: 9th-12th grade level. Trigonometry, logarithms, quadratic equations, calculus (derivatives/integrals), sets, probability, and complex word problems.
           
           Formatting Rules:
-          - CRITICAL: For mathematical expressions (fractions, roots, exponents, trigonometry, identities), ALWAYS wrap them in single dollar signs like $\frac{1}{2}$ or $\sin^2 \theta$.
-          - Use standard LaTeX notation (e.g., \\sin^2 \theta + \\cos^2 \theta = 1).
-          - MANDATORY: Use DOUBLE BACKSLASHES in the JSON string for all LaTeX commands. A single backslash like \f, \t, or \n will be interpreted as a JSON escape character (form feed, tab, newline) and break the math rendering. ALWAYS use "\\\\frac", "\\\\theta", "\\\\sin", etc.
-          - If you use a single backslash followed by an invalid character (like \s or \a), the JSON will FAIL to parse.
-          - Do NOT wrap math in markdown code blocks (\` \` \`).
-          - Symbols: Use standard LaTeX symbols like \\theta, \\alpha, \\beta, \\pi, \\pm, \\times, \\div.
-          - Use Bengali digits (০-৯) for Bengali text, but LaTeX math formulas should preferably use English digits for better rendering ($ \frac{1}{2} $ instead of $ \frac{১}{২} $) unless specified otherwise.
-          - Ensure EXACTLY ONE correct answer is in the "options" for MCQ.
-          - Keep "explanation" field helpful and in ${language === 'en' ? 'English' : 'Bengali'}.`;
+          - Use KaTeX for ALL mathematical expressions (fractions, roots, exponents, trig, etc.).
+          - Wrap expressions in single dollar signs like $\frac{1}{2}$ or $\sin^2 \theta$.
+          - IMPORTANT: Standard JSON escaping applies. If you output a backslash, it must be escaped in the JSON string (e.g., "\\frac").
+          - Use Bengali digits (০-৯) for Bengali text/explanations, but keep LaTeX math formulas using English digits for standard rendering (e.g., $\frac{1}{2}$ NOT $\frac{১}{২}$).
+          
+          JSON Constraints:
+          - Return a JSON array of objects.
+          - Each object MUST have: id (string), question (string), options (array of 4 strings for MCQ), answer (string), type (string), difficulty (string), explanation (string).
+          - Valid values for "type": "mcq", "true-false", "fill-blank", "calculation", "matching".
+          - For "matching" type, include a "pairs" array of 4 objects {left, right}.
+          - For "true-false" type, options must be ["True", "False"] and answer must be "True" or "False".
+          - CRITICAL for "fill-blank": The "answer" MUST be a numeric value or a simple integer/decimal. DO NOT generate questions where the answer requires typing variables like x, y, z, or algebraic expressions, as the user keyboard only supports numbers.
+          
+          Avoid:
+          - No instructions in the question text (like "(answer in fraction)").
+          - No extreme simplistic factoids.
+          - No repetitions from previous batches (Entropy: ${randomSeed}).`;
 
-          // Apply 60 second timeout - Bengali math generation can be slow but we want success
+          const userPrompt = language === 'bn' 
+            ? `আপনি একজন গণিত শিক্ষক। ${difficulty} লেভেলের ${batchCount}টি গণিত প্রশ্ন তৈরি করুন। 
+            উত্তরগুলো একটি বৈধ JSON array আকারে দিন। প্রতিটি প্রশ্ন নতুন এবং ইউনিক হতে হবে। 
+            Hard লেভেলের জন্য উচ্চতর বিষয় (Trigonometry, Advanced Algebra, Combinatorics, Probability) ব্যবহার করুন।`
+            : `Generate ${batchCount} ${difficulty} level math questions. 
+            Respond ONLY with a valid JSON array. Each question must be unique and challenging for the ${difficulty} level.
+            Difficulty Focus for Hard: Ensure high-level conceptual depth (Trigonometry, Advanced Algebra, Combinatorics, Probability).`;
+
+          // Apply 60 second timeout
           const result = await withTimeout(
             ai!.models.generateContent({
               model: modelName,
-              contents: prompt,
+              contents: userPrompt,
               config: {
+                systemInstruction,
                 responseMimeType: 'application/json'
               }
             }),
@@ -117,23 +124,49 @@ export const quizEngine = {
           let parsedQuestions: any[];
           
           try {
+            // First pass: Direct parse
             parsedQuestions = JSON.parse(cleanedText);
           } catch (parseError) {
             // Fix unescaped backslashes in LaTeX commands that AI often misses
-            // We want to double backslashes that are followed by a word character
-            // but are NOT already escaped. 
-            // We also specifically target cases like \t \n \f \r \b if they are followed by letters
-            // (meaning they were likely meant to be commands like \theta, \frac)
-            const fixedText = cleanedText
-              .replace(/(^|[^\\])\\(?=[a-zA-Z])/g, '$1\\\\') // Double single backslashes followed by letters
-              .replace(/\\([nrtfb])(?=[a-zA-Z])/g, '\\\\$1'); // Fix escaped sequences that are likely commands
+            // AI frequently fails to escape backslashes correctly in JSON when mixing languages.
+            // Common errors: \f (formfeed) used for \frac, \t (tab) for \theta or \times, etc.
+            
+            let fixedText = cleanedText;
+
+            // 1. Convert actual control characters back to escaped sequences if they appear inside strings
+            // This happens if the AI library or the model outputs a literal tab or formfeed
+            fixedText = fixedText.replace(/[\t\n\r\f]/g, (match) => {
+              if (match === '\n') return '\\n';
+              if (match === '\r') return '\\r';
+              if (match === '\t') return '\\t';
+              if (match === '\f') return '\\f';
+              return match;
+            });
+
+            // 2. Fix cases where AI wrote \frac instead of \\frac (invalid JSON)
+            // We look for a backslash followed by a known LaTeX command but not escaped
+            const commands = ['sin', 'cos', 'tan', 'log', 'ln', 'sqrt', 'frac', 'theta', 'alpha', 'beta', 'pi', 'times', 'div', 'dots', 'deg'];
+            commands.forEach(cmd => {
+              const regex = new RegExp(`(?<!\\\\)\\\\${cmd}`, 'g');
+              fixedText = fixedText.replace(regex, `\\\\${cmd}`);
+            });
+
+            // 3. Fix triple backslashes or other weirdness reported by user
+            fixedText = fixedText.replace(/\\\\\\+/g, '\\\\');
             
             try {
               parsedQuestions = JSON.parse(fixedText);
             } catch (secondError) {
-              console.error('JSON Fix failed. Original text:', cleanedText);
-              console.error('Fixed text:', fixedText);
-              throw parseError; // Throw original error for debugging
+              // Final desperate attempt: multi-line strings and other non-standard JSON
+              try {
+                // Remove some dangerous escapes that might be broken
+                const deepClean = fixedText.replace(/\\(?!["\\/bfnrt])/g, '\\\\');
+                parsedQuestions = JSON.parse(deepClean);
+              } catch (thirdError) {
+                console.error('JSON Fix failed. Original text:', cleanedText);
+                console.error('Fixed text:', fixedText);
+                throw parseError; // Throw original error for debugging
+              }
             }
           }
           
@@ -148,8 +181,23 @@ export const quizEngine = {
              const instructionRegex = /\s*\((?:উত্তর|answer).*?\)\s*$/i;
              question = question.replace(instructionRegex, '').trim();
 
+             // Normalize type
+             let qType = (q.type || 'mcq').toLowerCase();
+             if (qType.includes('multiple') || qType.includes('choice')) qType = 'mcq';
+             if (qType.includes('true') || qType.includes('false')) qType = 'true-false';
+             if (qType.includes('blank') || qType.includes('fill')) qType = 'fill-blank';
+             if (qType.includes('calc')) qType = 'calculation';
+             if (qType.includes('match')) qType = 'matching';
+
+             // Final fallback check
+             const validTypes: QuestionType[] = ['mcq', 'true-false', 'fill-blank', 'calculation', 'matching'];
+             if (!validTypes.includes(qType as any)) {
+                qType = q.options && q.options.length > 0 ? 'mcq' : 'calculation';
+             }
+
              const formatted = {
                 ...q,
+                type: qType as QuestionType,
                 question,
                 id: q.id || Math.random().toString(36).substring(2, 11)
               };
@@ -167,18 +215,12 @@ export const quizEngine = {
         } catch (error: any) {
           attempt++;
           const errorMsg = error?.message || '';
-          const is429 = errorMsg.includes('429') || errorMsg.includes('Quota exceeded') || error?.status === 429;
           
-          console.error(`Gemini AI Attempt ${attempt} failed:`, error);
+          console.warn(`GenAI Attempt ${attempt} (${difficulty}) failed. Error:`, errorMsg);
 
-          if (is429 || errorMsg === 'AI_TIMEOUT' || errorMsg === 'CORRUPT_AI_RESPONSE' || errorMsg === 'INVALID_JSON_STRUCTURE') {
-            // Don't retry on these specific structural/quota/timeout failures to save user time
-            break; 
-          }
-          
           if (attempt <= maxRetries) {
-            // Wait slightly longer for retry
-            await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+            // Short delay before next retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
             continue;
           }
           break;
@@ -282,7 +324,9 @@ export const quizEngine = {
         const c = Math.floor(Math.random() * 20) + 1;
         answer = a * b + c;
         questionText = `(${a} × ${b}) + ${c} = ?`;
-        explanation = `First ${a} × ${b} = ${a*b}, then ${a*b} + ${c} = ${answer}.`;
+        explanation = language === 'en'
+          ? `First ${a} × ${b} = ${a*b}, then ${a*b} + ${c} = ${answer}.`
+          : `প্রথমে ${a} × ${b} = ${a*b}, এরপর ${a*b} + ${c} = ${answer}।`;
       } else { // Number Comparison
         a = Math.floor(Math.random() * 100);
         b = Math.floor(Math.random() * 100);
@@ -454,16 +498,23 @@ export const quizEngine = {
         : `$f(x) = ${coeff}x^{${pow}}$ হলে, $x=1$ বিন্দুতে অন্তরক (derivative) কত?`;
       answer = (coeff * pow).toString();
       explanation = `f'(x) = ${coeff} * ${pow} * x^{${pow-1}} = ${coeff*pow}x^{${pow-1}}. At x=1, value is ${coeff*pow}`;
-    } else { // Permutations simple
+    } else if (category === 7) { // Permutations simple
       const n = 5 + Math.floor(Math.random() * 3);
       const r = 2;
-      // nPr = n! / (n-r)! = n * (n-1)
       const res = n * (n - 1);
       questionText = language === 'en'
         ? `How many ways can ${r} students be seated in a row of ${n} chairs? (${n}P${r})`
         : `${n}টি চেয়ারে ${r}জন ছাত্র কত উপায়ে বিন্যস্ত হতে পারে? (${n}P${r})`;
       answer = res.toString();
       explanation = `${n}P${r} = ${n}! / (${n}-${r})! = ${n} × ${n-1} = ${res}`;
+    } else { // Advanced Algebra word problem
+      const a = 10 + Math.floor(Math.random() * 20);
+      const b = 5 + Math.floor(Math.random() * 10);
+      questionText = language === 'en'
+        ? `The sum of two numbers is ${a + b} and their difference is ${a - b}. What is the larger number?`
+        : `দুটি সংখ্যার যোগফল ${a + b} এবং বিয়োগফল ${a - b}। বড় সংখ্যাটি কত?`;
+      answer = a.toString();
+      explanation = `(x + y) + (x - y) = 2x. (${a+b}) + (${a-b}) = ${2 * a}. x = ${a}`;
     }
 
     return this.formatOfflineQuestion(id, questionText, answer, type, difficulty, language, explanation);

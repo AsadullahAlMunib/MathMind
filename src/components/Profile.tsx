@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Github, 
@@ -118,18 +118,22 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
   };
 
   // Prepare chart data from history
-  const chartData = [...(stats.history || [])].reverse().map(item => {
-    const d = new Date(item.date);
-    return {
-      score: item.score,
-      date: d.toLocaleDateString(),
-      time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      difficulty: item.difficulty,
-      timeSpent: item.timeSpent,
-      correctCount: item.correctCount,
-      totalQuestions: item.totalQuestions
-    };
-  });
+  const chartData = useMemo(() => {
+    return [...(stats.history || [])].reverse().map(item => {
+      const d = new Date(item.date);
+      return {
+        id: item.id,
+        score: item.score,
+        date: d.toLocaleDateString(),
+        time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        difficulty: item.difficulty,
+        timeSpent: item.timeSpent,
+        correctCount: item.correctCount,
+        totalQuestions: item.totalQuestions,
+        timestamp: item.date // Use raw ISO string as a unique key for Recharts
+      };
+    });
+  }, [stats.history]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -153,7 +157,9 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
               </span>
               <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
                 data.difficulty === 'basic' ? 'bg-emerald-500/10 text-emerald-500' :
-                data.difficulty === 'normal' ? 'bg-amber-500/10 text-amber-500' : 'bg-rose-500/10 text-rose-500'
+                data.difficulty === 'normal' ? 'bg-amber-500/10 text-amber-500' : 
+                data.difficulty === 'review' ? 'bg-indigo-500/10 text-indigo-500' :
+                'bg-rose-500/10 text-rose-500'
               }`}>
                 {t[data.difficulty]}
               </span>
@@ -409,7 +415,9 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${
                       item.difficulty === 'basic' ? 'bg-emerald-500' :
-                      item.difficulty === 'normal' ? 'bg-amber-500' : 'bg-rose-500'
+                      item.difficulty === 'normal' ? 'bg-amber-500' : 
+                      item.difficulty === 'review' ? 'bg-indigo-500' :
+                      'bg-rose-500'
                     }`}>
                       <Zap size={14} />
                     </div>
@@ -466,7 +474,7 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
                       <XAxis 
-                        dataKey="date" 
+                        dataKey="timestamp" 
                         hide 
                         axisLine={false}
                         tickLine={false}
@@ -517,13 +525,17 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
              <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold opacity-40 uppercase tracking-widest">{language === 'en' ? 'Accuracy' : 'সঠিকতা'}</span>
                 <span className="text-xs font-black text-emerald-500">
-                  {stats.totalQuizzes > 0 ? Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100) : 0}%
+                  {stats.totalQuestionsAttempted && stats.totalQuestionsAttempted > 0 
+                    ? Math.round((stats.correctAnswers / stats.totalQuestionsAttempted) * 100) 
+                    : (stats.totalQuizzes > 0 ? Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100) : 0)}%
                 </span>
              </div>
              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                 <motion.div 
                   initial={{ width: 0 }}
-                  animate={{ width: `${stats.totalQuizzes > 0 ? (stats.correctAnswers / (stats.totalQuizzes * 10)) * 100 : 0}%` }}
+                  animate={{ width: `${stats.totalQuestionsAttempted && stats.totalQuestionsAttempted > 0 
+                    ? (stats.correctAnswers / stats.totalQuestionsAttempted) * 100 
+                    : (stats.totalQuizzes > 0 ? (stats.correctAnswers / (stats.totalQuizzes * 10)) * 100 : 0)}%` }}
                   className="h-full bg-emerald-500"
                 />
              </div>
@@ -812,19 +824,17 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
                   </div>
 
                   {/* Multiplier for specific achievements */}
-                  {(selectedAchievement.id === 'unstoppable' || selectedAchievement.id === 'marathoner' || selectedAchievement.id === 'light_speed' || selectedAchievement.id === 'perfect_basic') && stats.unlockedAchievements?.includes(selectedAchievement.id) && (() => {
-                    let multiplier = 0;
-                    if (selectedAchievement.id === 'unstoppable') multiplier = Math.floor((stats.achievementCounts?.['unstoppable'] || 0) / 10);
-                    else if (selectedAchievement.id === 'marathoner') multiplier = Math.floor((stats.activity?.length || 0) / 10);
-                    else if (selectedAchievement.id === 'light_speed') multiplier = Math.floor((stats.bestLightSpeedStreak || 0) / 5);
-                    else if (selectedAchievement.id === 'perfect_basic') multiplier = Math.floor((stats.highScores.basic || 0) / 600);
+                  {selectedAchievement.isRecurring && stats.unlockedAchievements?.includes(selectedAchievement.id) && (() => {
+                    const currentValue = selectedAchievement.getValue ? selectedAchievement.getValue(stats) : 0;
+                    const target = selectedAchievement.targetValue || 1;
+                    const multiplier = Math.floor(currentValue / target);
                     
                     if (multiplier > 1) {
                       return (
                         <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary rounded-full border border-primary/20">
                           <Zap size={14} fill="currentColor" />
                           <span className="text-[11px] font-black uppercase tracking-widest">
-                            {multiplier}x Multiplier
+                            {multiplier}x {language === 'en' ? 'Multiplier' : 'মাল্টিপ্লায়ার'}
                           </span>
                         </div>
                       );
@@ -834,25 +844,33 @@ export default function Profile({ user, stats, onUpdateUser, onClearReview, onSt
                 </div>
 
                 <div className="space-y-4 pt-6 border-t border-white/10">
-                  {selectedAchievement.id === 'light_speed' ? (
-                     <div className="space-y-3">
-                        <div className="flex justify-between items-end">
-                          <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
-                            {language === 'en' ? 'Best Consecutive Fast Answers' : 'পরপর দ্রুত উত্তরের সর্বোচ্চ সংখ্যা'}
-                          </span>
-                          <span className="text-xs font-black">
-                            {stats.bestLightSpeedStreak || 0} / {selectedAchievement.targetValue}
-                          </span>
+                  {selectedAchievement.isRecurring ? (() => {
+                    const currentValue = selectedAchievement.getValue ? selectedAchievement.getValue(stats) : 0;
+                    const target = selectedAchievement.targetValue || 1;
+                    const multiplier = Math.floor(currentValue / target);
+                    const progressValue = currentValue % target;
+                    const progressPercent = Math.min(100, (progressValue / target) * 100);
+
+                    return (
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-end">
+                            <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
+                              {language === 'en' ? `Next Goal (${multiplier + 1}x)` : `পরবর্তী লক্ষ্য (${multiplier + 1}x)`}
+                            </span>
+                            <span className="text-xs font-black">
+                              {progressValue.toLocaleString()} / {target.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${progressPercent}%` }}
+                              className="h-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+                            />
+                          </div>
                         </div>
-                        <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(100, ((stats.bestLightSpeedStreak || 0) / (selectedAchievement.targetValue || 1)) * 100)}%` }}
-                            className="h-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]"
-                          />
-                        </div>
-                     </div>
-                  ) : selectedAchievement.id === 'elite_calculator' ? (
+                    );
+                  })() : selectedAchievement.id === 'elite_calculator' ? (
                     <div className="space-y-4">
                       <div className="flex flex-col gap-2">
                          <span className="text-[10px] font-black uppercase tracking-widest opacity-40">

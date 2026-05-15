@@ -36,7 +36,8 @@ import MathRenderer from './MathRenderer';
 
 interface QuizProps {
   difficulty: Difficulty;
-  onComplete: (points: number, correct: number, diff: Difficulty, missed: Question[], streak: number, timeSpent: number, bestLightSpeedStreak: number) => void;
+  onComplete: (points: number, correct: number, diff: Difficulty, missed: Question[], streak: number, timeSpent: number, bestLightSpeedStreak: number, allQuestions: Question[]) => void;
+  onAnswerCorrect?: (points: number) => void;
   onCancel: () => void;
   onQuotaExceeded?: () => void;
   language: 'en' | 'bn';
@@ -142,7 +143,7 @@ const renderMathContent = (text: string | undefined | null) => {
   return <MathRenderer content={text} />;
 };
 
-export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded, language, initialQuestions, addToast }: QuizProps) {
+export default React.memo(function Quiz({ difficulty, onComplete, onAnswerCorrect, onCancel, onQuotaExceeded, language, initialQuestions, addToast }: QuizProps) {
   const [questions, setQuestions] = useState<Question[]>(initialQuestions || []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(!initialQuestions);
@@ -296,6 +297,10 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
       const speedBonus = Math.floor(timeLeft * (difficulty === 'hard' ? 2.5 : 1.5));
       const totalAwarded = basePoints + speedBonus;
       
+      if (difficulty === 'review' && onAnswerCorrect) {
+        onAnswerCorrect(totalAwarded);
+      }
+
       setPoints(prev => prev + totalAwarded);
       setScoreAnimate(true);
       setTimeout(() => setScoreAnimate(false), 500);
@@ -349,7 +354,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
       }
     });
 
-    onComplete(points, correctCount, difficulty, missedQuestions, maxStreak, totalTimeSpent, maxLightSpeedStreak);
+    onComplete(points, correctCount, difficulty, missedQuestions, maxStreak, totalTimeSpent, maxLightSpeedStreak, questions);
   };
 
   if (loading) {
@@ -570,20 +575,22 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
-          initial={{ opacity: 0, x: 50 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ 
             opacity: isPaused ? 0.2 : 1, 
-            x: showResult === 'incorrect' ? [0, -10, 10, -10, 10, 0] : 0, 
-            scale: showResult === 'correct' ? 1.02 : isPaused ? 0.98 : 1,
+            y: 0,
+            x: showResult === 'incorrect' ? [0, -6, 6, -6, 6, 0] : 0, 
+            scale: showResult === 'correct' ? 1.01 : isPaused ? 0.98 : 1,
             borderColor: showResult === 'correct' ? 'rgba(16, 185, 129, 0.5)' : showResult === 'incorrect' ? 'rgba(244, 63, 94, 0.5)' : 'var(--border)'
           }}
           transition={{ 
-            x: { duration: 0.4, ease: "easeInOut" },
-            opacity: { duration: 0.3 },
+            y: { duration: 0.2, ease: "easeOut" },
+            x: { duration: 0.4, ease: "easeInOut", type: "tween" },
+            opacity: { duration: 0.2 },
             scale: { duration: 0.2 }
           }}
-          exit={{ opacity: 0, x: -50 }}
-          className={`math-card p-6 md:p-8 flex flex-col items-center text-center gap-4 md:gap-6 relative overflow-hidden border-2 transition-all duration-500 ${
+          exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+          className={`math-card p-6 md:p-8 flex flex-col items-center text-center gap-4 md:gap-6 relative overflow-hidden border-2 ${
             isPaused ? 'grayscale pointer-events-none' : ''
           }`}
         >
@@ -646,7 +653,8 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
           </h2>
 
           <div className="grid grid-cols-2 gap-3 w-full">
-            {currentQ.type === 'mcq' && currentQ.options?.map((opt, i) => (
+            {/* Answer areas based on type */}
+            {currentQ.type === 'mcq' && currentQ.options && currentQ.options.length > 0 && currentQ.options?.map((opt, i) => (
               <div key={i} className="relative">
                 <AnswerButton 
                   label={renderMathContent(opt) as any}
@@ -667,6 +675,7 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
                 )}
               </div>
             ))}
+
             {currentQ.type === 'true-false' && [
               { key: 'True', label: t.true },
               { key: 'False', label: t.false }
@@ -691,7 +700,11 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
                 )}
               </div>
             ))}
-            {(currentQ.type === 'fill-blank' || currentQ.type === 'calculation') && (
+
+            {/* Fallback to calculation if unknown type or MCQ has no options */}
+            {(currentQ.type === 'fill-blank' || currentQ.type === 'calculation' || 
+              !['mcq', 'true-false', 'matching'].includes(currentQ.type) ||
+              (currentQ.type === 'mcq' && (!currentQ.options || currentQ.options.length === 0))) && (
               <div className="col-span-full space-y-6">
                 <form 
                   className="space-y-6"
@@ -858,14 +871,14 @@ export default function Quiz({ difficulty, onComplete, onCancel, onQuotaExceeded
       </div>
     </div>
   );
-}
+});
 
-function MatchingQuestion({ pairs, onComplete, disabled, language }: { 
+const MatchingQuestion = React.memo(({ pairs, onComplete, disabled, language }: { 
   pairs: { left: string; right: string }[];
   onComplete: (correct: boolean) => void;
   disabled: boolean;
   language: 'en' | 'bn';
-}) {
+}) => {
   const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
   const [matches, setMatches] = useState<Record<number, number>>({});
   const [incorrectFlash, setIncorrectFlash] = useState<number | null>(null);
@@ -1005,16 +1018,16 @@ function MatchingQuestion({ pairs, onComplete, disabled, language }: {
       </div>
     </div>
   );
-}
+});
 
-function AnswerButton({ label, onClick, active, correct, wrong, disabled }: { 
+const AnswerButton = React.memo(({ label, onClick, active, correct, wrong, disabled }: { 
   label: React.ReactNode; 
   onClick: () => void; 
   active: boolean;
   correct: boolean;
   wrong: boolean;
   disabled: boolean;
-}) {
+}) => {
   return (
     <motion.button
       whileHover={!disabled ? { scale: 1.01, backgroundColor: 'rgba(0,0,0,0.02)', color: 'inherit' } : {}}
@@ -1034,14 +1047,14 @@ function AnswerButton({ label, onClick, active, correct, wrong, disabled }: {
       {wrong && <XCircle size={18} className="shrink-0" />}
     </motion.button>
   );
-}
+});
 
-function NumericKeyboard({ onInput, onDelete, onSubmit, language }: { 
+const NumericKeyboard = React.memo(({ onInput, onDelete, onSubmit, language }: { 
   onInput: (digit: string) => void; 
   onDelete: () => void;
   onSubmit: () => void;
   language: 'en' | 'bn';
-}) {
+}) => {
   const digitsMap: Record<string, string> = {
     '0': '০', '1': '১', '2': '২', '3': '৩', '4': '৪', '5': '৫', '6': '৬', '7': '৭', '8': '৮', '9': '৯'
   };
@@ -1092,4 +1105,4 @@ function NumericKeyboard({ onInput, onDelete, onSubmit, language }: {
       })}
     </div>
   );
-}
+});

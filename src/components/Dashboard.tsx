@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   TrendingUp, 
@@ -20,7 +20,8 @@ import {
   Award,
   Coins,
   CircleDollarSign,
-  LayoutGrid
+  LayoutGrid,
+  RefreshCcw
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -60,22 +61,24 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const t = translations[language];
 
-  const levelInfo = calculateLevelInfo(stats.totalPoints);
+  const levelInfo = useMemo(() => calculateLevelInfo(stats.totalPoints), [stats.totalPoints]);
   const levelProgress = levelInfo.progress;
   const pointsToNextLevel = levelInfo.pointsToNextLevel;
   const hasMissed = stats.missedQuestions && stats.missedQuestions.length > 0;
 
   // Prepare activity data (last 50 days)
-  const activityData = Array.from({ length: 50 }, (_, i) => {
-    const date = subDays(new Date(), 49 - i);
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const entry = stats.activity.find(a => a.date === dateStr);
-    return {
-      date: dateStr,
-      count: entry ? entry.count : 0,
-      label: format(date, 'MMM d')
-    };
-  });
+  const activityData = useMemo(() => {
+    return Array.from({ length: 50 }, (_, i) => {
+      const date = subDays(new Date(), 49 - i);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const entry = stats.activity.find(a => a.date === dateStr);
+      return {
+        date: dateStr,
+        count: entry ? entry.count : 0,
+        label: format(date, 'MMM d')
+      };
+    });
+  }, [stats.activity]);
 
   const getCellColor = (count: number) => {
     if (count === 0) return 'rgba(0,0,0,0.05)';
@@ -294,14 +297,14 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
       </div>
 
       {/* Performance Section Highlights */}
-      <section className="grid grid-cols-3 gap-2 md:gap-3">
+      <section className="grid grid-cols-4 gap-2 md:gap-3">
         <div className="math-card glass border-emerald-500/20 p-2.5 md:p-4 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-2 group">
           <div className="w-7 h-7 md:w-9 md:h-9 bg-emerald-500 text-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
             <Trophy size={14} />
           </div>
           <div className="overflow-hidden">
-            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Basic Lifetime' : 'বেসিক লাইফটাইম'}</p>
-            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.basic || stats.highScores.basic).toLocaleString()}</p>
+            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Basic' : 'বেসিক'}</p>
+            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.basic || stats.highScores.basic || 0).toLocaleString()}</p>
           </div>
         </div>
         <div className="math-card glass border-amber-500/20 p-2.5 md:p-4 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-2 group">
@@ -309,8 +312,8 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
             <Medal size={14} />
           </div>
           <div className="overflow-hidden">
-            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Normal Lifetime' : 'সাধারণ লাইফটাইম'}</p>
-            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.normal || stats.highScores.normal).toLocaleString()}</p>
+            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Normal' : 'সাধারণ'}</p>
+            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.normal || stats.highScores.normal || 0).toLocaleString()}</p>
           </div>
         </div>
         <div className="math-card glass border-rose-500/20 p-2.5 md:p-4 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-2 group">
@@ -318,8 +321,17 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
             <Award size={14} />
           </div>
           <div className="overflow-hidden">
-            <p className="text-[7px] md:text-[9px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Hard Lifetime' : 'হার্ড লাইফটাইম'}</p>
-            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.hard || stats.highScores.hard).toLocaleString()}</p>
+            <p className="text-[7px] md:text-[10px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Hard' : 'হার্ড'}</p>
+            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.hard || stats.highScores.hard || 0).toLocaleString()}</p>
+          </div>
+        </div>
+        <div className="math-card glass border-indigo-500/20 p-2.5 md:p-4 flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-2 group">
+          <div className="w-7 h-7 md:w-9 md:h-9 bg-indigo-500 text-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+            <RefreshCcw size={14} />
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-[7px] md:text-[10px] font-black text-muted uppercase leading-none mb-1">{language === 'en' ? 'Review' : 'রিভিউ'}</p>
+            <p className="text-xs md:text-lg font-black truncate">{(stats.lifetimeLevelScores?.review || stats.highScores.review || 0).toLocaleString()}</p>
           </div>
         </div>
       </section>
@@ -384,7 +396,7 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
                         <Pie
                           data={[
                             { name: language === 'en' ? 'Correct' : 'সঠিক', value: stats.correctAnswers },
-                            { name: language === 'en' ? 'Incorrect' : 'ভুল', value: Math.max(0, (stats.totalQuizzes * 10) - stats.correctAnswers) }
+                            { name: language === 'en' ? 'Incorrect' : 'ভুল', value: Math.max(0, (stats.totalQuestionsAttempted || stats.totalQuizzes * 10) - stats.correctAnswers) }
                           ]}
                           cx="50%"
                           cy="50%"
@@ -405,7 +417,7 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                       <div className="flex flex-col items-center bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-full w-20 h-20 md:w-28 md:h-28 justify-center shadow-inner border border-theme">
                         <span className="text-xl md:text-3xl font-black text-emerald-500 leading-none">
-                          {stats.totalQuizzes > 0 ? Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100) : 0}%
+                          {stats.totalQuestionsAttempted && stats.totalQuestionsAttempted > 0 ? Math.round((stats.correctAnswers / stats.totalQuestionsAttempted) * 100) : (stats.totalQuizzes > 0 ? Math.round((stats.correctAnswers / (stats.totalQuizzes * 10)) * 100) : 0)}%
                         </span>
                         <span className="text-[8px] md:text-[10px] uppercase font-black opacity-40">{language === 'en' ? 'Accuracy' : 'সঠিকতা'}</span>
                       </div>
@@ -424,9 +436,10 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
                         { subject: t.basic, A: stats.highScores.basic, fullMark: 1000 },
                         { subject: t.normal, A: stats.highScores.normal, fullMark: 2500 },
                         { subject: t.hard, A: stats.highScores.hard, fullMark: 5000 },
+                        { subject: t.review, A: stats.highScores.review || 0, fullMark: 2500 },
                       ]}>
                         <PolarGrid stroke="currentColor" strokeOpacity={0.1} />
-                        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeights: 'bold', fill: 'currentColor', opacity: 0.6 }} />
+                        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold', fill: 'currentColor', opacity: 0.6 }} />
                         <PolarRadiusAxis angle={30} domain={[0, 'auto']} hide />
                         <Radar
                           name={user.name}
@@ -487,13 +500,13 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest opacity-60">{language === 'en' ? 'Accurate Answer' : 'সঠিক উত্তর'}</p>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black text-emerald-400 leading-none">{stats.correctAnswers}</span>
-                  <span className="text-[10px] font-bold text-emerald-400/40">{Math.round((stats.correctAnswers / (Math.max(1, stats.totalQuizzes) * 10)) * 100)}%</span>
+                  <span className="text-[10px] font-bold text-emerald-400/40">{Math.round((stats.correctAnswers / Math.max(1, stats.totalQuestionsAttempted || stats.totalQuizzes * 10)) * 100)}%</span>
                 </div>
               </div>
               <div className="h-1 w-full bg-emerald-400/10 rounded-full overflow-hidden">
                 <motion.div 
                   initial={{ width: 0 }}
-                  animate={{ width: `${Math.round((stats.correctAnswers / (Math.max(1, stats.totalQuizzes) * 10)) * 100)}%` }}
+                  animate={{ width: `${Math.round((stats.correctAnswers / Math.max(1, stats.totalQuestionsAttempted || stats.totalQuizzes * 10)) * 100)}%` }}
                   className="h-full bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                 />
               </div>
@@ -624,6 +637,7 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
                   const basicPoints = dayHistory.filter(h => h.difficulty === 'basic').reduce((acc, h) => acc + h.score, 0);
                   const normalPoints = dayHistory.filter(h => h.difficulty === 'normal').reduce((acc, h) => acc + h.score, 0);
                   const hardPoints = dayHistory.filter(h => h.difficulty === 'hard').reduce((acc, h) => acc + h.score, 0);
+                  const reviewPoints = dayHistory.filter(h => h.difficulty === 'review').reduce((acc, h) => acc + h.score, 0);
                   
                   if (totalQuizzes === 0) {
                     return (
@@ -654,18 +668,22 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
                       </div>
 
                       {/* Summary Grid 2: Points by Level */}
-                      <div className="grid grid-cols-3 gap-2 md:gap-3">
-                        <div className="bg-emerald-500/5 p-3 rounded-2xl border border-emerald-500/10 text-center group transition-all hover:bg-emerald-500/10 hover:scale-[1.02]">
-                          <p className="text-[8px] font-black uppercase text-emerald-500/60 mb-1">{language === 'en' ? 'Basic' : 'বেসিক'}</p>
-                          <p className="text-base font-black text-emerald-600">{basicPoints.toLocaleString()}</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+                        <div className="bg-emerald-500/5 p-2 rounded-xl border border-emerald-500/10 text-center group transition-all">
+                          <p className="text-[7px] font-black uppercase text-emerald-500/60 mb-0.5">{t.basic}</p>
+                          <p className="text-sm font-black text-emerald-600">{basicPoints.toLocaleString()}</p>
                         </div>
-                        <div className="bg-amber-500/5 p-3 rounded-2xl border border-amber-500/10 text-center group transition-all hover:bg-amber-500/10 hover:scale-[1.02]">
-                          <p className="text-[8px] font-black uppercase text-amber-500/60 mb-1">{language === 'en' ? 'Normal' : 'নরমাল'}</p>
-                          <p className="text-base font-black text-amber-600">{normalPoints.toLocaleString()}</p>
+                        <div className="bg-amber-500/5 p-2 rounded-xl border border-amber-500/10 text-center group transition-all">
+                          <p className="text-[7px] font-black uppercase text-amber-500/60 mb-0.5">{t.normal}</p>
+                          <p className="text-sm font-black text-amber-600">{normalPoints.toLocaleString()}</p>
                         </div>
-                        <div className="bg-rose-500/5 p-3 rounded-2xl border border-rose-500/10 text-center group transition-all hover:bg-rose-500/10 hover:scale-[1.02]">
-                          <p className="text-[8px] font-black uppercase text-rose-500/60 mb-1">{language === 'en' ? 'Hard' : 'হার্ড'}</p>
-                          <p className="text-base font-black text-rose-600">{hardPoints.toLocaleString()}</p>
+                        <div className="bg-rose-500/5 p-2 rounded-xl border border-rose-500/10 text-center group transition-all">
+                          <p className="text-[7px] font-black uppercase text-rose-500/60 mb-0.5">{t.hard}</p>
+                          <p className="text-sm font-black text-rose-600">{hardPoints.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-indigo-500/5 p-2 rounded-xl border border-indigo-500/10 text-center group transition-all">
+                          <p className="text-[7px] font-black uppercase text-indigo-500/60 mb-0.5">{t.review}</p>
+                          <p className="text-sm font-black text-indigo-600">{reviewPoints.toLocaleString()}</p>
                         </div>
                       </div>
 
@@ -680,6 +698,7 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${
                                   quiz.difficulty === 'hard' ? 'bg-rose-500/10 text-rose-500' : 
                                   quiz.difficulty === 'normal' ? 'bg-amber-500/10 text-amber-500' : 
+                                  quiz.difficulty === 'review' ? 'bg-indigo-500/10 text-indigo-500' :
                                   'bg-emerald-500/10 text-emerald-500'
                                 }`}>
                                   {quiz.difficulty[0].toUpperCase()}
@@ -722,7 +741,7 @@ export default function Dashboard({ stats, user, language, onStartQuiz, onStartR
                 { name: t.normal, value: stats.highScores.normal },
                 { name: t.hard, value: stats.highScores.hard }
               ]}>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} tick={{ fill: 'currentColor', opacity: 0.5 }} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.5 }} />
                 <YAxis hide />
                 <Tooltip 
                   cursor={{ fill: 'transparent' }}

@@ -20,11 +20,13 @@ import {
   Award,
   Coins,
   CheckCircle2,
+  XCircle,
   X,
   Brain,
   Zap,
   Flame,
-  ArrowRight
+  ArrowRight,
+  PartyPopper
 } from 'lucide-react';
 
 import { storage } from './lib/storage';
@@ -44,6 +46,103 @@ import Tooltip from './components/Tooltip';
 import Logo from './components/Logo';
 import QuotaModal from './components/QuotaModal';
 
+interface ReviewSummaryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  summary: { correct: number; incorrect: number; points: number } | null;
+  language: 'en' | 'bn';
+}
+
+function ReviewSummaryModal({ isOpen, onClose, summary, language }: ReviewSummaryModalProps) {
+  const t = translations[language];
+
+  if (!summary) return null;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+          />
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="relative w-full max-w-md bg-surface border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+          >
+            {/* Background elements */}
+            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl" />
+
+            <div className="relative z-10 flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-primary to-indigo-600 rounded-3xl flex items-center justify-center shadow-lg shadow-primary/20 rotate-3">
+                <PartyPopper size={40} className="text-white" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black tracking-tight">{t.reviewComplete}</h3>
+                <p className="text-sm font-medium text-muted opacity-60">
+                  {language === 'en' ? 'Excellent effort on your review session!' : 'রিভিউ সেশনে আপনার প্রচেষ্টার জন্য ধন্যবাদ!'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 w-full">
+                <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl flex flex-col items-center gap-1">
+                  <CheckCircle2 size={20} className="text-emerald-500" />
+                  <span className="text-[10px] font-black uppercase text-muted tracking-widest">{t.reviewCorrect}</span>
+                  <span className="text-xl font-black text-emerald-600">{summary.correct}</span>
+                </div>
+                
+                <div className="p-4 bg-rose-500/5 border border-rose-500/20 rounded-2xl flex flex-col items-center gap-1">
+                  <XCircle size={20} className="text-rose-500" />
+                  <span className="text-[10px] font-black uppercase text-muted tracking-widest">{t.reviewIncorrect}</span>
+                  <span className="text-xl font-black text-rose-600">{summary.incorrect}</span>
+                </div>
+
+                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl flex flex-col items-center gap-1">
+                  <Coins size={20} className="text-amber-500" />
+                  <span className="text-[10px] font-black uppercase text-muted tracking-widest">{t.reviewPointsEarned}</span>
+                  <span className="text-xl font-black text-amber-600">{summary.points}</span>
+                </div>
+              </div>
+
+              <div className="w-full bg-black/5 dark:bg-white/5 p-4 rounded-2xl border border-black/5 dark:border-white/5 space-y-3">
+                 <div className="flex justify-between items-center text-xs font-bold">
+                    <span className="opacity-60">{language === 'en' ? 'Review Accuracy' : 'রিভিউ নির্ভুলতা'}</span>
+                    <span className="text-primary font-black">
+                      {Math.round((summary.correct / (summary.correct + summary.incorrect || 1)) * 100)}%
+                    </span>
+                 </div>
+                 <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(summary.correct / (summary.correct + summary.incorrect || 1)) * 100}%` }}
+                      className="h-full bg-primary"
+                    />
+                 </div>
+              </div>
+
+              <button
+                onClick={onClose}
+                className="w-full py-4 rounded-2xl bg-indigo-600 text-white font-black text-lg shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group"
+              >
+                {language === 'en' ? 'Back to Dashboard' : 'ড্যাশবোর্ডে ফিরে যান'}
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function App() {
   const [state, setState] = useState<AppState>(storage.load());
   const [activeTab, setActiveTab] = useState<'quiz' | 'dashboard' | 'leaderboard' | 'store' | 'profile'>('dashboard');
@@ -53,6 +152,7 @@ export default function App() {
   const [toasts, setToasts] = useState<{ id: string; title: string; subtitle: string; icon?: React.ReactNode }[]>([]);
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [reviewSummary, setReviewSummary] = useState<{ correct: number; incorrect: number; points: number } | null>(null);
 
   const t = translations[state.user.language];
   const currentTheme = useMemo(() => {
@@ -83,14 +183,17 @@ export default function App() {
     let themeColors;
     
     if (state.user.currentTheme === 'custom' && state.user.customTheme) {
-      const p = state.user.customTheme.primary;
-      const s = state.user.customTheme.secondary;
+      const ct = state.user.customTheme;
+      const p = isDark ? (ct.darkPrimary || ct.primary) : ct.primary;
+      const s = isDark ? (ct.darkSecondary || ct.secondary) : ct.secondary;
+      const bg = isDark ? (ct.darkBg || `color-mix(in srgb, ${p} 3%, #020617)`) : (ct.bg || `color-mix(in srgb, ${p} 2%, #f8fafc)`);
+      const txt = isDark ? (ct.darkText || '#f1f5f9') : (ct.text || '#0f172a');
       
       themeColors = {
-        primary: isDark ? `color-mix(in srgb, ${p}, white 15%)` : p,
-        secondary: isDark ? `color-mix(in srgb, ${s}, white 15%)` : s,
-        bg: isDark ? `color-mix(in srgb, ${p} 3%, #020617)` : `color-mix(in srgb, ${p} 2%, #f8fafc)`,
-        text: isDark ? '#f1f5f9' : '#0f172a',
+        primary: p,
+        secondary: s,
+        bg: bg,
+        text: txt,
         surface: isDark ? `color-mix(in srgb, ${p} 8%, #0f172a)` : 'rgba(255, 255, 255, 0.9)',
         border: isDark ? `color-mix(in srgb, ${p} 20%, rgba(255,255,255,0.1))` : `color-mix(in srgb, ${p} 15%, rgba(0,0,0,0.1))`,
         textMuted: isDark ? `color-mix(in srgb, ${p} 30%, #94a3b8)` : `color-mix(in srgb, ${p} 30%, #475569)`,
@@ -168,20 +271,58 @@ export default function App() {
     return allScores.indexOf(score) + 1;
   };
 
-  const handleQuizComplete = (points: number, correct: number, diff: Difficulty, missed: Question[], sessionStreak: number, timeSpent: number, bestLightSpeedStreak: number) => {
+  const handleAnswerCorrect = (pointsToAdd: number) => {
+    storage.updateStats(stats => {
+      const newTotalPoints = stats.totalPoints + pointsToAdd;
+      const { level: newLevel } = calculateLevelInfo(newTotalPoints);
+      const newLifetimeLevelScores = { ...(stats.lifetimeLevelScores || stats.highScores) };
+      newLifetimeLevelScores['review'] = (newLifetimeLevelScores['review'] || 0) + pointsToAdd;
+      
+      const updatedStats = {
+        ...stats,
+        totalPoints: newTotalPoints,
+        balance: (stats.balance || 0) + pointsToAdd,
+        level: newLevel,
+        lifetimeLevelScores: newLifetimeLevelScores
+      };
+
+      if (newLevel > stats.level) {
+        // We will show the level up toast here if it happens during review
+        // But maybe it's better to just update stats and let the UI reflect it
+      }
+
+      return updatedStats;
+    });
+    setState(storage.load());
+  };
+
+  const handleQuizComplete = (points: number, correct: number, diff: Difficulty, missed: Question[], sessionStreak: number, timeSpent: number, bestLightSpeedStreak: number, allQuestions: Question[]) => {
     const oldLifetimeScore = (state.stats.lifetimeLevelScores?.[diff] || state.stats.highScores[diff]) || 0;
     const oldRank = calculateRank(oldLifetimeScore, diff, state.stats.rivals || [], 'lifetime');
 
+    const isReview = diff === 'review';
+    if (isReview) {
+      setReviewSummary({
+        correct,
+        incorrect: allQuestions.length - correct,
+        points
+      });
+    }
+
     storage.updateStats(stats => {
-      const newTotalPoints = stats.totalPoints + points;
-      const newBalance = (stats.balance || 0) + points;
+      const isReview = diff === 'review';
+      const effectivePoints = isReview ? 0 : points; // If review, points were already added real-time
+      const newTotalPoints = stats.totalPoints + effectivePoints;
+      const newBalance = (stats.balance || 0) + effectivePoints;
       const newHighScores = { ...stats.highScores };
       const newLifetimeLevelScores = { ...(stats.lifetimeLevelScores || stats.highScores) };
       
-      const isNewHighScore = points > (newHighScores[diff] || 0);
-      if (isNewHighScore) newHighScores[diff] = points;
+      // Update high scores - including review if it was a high score session
+      const scoreToRecord = isReview ? points : effectivePoints;
+      const isNewHighScore = scoreToRecord > (newHighScores[diff] || 0);
+      if (isNewHighScore) newHighScores[diff] = scoreToRecord;
       
-      newLifetimeLevelScores[diff] = (newLifetimeLevelScores[diff] || 0) + points;
+      newLifetimeLevelScores[diff] = (newLifetimeLevelScores[diff] || 0) + effectivePoints;
       
       const { level: newLevel } = calculateLevelInfo(newTotalPoints);
       
@@ -192,21 +333,46 @@ export default function App() {
       const newBestStreak = Math.max(stats.bestStreak || 0, sessionStreak);
       const newBestLightSpeedStreak = Math.max(stats.bestLightSpeedStreak || 0, bestLightSpeedStreak);
       
-      const newLifetimeCorrectByDifficulty = { ...(stats.lifetimeCorrectByDifficulty || { basic: 0, normal: 0, hard: 0 }) };
-      newLifetimeCorrectByDifficulty[diff] += correct;
+      const newLifetimeCorrectByDifficulty = { ...(stats.lifetimeCorrectByDifficulty || { basic: 0, normal: 0, hard: 0, review: 0 }) };
+      newLifetimeCorrectByDifficulty[diff] = (newLifetimeCorrectByDifficulty[diff] || 0) + correct;
 
-      const newLifetimeQuizzesByDifficulty = { ...(stats.lifetimeQuizzesByDifficulty || { basic: 0, normal: 0, hard: 0 }) };
-      newLifetimeQuizzesByDifficulty[diff] += 1;
+      const newLifetimeQuizzesByDifficulty = { ...(stats.lifetimeQuizzesByDifficulty || { basic: 0, normal: 0, hard: 0, review: 0 }) };
+      newLifetimeQuizzesByDifficulty[diff] = (newLifetimeQuizzesByDifficulty[diff] || 0) + 1;
 
       const newAchievementCounts = { ...(stats.achievementCounts || {}) };
       if (correct === 10) {
         newAchievementCounts['unstoppable'] = (newAchievementCounts['unstoppable'] || 0) + 1;
       }
 
-      // Merge missed questions, avoiding duplicates
+      // Identify questions that were answered correctly this session
+      const correctIds = allQuestions
+        .filter(q => !missed.some(m => m.id === q.id))
+        .map(q => q.id);
+
       const currentMissed = stats.missedQuestions || [];
-      const newMissed = [...currentMissed];
+      const currentCounts = stats.missedCorrectCounts || {};
+      const newCounts = { ...currentCounts };
+      
+      // Update counts for correctly answered questions that are currently in the review list
+      correctIds.forEach(id => {
+        if (currentMissed.some(q => q.id === id)) {
+          newCounts[id] = (newCounts[id] || 0) + 1;
+        }
+      });
+
+      // Filter out questions that have reached 2 correct answers
+      const newMissed = currentMissed.filter(q => (newCounts[q.id] || 0) < 2);
+      
+      // Cleanup counts for questions that were removed
+      Object.keys(newCounts).forEach(id => {
+        if (!newMissed.some(q => q.id === id)) {
+          delete newCounts[id];
+        }
+      });
+
+      // Add newly missed questions, avoiding duplicates, and reset their counts
       missed.forEach(q => {
+        newCounts[q.id] = 0; // Reset count on failure
         if (!newMissed.find(existing => existing.id === q.id)) {
           newMissed.push(q);
         }
@@ -218,7 +384,7 @@ export default function App() {
         difficulty: diff,
         score: points,
         correctCount: correct,
-        totalQuestions: 10,
+        totalQuestions: allQuestions.length || 10,
         timeSpent: timeSpent
       };
 
@@ -227,6 +393,7 @@ export default function App() {
         totalPoints: newTotalPoints,
         balance: newBalance,
         totalQuizzes: stats.totalQuizzes + 1,
+        totalQuestionsAttempted: (stats.totalQuestionsAttempted || 0) + allQuestions.length,
         correctAnswers: stats.correctAnswers + correct,
         highScores: newHighScores,
         lifetimeLevelScores: newLifetimeLevelScores,
@@ -237,6 +404,7 @@ export default function App() {
         level: newLevel,
         bestStreak: newBestStreak,
         missedQuestions: newMissed.slice(-50), // Keep last 50 only
+        missedCorrectCounts: newCounts,
         history: [newHistoryItem, ...(stats.history || [])].slice(0, 100)
       };
 
@@ -316,7 +484,7 @@ export default function App() {
   const startReviewMode = () => {
     if (state.stats.missedQuestions && state.stats.missedQuestions.length > 0) {
       setQuizQuestions(state.stats.missedQuestions);
-      setQuizDifficulty('normal'); // Default difficulty for review
+      setQuizDifficulty('review');
     }
   };
 
@@ -414,6 +582,7 @@ export default function App() {
             <Quiz 
               difficulty={quizDifficulty} 
               onComplete={handleQuizComplete}
+              onAnswerCorrect={handleAnswerCorrect}
               onCancel={() => {
                 setQuizDifficulty(null);
                 setQuizQuestions(null);
@@ -553,7 +722,7 @@ export default function App() {
                   onUpdateUser={(u) => handleUpdateState({ user: u })}
                   onClearReview={() => {
                     handleUpdateState({
-                      stats: { ...state.stats, missedQuestions: [] }
+                      stats: { ...state.stats, missedQuestions: [], missedCorrectCounts: {} }
                     });
                   }}
                   onStartTutorial={() => setShowTutorial(true)}
@@ -637,6 +806,13 @@ export default function App() {
           setShowQuotaModal(false);
           if (!quizDifficulty) setQuizDifficulty('normal');
         }}
+        language={state.user.language}
+      />
+
+      <ReviewSummaryModal 
+        isOpen={!!reviewSummary}
+        onClose={() => setReviewSummary(null)}
+        summary={reviewSummary}
         language={state.user.language}
       />
     </div>

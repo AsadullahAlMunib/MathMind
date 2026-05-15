@@ -35,9 +35,9 @@
 
 </div>
 
-## 🚀 What's New — `v1.1.0` *(May 8, 2026)*
+## 🚀 What's New — `v1.2.0` *(May 15, 2026)*
 
-> Upgrading from `v1.0.1` — this release improves math precision, expands offline content, and makes onboarding smarter.
+> Upgrading from `v1.1.0` — this major release introduces the **Smart Theme Engine**, **Recurring Achievement System**, and significant **Math Engine** optimizations for performance and accuracy.
 
 <br/>
 
@@ -51,34 +51,44 @@
 </thead>
 <tbody>
 <tr>
-<td align="center">🧮</td>
-<td><strong>Advanced Math Formatting</strong></td>
-<td>Fixed <strong>KaTeX</strong> rendering for complex equations — fractions, square roots, and algebraic expressions now display with perfect precision via the new <code>MathRenderer</code> component.</td>
+<td align="center">🔁</td>
+<td><strong>Recurring Achievements</strong></td>
+<td>Achievements like <em>Math Marathoner</em> and <em>Math Legend</em> now support <strong>Multipliers (2x, 3x, 4x…)</strong>. Unlocked achievements now show real-time progress toward the next tier.</td>
 </tr>
 <tr>
-<td align="center">📦</td>
-<td><strong>Upgraded Offline Engine</strong></td>
-<td>Added <strong>60+ unique question templates</strong> across Basic, Normal, and Hard levels. Richer offline content — no internet needed.</td>
+<td align="center">🪄</td>
+<td><strong>Smart Theme Engine</strong></td>
+<td>Implemented <strong>Magic Sync</strong>: the app now automatically suggests mathematically balanced Dark Mode colors based on your Light Mode selections using HSL color space manipulation. Background and Text colors are now independently customizable.</td>
 </tr>
 <tr>
-<td align="center">🎓</td>
-<td><strong>Smart Tutorial Integration</strong></td>
-<td><strong>Theme (Dark/Light)</strong> and <strong>Language (BN/EN)</strong> toggles now appear directly inside the onboarding flow — personalize before playing.</td>
+<td align="center">⚡</td>
+<td><strong>Performance Engine v2</strong></td>
+<td>Massive rendering optimizations using <strong>React.memo</strong> and <strong>useMemo</strong> across <code>MathRenderer</code>, <code>Quiz</code>, and <code>Achievements</code>. Drastically improved UI responsiveness during quiz transitions and analytics.</td>
 </tr>
 <tr>
-<td align="center">🔑</td>
-<td><strong>AI Configuration Guide</strong></td>
-<td>New dedicated tutorial slide walks users through entering their <strong>GEMINI_API_KEY</strong> in the Profile section to unlock private AI question generation.</td>
+<td align="center">🎲</td>
+<td><strong>Full Engine Randomization</strong></td>
+<td>ALL difficulty templates (Basic, Normal, Hard) now use a <strong>Dynamic Value Generator</strong>. Every offline session produces unique numbers for every topic — no more repeated questions.</td>
 </tr>
 <tr>
-<td align="center">🎨</td>
-<td><strong>UI/UX Polishing</strong></td>
-<td>Redesigned theme switch with <strong>interactive icons</strong>; improved math engine status clarity throughout the app.</td>
+<td align="center">🔢</td>
+<td><strong>Number System Engine</strong></td>
+<td>Integrated a comprehensive <strong>Binary, Octal, Decimal, and Hexadecimal</strong> conversion system as a new question category.</td>
 </tr>
 <tr>
-<td align="center">🏆</td>
-<td><strong>Expanded Achievements</strong></td>
-<td>Achievement system grown from <strong>6 → 10 milestones</strong>. Four new challenges added: <strong>Math Marathoner</strong>, <strong>Unstoppable Force</strong>, <strong>Elite Calculator</strong>, and <strong>Light Speed</strong>. Existing thresholds also rebalanced.</td>
+<td align="center">📐</td>
+<td><strong>Math Engine v2</strong></td>
+<td>Advanced log notation (<code>log 2</code> → <code>\log_{2}</code>), auto-sizing brackets, corrupted artifact recovery, robust labeled expression support, and improved backslash injection for trig and log functions.</td>
+</tr>
+<tr>
+<td align="center">📈</td>
+<td><strong>Chart Metadata Sync</strong></td>
+<td>Fixed a synchronization issue in the Performance Chart; tooltips now accurately display <strong>Date, Time, Score, and Type</strong> for every data point.</td>
+</tr>
+<tr>
+<td align="center">🛠️</td>
+<td><strong>Animation & Stability Fix</strong></td>
+<td>Resolved a runtime crash with spring/inertia animations. Unified the quiz engine on <strong>gemini-flash-preview</strong> for ultra-low latency across all difficulty levels.</td>
 </tr>
 </tbody>
 </table>
@@ -112,9 +122,10 @@ Fully supports **English 🇬🇧** and **Bengali 🇧🇩** — including AI-ge
 | ⏱️ | **Countdown Timer** | Per-question timer with Pause / Resume |
 | ⚡ | **Speed Bonus** | Answer faster → earn more points |
 | 📊 | **Rich Analytics** | Pie chart, Radar chart, GitHub-style activity heatmap |
-| 🎨 | **10 Unlockable Themes** | Buy themes with earned coins — all with dark mode variants |
-| 🏆 | **Achievements System** | 10 milestone-based rewards with toast notifications |
+| 🎨 | **Smart Theme Engine** | 10 themes + Magic Sync for auto Dark Mode color suggestions |
+| 🏆 | **Achievements System** | 10 milestone-based rewards with recurring multipliers (2x, 3x…) |
 | 🔁 | **Review Mode** | Revisit your wrong answers to master weak areas |
+| 🔢 | **Number System Engine** | Binary, Octal, Decimal, Hexadecimal conversion questions |
 | 👥 | **AI Rivals** | Compete against 10 legendary math rival bots |
 | 🔢 | **KaTeX Rendering** | Beautiful LaTeX math formula display |
 | 🔊 | **Sound Effects** | Toggle game sounds on/off from settings |
@@ -164,7 +175,7 @@ The app has **5 tabs** — sidebar on desktop, bottom bar on mobile:
 |---|---|---|---|
 | 🟢 **Basic** | Addition, Subtraction, Multiplication, Division | 30 sec | 10 pts |
 | 🟡 **Normal** | Algebra, Percentages, Fractions, Squares, Geometry | 30 sec | 25 pts |
-| 🔴 **Hard** | Exponents, Equations, Compound Word Problems | 30 sec | 50 pts |
+| 🔴 **Hard** | Exponents, Equations, Compound Word Problems & etc. | 30 sec | 50 pts |
 
 ### 2 · Answer Questions
 
@@ -275,15 +286,17 @@ Level 5 → 6  : 1,037 pts  (lifetime: 3,721)
 | Badge | Achievement | How to Unlock |
 |---|---|---|
 | 🎯 | **First Step** | Complete your very first quiz |
-| ⚡ | **Warm Up Master** | Score a perfect 600 pts in Basic mode |
+| ⚡ | **Warm Up Master** | Score a perfect 500 pts in Basic mode |
 | 🔥 | **On Fire** | Reach a best streak of 10 or more |
 | 💰 | **Point Hoarder** | Earn a lifetime total of 10,000 points |
 | 🎨 | **Fashionable** | Unlock 5 different adaptive themes from the shop |
-| 👑 | **Math Legend** | Score above 1,250 in a Hard mode quiz |
+| 👑 | **Math Legend** | Score above 1,200 in a Hard mode quiz |
 | 📅 | **Math Marathoner** | Stay active and play for 10 distinct days |
 | 🛡️ | **Unstoppable Force** | Complete 10 perfect quizzes (10/10 correct) |
 | 🧮 | **Elite Calculator** | Complete 100 quizzes total (min 25 per difficulty) |
 | 🚀 | **Light Speed** | Answer 5 questions consecutively in under 5 seconds each |
+
+> 🔁 **Recurring System (v1.2.0):** *Math Marathoner*, *Math Legend*, and *Warm Up Master* now support **2x, 3x, 4x… multipliers**. After unlocking, progress toward the next tier is shown in real time.
 
 <br/>
 
@@ -303,9 +316,9 @@ Level 5 → 6  : 1,037 pts  (lifetime: 3,721)
 | 8 | **Monochrome Pro** | 🪙 15,000 | Pure Black & White |
 | 9 | **Nebula** | 🪙 20,000 | Deep Pink / Indigo |
 | 10 | **Crimson Fury** | 🪙 30,000 | Bold Red |
-| 🎨 | **Custom Theme** | 🪙 40,000 | Pick your own primary & secondary colors |
+| 🎨 | **Custom Theme** | 🪙 40,000 | Pick your own Primary, Secondary, Background & Text colors |
 
-Every theme ships with a full **dark mode variant**. Purchased themes never expire.
+Every theme ships with a full **dark mode variant**. Purchased themes never expire. The **Smart Theme Engine** automatically suggests Dark Mode colors from your Light Mode palette — one tap, perfectly balanced.  *(v1.2.0)*
 
 <br/>
 
@@ -403,40 +416,45 @@ Open **`http://localhost:3000`** — you're ready to play!
 
 ```
 MathMind/
+├── .github/
+│   └── workflows/
+│       └── build.yml                 # Android APK auto-build workflow
+├── download/
+│   └── MathMind.apk                  # Latest pre-built Android APK
 ├── src/
 │   ├── components/
-│   │   ├── Achievements.tsx          # Achievement display and tracking
+│   │   ├── Achievements.tsx          # Achievement display, recurring multiplier system
 │   │   ├── Dashboard.tsx             # Stats, charts, heatmap, quick actions
 │   │   ├── Leaderboard.tsx           # Rival competition board
 │   │   ├── Logo.tsx                  # App logo component
-│   │   ├── MathRenderer.tsx          # KaTeX math expression renderer  ✨ v1.1.0
-│   │   ├── Profile.tsx               # User profile, API key, settings
+│   │   ├── MathRenderer.tsx          # KaTeX math expression renderer + Math Engine v2
+│   │   ├── Profile.tsx               # User profile, API key, theme customization
 │   │   ├── Quiz.tsx                  # Core gameplay: timer, answers, scoring
 │   │   ├── QuotaModal.tsx            # API quota limit handler
-│   │   ├── Store.tsx                 # Theme marketplace
+│   │   ├── Store.tsx                 # Theme marketplace + Smart Theme Engine
 │   │   ├── Tooltip.tsx               # Reusable tooltip wrapper
 │   │   └── Tutorial.tsx              # First-time onboarding flow
 │   ├── lib/
-│   │   ├── quizEngine.ts             # Gemini AI + offline question generator
-│   │   ├── types.ts                  # THEMES, ACHIEVEMENTS, all TS interfaces
+│   │   ├── levelUtils.ts             # XP and level calculation helpers
+│   │   ├── mathUtils.ts              # LaTeX normalization & KaTeX sanitization
+│   │   ├── offlineQuestions.ts       # Dynamic question templates (Basic / Normal / Hard)
+│   │   ├── quizEngine.ts             # Gemini AI + offline engine + dynamic randomization
+│   │   ├── sounds.ts                 # Sound effect manager
 │   │   ├── storage.ts                # localStorage read/write helpers
 │   │   ├── translations.ts           # English & Bengali string maps
-│   │   ├── levelUtils.ts             # XP and level calculation helpers
-│   │   └── sounds.ts                 # Sound effect manager
+│   │   └── types.ts                  # THEMES, ACHIEVEMENTS, HSL color utilities
 │   ├── App.tsx                       # Root: navigation, state, theme, toasts
 │   ├── index.css                     # Global styles and CSS variables
 │   ├── main.tsx                      # Entry point
 │   └── vite-env-override.d.ts        # Vite environment type declarations
-├── .github/
-│   └── workflows/
-│       └── build.yml                 # Android APK auto-build workflow
 ├── .env.example                      # API key template
-├── .gitignore 
+├── .gitignore
 ├── icon.png                          # Android launcher icon (1024×1024)
 ├── index.html
+├── LICENSE
 ├── metadata.json                     # App description and capabilities
-├── package.json
 ├── package-lock.json
+├── package.json
 ├── README.md
 ├── SECURITY.md
 ├── tsconfig.json
@@ -448,6 +466,19 @@ MathMind/
 ---
 
 ## 📋 Changelog
+
+### [`v1.2.0`](https://github.com/AsadullahAlMunib/MathMind/releases/tag/v1.2.0) — May 15, 2026
+- 🔁 Recurring achievement multipliers (2x, 3x, 4x…) for Math Marathoner, Math Legend, Warm Up Master
+- 🪄 Smart Theme Engine with Magic Sync (HSL-based Dark Mode auto-suggestion)
+- 🎨 Custom Theme now supports independent Background & Text color customization
+- ⚡ Performance Engine v2 — React.memo + useMemo across MathRenderer, Quiz, Achievements
+- 🎲 Full offline engine randomization — dynamic value generation for all difficulty levels
+- 🔢 Number System Engine — Binary, Octal, Decimal, Hexadecimal conversion questions
+- 📐 Math Engine v2 — log notation, auto-sizing brackets, artifact recovery, robust labels
+- 📈 Fixed performance chart tooltip metadata (Date, Time, Score, Type)
+- 🛠️ Fixed spring/inertia animation crash in incorrect answer shake
+- 🤖 Unified AI on gemini-flash-preview for ultra-low latency
+- 🌐 Translation update — Background & Text labels in EN/BN
 
 ### [`v1.1.0`](https://github.com/AsadullahAlMunib/MathMind/releases/tag/v1.1.0) — May 8, 2026
 - 🧮 Fixed KaTeX rendering for fractions, square roots, and algebraic expressions
