@@ -14,7 +14,7 @@
 [![Issues](https://img.shields.io/github/issues/AsadullahAlMunib/MathMind?style=plastic&logo=github&color=f444f4&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind/issues)
 [![Commits](https://img.shields.io/github/commit-activity/t/AsadullahAlMunib/MathMind?style=plastic&logo=git&color=f05032&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind/commits)
 [![Latest Release](https://img.shields.io/github/v/release/AsadullahAlMunib/MathMind?style=plastic&logo=github&color=7c3aed&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind/releases)
-[![APK Size](https://img.shields.io/badge/APK_Size-5.74_MB-06b6d4?style=plastic&logo=android&logoColor=white&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind/raw/refs/heads/main/download/MathMind.apk)
+[![APK Size](https://img.shields.io/badge/APK_Size-6.03_MB-06b6d4?style=plastic&logo=android&logoColor=white&labelColor=1e1e2e)](https://github.com/AsadullahAlMunib/MathMind/raw/refs/heads/main/download/MathMind.apk)
 
 [![React](https://img.shields.io/badge/React_19-20232A?style=flat&logo=react&logoColor=61DAFB)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript_5.8-007ACC?style=flat&logo=typescript&logoColor=white)](https://typescriptlang.org)
