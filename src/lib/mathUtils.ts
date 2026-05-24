@@ -24,15 +24,12 @@ export const normalizeLatex = (text: string): string => {
   sanitized = sanitized.replace(/\\ \[/g, '\\[').replace(/\\ \]/g, '\\]');
 
   // 3. Fix common LaTeX command spacing and short commands
-  const mathSymbols = ['text', 'sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'log', 'ln', 'sqrt', 'frac', 'theta', 'alpha', 'beta', 'gamma', 'delta', 'pi', 'phi', 'omega', 'sigma', 'lambda', 'times', 'div', 'pm', 'angle', 'leq', 'geq', 'neq', 'approx', 'dots', 'cdots', 'ldots', 'cdot', 'quad', 'qquad', 'infty', 'partial', 'degree', 'wedge', 'vee', 'cup', 'cap', 'int', 'sum', 'prod', 'lim', 'inf', 'sup', 'max', 'min', 'mod', 'triangle', 'square', 'circ', 'perp', 'parallel', 'measuredangle', 'nabla', 'forall', 'exists', 'neg', 'lor', 'land', 'in', 'notin', 'subset', 'supset', 'subseteq', 'supseteq', 'left', 'right', 'begin', 'end'];
+  const mathSymbols = ['text', 'sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'log', 'ln', 'sqrt', 'frac', 'theta', 'alpha', 'beta', 'gamma', 'delta', 'pi', 'phi', 'omega', 'sigma', 'lambda', 'times', 'div', 'pm', 'angle', 'leq', 'geq', 'neq', 'approx', 'dots', 'cdots', 'ldots', 'cdot', 'quad', 'qquad', 'infty', 'partial', 'degree', 'wedge', 'vee', 'cup', 'cap', 'int', 'sum', 'prod', 'lim', 'inf', 'sup', 'max', 'min', 'mod', 'triangle', 'square', 'circ', 'perp', 'parallel', 'measuredangle', 'nabla', 'forall', 'exists', 'neg', 'lor', 'land', 'in', 'notin', 'subset', 'supset', 'subseteq', 'supseteq'];
   
   // Fix spaced commands like \ sin -> \sin or \ \theta -> \theta
   sanitized = sanitized.replace(/\\+\s+(?=[a-zA-Z])/g, '\\');
   sanitized = sanitized.replace(/\\\s+(sin|cos|tan|log|ln|sqrt|frac|sum|int|lim|theta|alpha|beta|gamma|delta|pi|phi|omega|sigma|lambda|dots|circ|begin|end|left|right)/g, (m, p1) => '\\' + p1);
 
-  // Fix missing backslash for common environments and delimiters
-  sanitized = sanitized.replace(/(?<![\\a-zA-Z])(begin|end|left|right)\b(?![a-zA-Z0-9])/g, '\\$1');
-  
   // Deduplicate and fix nested AI math artifacts like \left\left( or \left \left (
   // Use recursive replacement to handle triple or quadruple ones
   let prevSanitized;
@@ -103,31 +100,37 @@ export const normalizeLatex = (text: string): string => {
   // Find a "seed" (a backslash command or a variable followed by operator) and expand it.
   const islandRegex = new RegExp(`(?<![$\\\\\\w{])((?:${mathCharPattern}*?(?:\\\\[a-zA-Z]+|[\\^_{}=<>|&±×÷√∞∫≈≠≤≥])${mathCharPattern}*?))(?=(?:[\\u0980-\\u09FF\\u0964\\u0965]|\\n\\n|\\r\\n\\r\\n|$))`, 'g');
   
-  sanitized = sanitized.replace(islandRegex, (match) => {
-    if (match.includes('$') || match.includes('\\begin')) return match;
-    const trimmed = match.trim();
-    if (trimmed.length < 2) return match;
-    if (trimmed.match(/[\u0980-\u09FF\u0964\u0965]/)) return match;
-    
-    // Safety check: skip if it contains common words that indicate it's actually a sentence
-    const words = trimmed.split(/\s+/);
-    const stopWords = ['and', 'for', 'the', 'was', 'with', 'that', 'this', 'from', 'each', 'does', 'each', 'were', 'which', 'their', 'there', 'some', 'any', 'all'];
-    // If it contains a backslash command, we are much more confident it's math
-    const hasBackslashCommand = trimmed.includes('\\');
-    if (words.some(w => stopWords.includes(w.toLowerCase())) && !hasBackslashCommand) return match;
-    
-    // Check for "too many" long words if NO backslash is present
-    const longWords = words.filter(w => w.length > 5 && /^[a-zA-Z]+$/.test(w));
-    if (longWords.length > 2 && !hasBackslashCommand) return match;
+  // Split by existing math blocks to prevent accidentally matching insides of already-wrapped LaTeX blocks
+  const splitParts = sanitized.split(/(\$\$?[\s\S]*?\$\$?)/g);
+  for (let i = 0; i < splitParts.length; i += 2) {
+    if (!splitParts[i]) continue;
+    splitParts[i] = splitParts[i].replace(islandRegex, (match) => {
+      if (match.includes('$') || match.includes('\\begin')) return match;
+      const trimmed = match.trim();
+      if (trimmed.length < 2) return match;
+      if (trimmed.match(/[\u0980-\u09FF\u0964\u0965]/)) return match;
+      
+      // Safety check: skip if it contains common words that indicate it's actually a sentence
+      const words = trimmed.split(/\s+/);
+      const stopWords = ['and', 'for', 'the', 'was', 'with', 'that', 'this', 'from', 'each', 'does', 'each', 'were', 'which', 'their', 'there', 'some', 'any', 'all'];
+      // If it contains a backslash command, we are much more confident it's math
+      const hasBackslashCommand = trimmed.includes('\\');
+      if (words.some(w => stopWords.includes(w.toLowerCase())) && !hasBackslashCommand) return match;
+      
+      // Check for "too many" long words if NO backslash is present
+      const longWords = words.filter(w => w.length > 5 && /^[a-zA-Z]+$/.test(w));
+      if (longWords.length > 2 && !hasBackslashCommand) return match;
 
-    // Check for unbalanced braces
-    const openBraces = (trimmed.match(/\{/g) || []).length;
-    const closeBraces = (trimmed.match(/\}/g) || []).length;
-    if (openBraces !== closeBraces) return match;
+      // Check for unbalanced braces
+      const openBraces = (trimmed.match(/\{/g) || []).length;
+      const closeBraces = (trimmed.match(/\}/g) || []).length;
+      if (openBraces !== closeBraces) return match;
 
-    const isMultiLine = (trimmed.match(/\n/g) || []).length > 0 || trimmed.length > 100 || (trimmed.includes('\\\\') && !trimmed.includes('matrix'));
-    return isMultiLine ? ` $$ ${trimmed} $$ ` : `$${trimmed}$`;
-  });
+      const isMultiLine = (trimmed.match(/\n/g) || []).length > 0 || trimmed.length > 100 || (trimmed.includes('\\\\') && !trimmed.includes('matrix'));
+      return isMultiLine ? ` $$ ${trimmed} $$ ` : `$${trimmed}$`;
+    });
+  }
+  sanitized = splitParts.join('');
 
   // C. Combinations/Permutations (Standard notation: nCr or nPr)
   // We use a more careful match to avoid catching Bengali text
@@ -287,6 +290,9 @@ export const sanitizeMathForKatex = (math: string): string => {
   // Remove inner dollars that AI often inserts inside complex expressions (e.g. \begin{matrix}$x$ ... \end{matrix})
   // We do this AFTER removing outer delimiters to avoid stripping the delimiters themselves
   cleaned = cleaned.replace(/(?<!\\)\$/g, '');
+
+  // Wrap any raw sequences of Bengali letters in \text{...} so KaTeX can render them in math mode without throwing errors.
+  cleaned = cleaned.replace(/([\u0980-\u09FF]+)/g, '\\text{$1}');
   
   // Remove common AI artifacts like unbalanced braces
   let openBraces = (cleaned.match(/\{/g) || []).length;

@@ -43,10 +43,13 @@ import {
 import AppTooltip from './Tooltip';
 import { format, subDays, isSameDay } from 'date-fns';
 import Logo from './Logo';
+import MathRenderer from './MathRenderer';
 
 import { UserStats, UserProfile, Difficulty } from '../lib/types';
 import { translations } from '../lib/translations';
 import { calculateLevelInfo } from '../lib/levelUtils';
+import { soundManager } from '../lib/sounds';
+import { ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 
 interface DashboardProps {
   stats: UserStats;
@@ -54,9 +57,10 @@ interface DashboardProps {
   language: 'en' | 'bn';
   onStartQuiz: (d: Difficulty) => void;
   onStartReview: () => void;
+  onAwardBonus: (points: number) => void;
 }
 
-export default function Dashboard({ stats, user, language, onStartQuiz, onStartReview }: DashboardProps) {
+export default function Dashboard({ stats, user, language, onStartQuiz, onStartReview, onAwardBonus }: DashboardProps) {
   const [activeAnalysis, setActiveAnalysis] = useState<'accuracy' | 'mastery'>('accuracy');
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const t = translations[language];

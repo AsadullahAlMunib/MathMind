@@ -764,11 +764,16 @@ const hardTemplates: ((language: 'en' | 'bn') => Question)[] = [
   (lang) => {
     const n = Math.floor(Math.random() * 3) + 1; // 1, 2, 3
     const coeff = n + 1;
+    const ans = `x^{${n + 1}}`;
+    const alt1 = `x^{${n}}`;
+    const alt2 = `${coeff}x^{${n + 1}}`;
+    const alt3 = `${coeff}x^{${n}}`;
     return {
       id: `h6-${Math.random()}`,
       question: lang === 'en' ? `$\\int ${coeff}x^{${n}} dx = ?$ (exclude C)` : `$\\int ${formatValue(coeff, lang)}x^{${formatValue(n, lang)}} dx = ?$ (C বাদে)`,
-      answer: `x^{${n + 1}}`,
-      type: 'fill-blank',
+      answer: ans,
+      type: 'mcq',
+      options: [ans, alt1, alt2, alt3].sort(() => Math.random() - 0.5).map(o => formatOptionValue(o, lang)),
       difficulty: 'hard',
       explanation: lang === 'en' ? `Integration of x^n is x^{n+1}/(n+1).` : `x^n এর ইন্টিগ্রেশন হলো x^{n+1}/(n+1)।`
     };

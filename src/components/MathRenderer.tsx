@@ -50,31 +50,6 @@ export const MathRenderer: React.FC<MathRendererProps> = React.memo(({ content, 
                     segment.startsWith('\\[') || 
                     segment.includes('\\begin{align') || 
                     segment.includes('\\begin{gather');
-      } else if (
-        ((segment.includes('\\') && !segment.match(/[A-Z]:\\/)) || 
-        segment.includes('\\begin') ||
-        segment.includes('\\left') ||
-        segment.includes('\\right') ||
-        segment.includes('\\\\') ||
-        segment.includes('{}^{') ||
-        segment.includes('|') ||
-        segment.includes('^') ||
-        segment.includes('_') ||
-        segment.includes('&') ||
-        (segment.includes('=') && segment.match(/[a-zA-Z0-9\(\)]\s*=\s*/)) ||
-        segment.match(/[a-zA-Z0-9]\s*[-+*/]\s*[a-zA-Z0-9]/)) &&
-        (segment.match(/[\u0980-\u09FF]/g) || []).length < 25 // Heuristic: math-heavy segments
-      ) {
-        // Heuristic: If it looks like orphaned math that wasn't wrapped, try rendering it as inline
-        math = segment.trim();
-        // Use display mode for larger environments or manual newlines
-        isDisplay = segment.includes('\\\\') || 
-                    segment.includes('\\begin{') ||
-                    segment.includes('\\[');
-        
-        // Clean up any remaining leading/trailing dollars that might have survived normalization
-        while (math.startsWith('$')) math = math.slice(1).trim();
-        while (math.endsWith('$')) math = math.slice(0, -1).trim();
       } else {
         // Plain text segment
         return <span key={index}>{segment}</span>;
@@ -84,8 +59,10 @@ export const MathRenderer: React.FC<MathRendererProps> = React.memo(({ content, 
 
       try {
         const sanitizedMath = sanitizeMathForKatex(math);
+        
+        // Attempt strict KaTeX parse check
         const html = katex.renderToString(sanitizedMath, {
-          throwOnError: false,
+          throwOnError: true,
           displayMode: isDisplay,
           strict: false,
           trust: true
@@ -99,10 +76,36 @@ export const MathRenderer: React.FC<MathRendererProps> = React.memo(({ content, 
           />
         );
       } catch (error) {
-        console.error('KaTeX rendering error:', error, 'for math:', math);
+        console.warn('KaTeX strict render failed, falling back to clean math text:', math, error);
+        
+        // Formats KaTeX-math commands to raw readable mathematical symbols
+        const plainMathText = math
+          .replace(/\\text\{([^{}]+)\}/g, '$1')
+          .replace(/\\times/g, ' × ')
+          .replace(/\\div/g, ' ÷ ')
+          .replace(/\\pm/g, ' ± ')
+          .replace(/\\le/g, ' ≤ ')
+          .replace(/\\ge/g, ' ≥ ')
+          .replace(/\\sqrt\{([^{}]+)\}/g, '√$1')
+          .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1/$2)')
+          .replace(/\\frac\s*(\d)\s*(\d)/g, '($1/$2)')
+          .replace(/\\frac\s*([a-zA-Z])\s*([a-zA-Z])/g, '($1/$2)')
+          .replace(/\\int/g, '∫')
+          .replace(/\\pi/g, 'π')
+          .replace(/\\sin/g, 'sin')
+          .replace(/\\cos/g, 'cos')
+          .replace(/\\tan/g, 'tan')
+          .replace(/\^\{([^{}]+)\}/g, '^$1')
+          .replace(/\_\{([^{}]+)\}/g, '_$1')
+          .replace(/[\{\}]/g, ''); // strip remaining braces
+          
         return (
-          <span key={index} className="px-1 py-0.5 bg-rose-500/10 text-rose-500 rounded font-mono text-xs">
-            {segment}
+          <span 
+            key={index} 
+            className="px-1.5 py-0.5 bg-amber-500/10 text-amber-500 dark:text-amber-400 rounded font-mono text-xs inline-block"
+            title="Simplified equation view"
+          >
+            {plainMathText}
           </span>
         );
       }

@@ -55,6 +55,11 @@ const QUESTION_CACHE_KEY = 'math_mind_questions_cache_v2';
 
 export const storage = {
   save: (data: AppState) => {
+    if (data.stats && data.stats.history) {
+      if (data.stats.history.length > 100) {
+        data.stats.history = data.stats.history.slice(0, 100);
+      }
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   },
   
@@ -182,8 +187,10 @@ export const storage = {
       });
     }
 
-    // Migration: Ensure history is limited to 100
-    if (parsed.stats.history && parsed.stats.history.length > 100) {
+    // Migration: Ensure history exists and is limited to 100
+    if (!parsed.stats.history) {
+      parsed.stats.history = [];
+    } else if (parsed.stats.history.length > 100) {
       parsed.stats.history = parsed.stats.history.slice(0, 100);
     }
 

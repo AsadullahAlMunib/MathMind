@@ -26,7 +26,9 @@ import {
   Zap,
   Flame,
   ArrowRight,
-  PartyPopper
+  PartyPopper,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 import { storage } from './lib/storage';
@@ -45,6 +47,9 @@ import Tutorial from './components/Tutorial';
 import Tooltip from './components/Tooltip';
 import Logo from './components/Logo';
 import QuotaModal from './components/QuotaModal';
+
+import { MATH_TRICKS } from './lib/mathTricksData';
+import MathRenderer from './components/MathRenderer';
 
 interface ReviewSummaryModalProps {
   isOpen: boolean;
@@ -153,6 +158,8 @@ export default function App() {
   const [showQuotaModal, setShowQuotaModal] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [reviewSummary, setReviewSummary] = useState<{ correct: number; incorrect: number; points: number } | null>(null);
+  const [trickCategory, setTrickCategory] = useState<'arithmetic' | 'algebra' | 'geometry'>('arithmetic');
+  const [expandedTrick, setExpandedTrick] = useState<string | null>(null);
 
   const t = translations[state.user.language];
   const currentTheme = useMemo(() => {
@@ -291,6 +298,26 @@ export default function App() {
         // But maybe it's better to just update stats and let the UI reflect it
       }
 
+      return updatedStats;
+    });
+    setState(storage.load());
+  };
+
+  const handleAwardBonus = (pointsToAdd: number) => {
+    storage.updateStats(stats => {
+      const newTotalPoints = stats.totalPoints + pointsToAdd;
+      const { level: newLevel } = calculateLevelInfo(newTotalPoints);
+      const updatedStats = {
+        ...stats,
+        totalPoints: newTotalPoints,
+        balance: (stats.balance || 0) + pointsToAdd,
+        level: newLevel
+      };
+      
+      if (newLevel > stats.level) {
+        soundManager.play('levelUp');
+        addToast(t.levelUp || "Level Up!", `${t.level} ${newLevel}`, <Award className="text-primary" />);
+      }
       return updatedStats;
     });
     setState(storage.load());
@@ -609,68 +636,181 @@ export default function App() {
                   language={state.user.language}
                   onStartQuiz={(d) => setQuizDifficulty(d)}
                   onStartReview={startReviewMode}
+                  onAwardBonus={handleAwardBonus}
                 />
               )}
               {activeTab === 'quiz' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 max-w-3xl mx-auto">
-                  {(['basic', 'normal', 'hard'] as Difficulty[]).map((d) => (
-                    <div key={d} id={`quiz-mode-${d}`} className="h-full">
-                      <motion.button
-                        whileHover={{ y: -2 }}
-                        whileTap={{ scale: 0.99 }}
-                        onClick={() => setQuizDifficulty(d)}
-                        className="group relative w-full h-full text-left bg-surface/60 border border-theme/10 rounded-2xl p-4 transition-all duration-300 overflow-hidden shadow-sm flex flex-col"
-                      >
-                        {/* Subtle Gradient Background Animation Effect */}
-                        <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-br bg-[length:400%_400%] ${
-                          d === 'basic' ? 'from-emerald-400 via-transparent to-primary' : 
-                          d === 'normal' ? 'from-amber-400 via-transparent to-primary' : 
-                          'from-rose-400 via-transparent to-primary'
-                        } animate-gradient-x`} />
+                <div className="max-w-4xl mx-auto space-y-6">
+                  {/* Game modes selection cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4">
+                    {(['basic', 'normal', 'hard'] as Difficulty[]).map((d) => (
+                      <div key={d} id={`quiz-mode-${d}`} className="h-full">
+                        <motion.button
+                          whileHover={{ y: -2 }}
+                          whileTap={{ scale: 0.99 }}
+                          onClick={() => setQuizDifficulty(d)}
+                          className="group relative w-full h-full text-left bg-surface/60 border border-theme/10 rounded-2xl p-4 transition-all duration-300 overflow-hidden shadow-sm flex flex-col"
+                        >
+                          {/* Subtle Gradient Background Animation Effect */}
+                          <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 bg-gradient-to-br bg-[length:400%_400%] ${
+                            d === 'basic' ? 'from-emerald-400 via-transparent to-primary' : 
+                            d === 'normal' ? 'from-amber-400 via-transparent to-primary' : 
+                            'from-rose-400 via-transparent to-primary'
+                          } animate-gradient-x`} />
 
-                        <div className="flex items-start justify-between mb-3 relative z-10">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
-                              d === 'basic' ? 'bg-emerald-500/10 text-emerald-600' : 
-                              d === 'normal' ? 'bg-amber-500/10 text-amber-600' : 
-                              'bg-rose-500/10 text-rose-600'
-                            }`}>
-                              {d === 'basic' ? <Gamepad2 size={20} /> : 
-                               d === 'normal' ? <Zap size={20} /> : 
-                               <Flame size={20} />}
+                          <div className="flex items-start justify-between mb-3 relative z-10">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ${
+                                d === 'basic' ? 'bg-emerald-500/10 text-emerald-600' : 
+                                d === 'normal' ? 'bg-amber-500/10 text-amber-600' : 
+                                'bg-rose-500/10 text-rose-600'
+                              }`}>
+                                {d === 'basic' ? <Gamepad2 size={20} /> : 
+                                 d === 'normal' ? <Zap size={20} /> : 
+                                 <Flame size={20} />}
+                              </div>
+                              <h3 className="text-base font-black tracking-tight group-hover:text-primary transition-colors">{t[d]}</h3>
                             </div>
-                            <h3 className="text-base font-black tracking-tight group-hover:text-primary transition-colors">{t[d]}</h3>
+                            
+                            <div className="flex flex-col items-end shrink-0">
+                              <span className="text-[9px] font-black uppercase tracking-wider opacity-40">
+                                {state.user.language === 'en' ? 'BEST' : 'সেরা'}
+                              </span>
+                              <span className={`text-[11px] font-black ${
+                                d === 'basic' ? 'text-emerald-600' : 
+                                d === 'normal' ? 'text-amber-600' : 
+                                'text-rose-600'
+                              }`}>
+                                {(state.stats.highScores[d] || 0).toLocaleString()}
+                              </span>
+                            </div>
                           </div>
-                          
-                          <div className="flex flex-col items-end shrink-0">
-                            <span className="text-[9px] font-black uppercase tracking-wider opacity-40">
-                              {state.user.language === 'en' ? 'BEST' : 'সেরা'}
-                            </span>
-                            <span className={`text-[11px] font-black ${
-                              d === 'basic' ? 'text-emerald-600' : 
-                              d === 'normal' ? 'text-amber-600' : 
-                              'text-rose-600'
-                            }`}>
-                              {(state.stats.highScores[d] || 0).toLocaleString()}
-                            </span>
+
+                          <p className="text-[11px] font-medium opacity-60 leading-snug relative z-10">
+                            {d === 'basic' ? 
+                              (state.user.language === 'en' ? 'Core arithmetic: Addition, subtraction & simple multiplication.' : 'পাটিগণিতের মূল ভিত্তি: যোগ, বিয়োগ এবং সাধারণ নামতা ও গুণ।') : 
+                             d === 'normal' ? 
+                              (state.user.language === 'en' ? 'Algebra essentials: Percentages, factors & equation solving.' : 'বীজগণিতের ধারণা: শতকরা, উৎপাদক এবং সমীকরণ সমাধানের চর্চা।') : 
+                              (state.user.language === 'en' ? 'Expert logic: Sequences, complex geometry & math puzzles.' : 'উন্নত যুক্তি: সংখ্যাতত্ত্বের অনুক্রম, জ্যামিতি এবং গাণিতিক ধাঁধা।')}
+                          </p>
+
+                          <div className="mt-3 flex items-center justify-end gap-1 text-[10px] font-black uppercase text-primary/70 group-hover:text-primary transition-colors relative z-10">
+                            {state.user.language === 'en' ? 'Play' : 'শুরু'}
+                            <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
                           </div>
-                        </div>
+                        </motion.button>
+                      </div>
+                    ))}
+                  </div>
 
-                        <p className="text-[11px] font-medium opacity-60 leading-snug relative z-10">
-                          {d === 'basic' ? 
-                            (state.user.language === 'en' ? 'Core arithmetic: Addition, subtraction & simple multiplication.' : 'পাটিগণিতের মূল ভিত্তি: যোগ, বিয়োগ এবং সাধারণ নামতা ও গুণ।') : 
-                           d === 'normal' ? 
-                            (state.user.language === 'en' ? 'Algebra essentials: Percentages, factors & equation solving.' : 'বীজগণিতের ধারণা: শতকরা, উৎপাদক এবং সমীকরণ সমাধানের চর্চা।') : 
-                            (state.user.language === 'en' ? 'Expert logic: Sequences, complex geometry & math puzzles.' : 'উন্নত যুক্তি: সংখ্যাতত্ত্বের অনুক্রম, জ্যামিতি এবং গাণিতিক ধাঁধা।')}
-                        </p>
-
-                        <div className="mt-3 flex items-center justify-end gap-1 text-[10px] font-black uppercase text-primary/70 group-hover:text-primary transition-colors relative z-10">
-                          {state.user.language === 'en' ? 'Play' : 'শুরু'}
-                          <ArrowRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
+                  {/* Formula & Speed Hacks Section rendering under the modes */}
+                  <div id="math-tricks-widget" className="math-card glass border-theme/20 p-3.5 mx-4 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <div className="w-6 h-6 bg-amber-500/10 text-amber-500 rounded-lg flex items-center justify-center shrink-0">
+                          <Zap size={14} />
                         </div>
-                      </motion.button>
+                        <div>
+                          <h4 className="font-black text-xs uppercase tracking-tight text-foreground leading-none">
+                            {state.user.language === 'en' ? 'Tips & Speed Tricks' : 'টিপস এবং স্পিড ট্রিকস'}
+                          </h4>
+                          <p className="text-[9px] text-muted font-medium mt-0.5">
+                            {state.user.language === 'en' ? 'Master mental calculation shortcuts to solve quizzes faster.' : 'দ্রুত কুইজ সমাধান করতে মানসিক হিসাবের সহজ কৌশলগুলো শিখুন।'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Mini Categories Select tabs - Clean tight structure */}
+                      <div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-xl self-start sm:self-auto shrink-0 border border-black/5 dark:border-white/5">
+                         {(['arithmetic', 'algebra', 'geometry'] as const).map(cat => (
+                           <button
+                             key={cat}
+                             onClick={() => {
+                               setTrickCategory(cat);
+                               setExpandedTrick(null);
+                             }}
+                             className={`px-3 py-1 text-[9px] font-black rounded-lg uppercase transition-all whitespace-nowrap cursor-pointer ${
+                               trickCategory === cat 
+                                 ? 'bg-surface text-primary shadow-sm'
+                                 : 'text-muted hover:text-foreground hover:bg-surface/30'
+                             }`}
+                           >
+                             {t[cat] || cat}
+                           </button>
+                         ))}
+                      </div>
                     </div>
-                  ))}
+
+                    {/* Compact Accordion-Style Math Tips Layout */}
+                    <div className="space-y-1 w-full max-w-3xl mx-auto">
+                      {MATH_TRICKS.filter(trick => trick.category === trickCategory).map(trick => {
+                        const isOpen = expandedTrick === trick.id;
+                        return (
+                          <div 
+                            key={trick.id}
+                            className={`bg-black/5 dark:bg-white/5 rounded-xl border transition-all duration-200 overflow-hidden ${
+                              isOpen ? 'border-primary/20 bg-primary/[0.01]' : 'border-black/5 dark:border-white/5 hover:border-theme/10'
+                            }`}
+                          >
+                            <button
+                              onClick={() => setExpandedTrick(isOpen ? null : trick.id)}
+                              className="w-full flex items-center justify-between px-3 py-2 cursor-pointer text-left focus:outline-none"
+                            >
+                              <div className="flex items-center gap-2 pr-2">
+                                <span className="font-extrabold text-[11px] text-foreground leading-snug">
+                                  {state.user.language === 'en' ? trick.titleEn : trick.titleBn}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="hidden sm:inline-block bg-primary/10 text-primary font-mono text-[9px] px-2 py-0.5 rounded">
+                                  <MathRenderer content={`$${trick.formula}$`} />
+                                </span>
+                                {isOpen ? (
+                                  <ChevronUp size={14} className="text-muted" />
+                                ) : (
+                                  <ChevronDown size={14} className="text-muted" />
+                                )}
+                              </div>
+                            </button>
+
+                            <AnimatePresence initial={false}>
+                              {isOpen && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.15 }}
+                                >
+                                  <div className="px-3 pb-2.5 pt-1 border-t border-black/5 dark:border-white/5 text-[10px] text-muted space-y-2">
+                                    <p className="font-semibold text-foreground opacity-90 leading-relaxed">
+                                      {state.user.language === 'en' ? trick.descEn : trick.descBn}
+                                    </p>
+
+                                    {/* Small screen formulation backup */}
+                                    <div className="sm:hidden bg-primary/5 rounded-lg px-2.5 py-1 border border-primary/10 text-center font-mono text-[9.5px] text-primary inline-block">
+                                      <span className="font-extrabold text-[8px] uppercase text-foreground/40 block text-left leading-none mb-0.5">
+                                        {state.user.language === 'en' ? 'Formula:' : 'সূত্র:'}
+                                      </span>
+                                      <MathRenderer content={`$${trick.formula}$`} />
+                                    </div>
+
+                                    <div className="bg-black/5 dark:bg-white/5 rounded-xl p-2.5 border border-black/5 dark:border-white/5">
+                                      <span className="font-black text-foreground uppercase text-[8px] block mb-1 opacity-75">
+                                        {state.user.language === 'en' ? 'Quick Calculation Example:' : 'সহজ হিসাবের উদাহরণ:'}
+                                      </span>
+                                      <div className="text-[9.5px] font-medium leading-relaxed text-foreground">
+                                        <MathRenderer content={state.user.language === 'en' ? trick.exampleEn : trick.exampleBn} />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
               {activeTab === 'leaderboard' && (

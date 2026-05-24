@@ -35,9 +35,9 @@
 
 </div>
 
-## 🚀 What's New — `v1.2.0` *(May 15, 2026)*
+## 🚀 What's New — `v1.3.0` *(May 24, 2026)*
 
-> Upgrading from `v1.1.0` — this major release introduces the **Smart Theme Engine**, **Recurring Achievement System**, and significant **Math Engine** optimizations for performance and accuracy.
+> Upgrading from `v1.2.0` — this major update brings interactive tips, bilingual LaTeX fixes, quiz autosave/resume, tactile audio pre-warming, and mobile MCQ enhancements.
 
 <br/>
 
@@ -45,50 +45,45 @@
 <thead>
 <tr>
 <th width="44px">​</th>
-<th>Update</th>
+<th width="200px">Update</th>
 <th>Details</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td align="center">🔁</td>
-<td><strong>Recurring Achievements</strong></td>
-<td>Achievements like <em>Math Marathoner</em> and <em>Math Legend</em> now support <strong>Multipliers (2x, 3x, 4x…)</strong>. Unlocked achievements now show real-time progress toward the next tier.</td>
+<td align="center">💡</td>
+<td><strong>Interactive Math Tips</strong></td>
+<td>Overhauled formula tips into a polished accordion layout featuring 6 new bilingual tricks (multiply-by-15, consecutive odd sums, algebra shortcuts, regular polygons, etc.).</td>
 </tr>
 <tr>
-<td align="center">🪄</td>
-<td><strong>Smart Theme Engine</strong></td>
-<td>Implemented <strong>Magic Sync</strong>: the app now automatically suggests mathematically balanced Dark Mode colors based on your Light Mode selections using HSL color space manipulation. Background and Text colors are now independently customizable.</td>
+<td align="center">🧮</td>
+<td><strong>Bilingual LaTeX Engine</strong></td>
+<td>Ensures math expressions with mixed Bengali digits render correctly inside KaTeX. Safely translates digits inside TeX bounds without changing surrounding Bengali prose.</td>
 </tr>
 <tr>
-<td align="center">⚡</td>
-<td><strong>Performance Engine v2</strong></td>
-<td>Massive rendering optimizations using <strong>React.memo</strong> and <strong>useMemo</strong> across <code>MathRenderer</code>, <code>Quiz</code>, and <code>Achievements</code>. Drastically improved UI responsiveness during quiz transitions and analytics.</td>
+<td align="center">🔄</td>
+<td><strong>Session Recovery Auto-Save</strong></td>
+<td>Autosaves gameplay stats (score, time, series state) in real-time. Displays a dual-language prompt to seamlessly resume unfinished game sessions on reload.</td>
 </tr>
 <tr>
-<td align="center">🎲</td>
-<td><strong>Full Engine Randomization</strong></td>
-<td>ALL difficulty templates (Basic, Normal, Hard) now use a <strong>Dynamic Value Generator</strong>. Every offline session produces unique numbers for every topic — no more repeated questions.</td>
+<td align="center">🔊</td>
+<td><strong>Touch-Gesture Audio Boost</strong></td>
+<td>Pre-warms Web Audio contexts on the initial user interaction to reliably unlock ambient sounds and bypass strict iOS Safari and mobile Chrome autoplay constraints.</td>
 </tr>
 <tr>
-<td align="center">🔢</td>
-<td><strong>Number System Engine</strong></td>
-<td>Integrated a comprehensive <strong>Binary, Octal, Decimal, and Hexadecimal</strong> conversion system as a new question category.</td>
+<td align="center">💾</td>
+<td><strong>Quota Hardening Controls</strong></td>
+<td>Limits local quiz log history to the most recent 100 entries, preventing <code>QuotaExceededError</code> storage failures and keeping serialization lightweight.</td>
 </tr>
 <tr>
 <td align="center">📐</td>
-<td><strong>Math Engine v2</strong></td>
-<td>Advanced log notation (<code>log 2</code> → <code>\log_{2}</code>), auto-sizing brackets, corrupted artifact recovery, robust labeled expression support, and improved backslash injection for trig and log functions.</td>
+<td><strong>MCQ Formula Upgrades</strong></td>
+<td>Replaced manual-entry keyboard fields in advanced algebra categories with touch-friendly interactive multiple-choice options to speed up the mobile gameplay flow.</td>
 </tr>
 <tr>
-<td align="center">📈</td>
-<td><strong>Chart Metadata Sync</strong></td>
-<td>Fixed a synchronization issue in the Performance Chart; tooltips now accurately display <strong>Date, Time, Score, and Type</strong> for every data point.</td>
-</tr>
-<tr>
-<td align="center">🛠️</td>
-<td><strong>Animation & Stability Fix</strong></td>
-<td>Resolved a runtime crash with spring/inertia animations. Unified the quiz engine on <strong>gemini-flash-preview</strong> for ultra-low latency across all difficulty levels.</td>
+<td align="center">📱</td>
+<td><strong>Adaptive Layout Realignment</strong></td>
+<td>Responsive grid realignment keeping key achievements perfectly aligned in 4 columns on desktop, and 2 columns on mobile viewports.</td>
 </tr>
 </tbody>
 </table>
@@ -436,6 +431,7 @@ MathMind/
 │   │   └── Tutorial.tsx              # First-time onboarding flow
 │   ├── lib/
 │   │   ├── levelUtils.ts             # XP and level calculation helpers
+│   │   ├── mathTricksData.ts         # Bilingual math shortcut tips data
 │   │   ├── mathUtils.ts              # LaTeX normalization & KaTeX sanitization
 │   │   ├── offlineQuestions.ts       # Dynamic question templates (Basic / Normal / Hard)
 │   │   ├── quizEngine.ts             # Gemini AI + offline engine + dynamic randomization
@@ -466,6 +462,16 @@ MathMind/
 ---
 
 ## 📋 Changelog
+
+### [`v1.3.0`](https://github.com/AsadullahAlMunib/MathMind/releases/tag/v1.3.0) — May 24, 2026
+- 💡 Interactive math accordion with 6 new bilingual shortcut tricks
+- 🧮 Rendering fix for mixed Bengali and English digits inside math formulas
+- 🔄 Real-time gameplay auto-saving and bilingual resume prompt
+- 🔊 Sound pre-warming to bypass iOS and mobile Chrome autoplay blocks
+- 💾 Local storage hardening by limiting gameplay history to 100 entries
+- 🎲 Dynamically randomized algebra sequences and offline math patterns
+- 📐 Touch MCQ selections for algebra entry instead of text input fields
+- 📱 Optimized 4-column desktop grid and 2-column mobile dashboard layout
 
 ### [`v1.2.0`](https://github.com/AsadullahAlMunib/MathMind/releases/tag/v1.2.0) — May 15, 2026
 - 🔁 Recurring achievement multipliers (2x, 3x, 4x…) for Math Marathoner, Math Legend, Warm Up Master

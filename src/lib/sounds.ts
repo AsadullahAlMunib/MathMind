@@ -15,6 +15,7 @@ const SOUND_URLS = {
 class SoundManager {
   private enabled: boolean = true;
   private sounds: Record<string, HTMLAudioElement> = {};
+  private audioContextUnlocked: boolean = false;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -23,6 +24,37 @@ class SoundManager {
         audio.preload = 'auto';
         this.sounds[key] = audio;
       });
+
+      // Global touch/click interaction unlock routine for iOS/Safari & Chrome
+      const unlock = () => {
+        if (this.audioContextUnlocked) return;
+        
+        // Warm up sound resources with silent trigger registered inside user gesture
+        Object.values(this.sounds).forEach((audio) => {
+          try {
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+              }).catch(() => {
+                // Silently swallow initial initialization rejections
+              });
+            }
+          } catch (err) {
+            // Silently swallow synchronous errors
+          }
+        });
+        
+        this.audioContextUnlocked = true;
+        
+        // Cleanup listeners
+        window.removeEventListener('click', unlock);
+        window.removeEventListener('touchstart', unlock);
+      };
+
+      window.addEventListener('click', unlock, { passive: true });
+      window.addEventListener('touchstart', unlock, { passive: true });
     }
   }
 

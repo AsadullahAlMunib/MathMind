@@ -162,6 +162,8 @@ export default React.memo(function Quiz({ difficulty, onComplete, onAnswerCorrec
   const [currentLightSpeedStreak, setCurrentLightSpeedStreak] = useState(0);
   const [maxLightSpeedStreak, setMaxLightSpeedStreak] = useState(0);
   const [inputValue, setInputValue] = useState('');
+  const [hasSavedSession, setHasSavedSession] = useState(false);
+  const [savedSessionData, setSavedSessionData] = useState<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -209,11 +211,107 @@ export default React.memo(function Quiz({ difficulty, onComplete, onAnswerCorrec
     }
   };
 
+  const handleResumeSession = () => {
+    if (!savedSessionData) return;
+    setQuestions(savedSessionData.questions);
+    setCurrentIndex(savedSessionData.currentIndex);
+    setSelectedAnswer(savedSessionData.selectedAnswer);
+    setShowResult(savedSessionData.showResult);
+    setResults(savedSessionData.results);
+    setTimeLeft(savedSessionData.timeLeft);
+    setPoints(savedSessionData.points);
+    setMissedQuestions(savedSessionData.missedQuestions || []);
+    setTotalTimeSpent(savedSessionData.totalTimeSpent || 0);
+    setCurrentLightSpeedStreak(savedSessionData.currentLightSpeedStreak || 0);
+    setMaxLightSpeedStreak(savedSessionData.maxLightSpeedStreak || 0);
+    setInputValue(savedSessionData.inputValue || '');
+    setSource(savedSessionData.source || null);
+    setHasSavedSession(false);
+    
+    if (!savedSessionData.selectedAnswer && !savedSessionData.showResult) {
+      startTimer();
+    }
+  };
+
+  const handleStartFresh = () => {
+    localStorage.removeItem('mathmind_active_quiz_session');
+    setHasSavedSession(false);
+    setLoading(true);
+    fetchQuestions();
+  };
+
+  const handleCancel = () => {
+    localStorage.removeItem('mathmind_active_quiz_session');
+    onCancel();
+  };
+
   useEffect(() => {
     if (initialQuestions) return;
+    
+    // Attempt load of saved session first
+    if (difficulty !== 'review') {
+      try {
+        const saved = localStorage.getItem('mathmind_active_quiz_session');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.difficulty === difficulty && parsed.questions && parsed.questions.length > 0) {
+            setSavedSessionData(parsed);
+            setHasSavedSession(true);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to read saved quiz session:', err);
+      }
+    }
+
     fetchQuestions();
     return () => stopTimer();
   }, [difficulty, language, initialQuestions]);
+
+  // Quiz state auto-saver loop
+  useEffect(() => {
+    if (difficulty === 'review' || questions.length === 0 || loading || hasSavedSession) return;
+    try {
+      const sessionState = {
+        difficulty,
+        questions,
+        currentIndex,
+        selectedAnswer,
+        showResult,
+        results,
+        timeLeft,
+        points,
+        missedQuestions,
+        totalTimeSpent,
+        currentLightSpeedStreak,
+        maxLightSpeedStreak,
+        inputValue,
+        source
+      };
+      localStorage.setItem('mathmind_active_quiz_session', JSON.stringify(sessionState));
+    } catch (e) {
+      console.error('Failed to auto-save quiz session state:', e);
+    }
+  }, [
+    questions,
+    currentIndex,
+    selectedAnswer,
+    showResult,
+    results,
+    timeLeft,
+    points,
+    missedQuestions,
+    totalTimeSpent,
+    currentLightSpeedStreak,
+    maxLightSpeedStreak,
+    inputValue,
+    loading,
+    difficulty,
+    source,
+    hasSavedSession
+  ]);
 
   useEffect(() => {
     if (initialQuestions && questions.length > 0 && loading) {
@@ -354,6 +452,9 @@ export default React.memo(function Quiz({ difficulty, onComplete, onAnswerCorrec
       }
     });
 
+    // Clean up active session caching
+    localStorage.removeItem('mathmind_active_quiz_session');
+
     onComplete(points, correctCount, difficulty, missedQuestions, maxStreak, totalTimeSpent, maxLightSpeedStreak, questions);
   };
 
@@ -434,6 +535,60 @@ export default React.memo(function Quiz({ difficulty, onComplete, onAnswerCorrec
     );
   }
 
+  if (hasSavedSession && savedSessionData) {
+    return (
+      <div className="max-w-md mx-auto math-card glass border-indigo-500/20 p-6 md:p-8 space-y-6 text-center animate-fade-in my-12 relative overflow-hidden">
+        {/* Background Decorative Blobs */}
+        <div className="absolute top-0 left-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-32 h-32 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="mx-auto w-16 h-16 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center mb-2 animate-bounce">
+          <HelpCircle size={32} />
+        </div>
+        
+        <div className="space-y-2">
+          <h3 className="text-xl font-black tracking-tight text-text">
+            {translations[language].resumeQuizTitle}
+          </h3>
+          <p className="text-sm text-text-muted leading-relaxed">
+            {translations[language].resumeQuizDesc
+              .replace('{points}', savedSessionData.points.toString())
+              .replace('{index}', (savedSessionData.currentIndex + 1).toString())}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2.5 pt-2">
+          <motion.button
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={handleResumeSession}
+            className="w-full py-3.5 rounded-xl bg-primary text-white font-black text-sm shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Play size={16} fill="currentColor" />
+            {translations[language].btnResume}
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ y: -1 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={handleStartFresh}
+            className="w-full py-3.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10 text-text font-black text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Delete size={16} />
+            {translations[language].btnStartFresh}
+          </motion.button>
+          
+          <button 
+            onClick={onCancel}
+            className="text-xs font-bold uppercase tracking-widest text-text-muted hover:text-text mt-3 transition-colors cursor-pointer"
+          >
+            {language === 'en' ? 'Back to Dashboard' : 'ড্যাশবোর্ডে ফিরে যান'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const currentQ = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
 
@@ -442,7 +597,7 @@ export default React.memo(function Quiz({ difficulty, onComplete, onAnswerCorrec
       {/* Quiz Header */}
       <div className="flex items-center justify-between">
         <AppTooltip content={t.quitQuiz} position="right">
-          <button onClick={onCancel} className="text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 flex items-center gap-1.5 transition-opacity">
+          <button onClick={handleCancel} className="text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 flex items-center gap-1.5 transition-opacity">
             <X size={14} /> {language === 'en' ? 'Quit' : 'বন্ধ করুন'}
           </button>
         </AppTooltip>
